@@ -28,6 +28,9 @@ Las pruebas y la documentación las comparte todo el equipo.
 - **Firebase**: Authentication, Cloud Firestore, Cloud Storage, Cloud Functions y Hosting.
 - **PayPal** (sandbox) para la reserva de cupos.
 - **Figma** para el prototipo: [prototipo en Figma](https://www.figma.com/proto/NnL18RHGqI9u4ddKXQUGnE/Sam%C3%A1n-Deportivo)
+- **Ejemplo de la interfaz de figma:**
+<img width="543" height="378" alt="image" src="https://github.com/user-attachments/assets/93ba85c3-d422-4f18-9f6e-3536b26eec20" />
+
 
 ## Estructura
 
