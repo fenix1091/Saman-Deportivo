@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="170" viewBox="0 0 560 170">
-  <g transform="translate(14,20) scale(1.1)">
-    <path d="M71 112 C73 96 72 84 64 70 M77 112 C77 94 80 82 94 68 M74 100 C70 90 58 80 44 72 M76 96 C84 88 100 80 116 74" stroke="#6B4A2E" stroke-width="7" fill="none" stroke-linecap="round"/>
-    <path d="M6 60 C4 38 30 28 48 34 C58 14 94 12 106 32 C126 24 152 38 150 58 C152 72 134 78 120 74 L36 74 C18 78 6 72 6 60 Z" fill="#2E8B57"/>
-    <path d="M22 66 C24 52 40 46 54 50 C64 38 90 38 100 50 C114 44 134 52 134 64 C134 70 126 72 118 70 L34 70 C26 72 20 70 22 66 Z" fill="#1F5E3A" opacity=".35"/>
-    <circle cx="116" cy="101" r="12" fill="#F28C28"/>
-    <path d="M104 101 H128 M116 89 V113 M107.5 92.5 Q113 101 107.5 109.5 M124.5 92.5 Q119 101 124.5 109.5" stroke="#FFFFFF" stroke-width="1.8" fill="none" opacity=".9"/>
-    <path d="M26 114 H136" stroke="#1F5E3A" stroke-width="4" stroke-linecap="round"/>
-  </g><text x="200" y="86" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#1F5E3A" text-anchor="start">Samán</text><text x="200" y="120.32" font-family="Segoe UI, Arial, sans-serif" font-size="20.240000000000002" font-weight="700" fill="#F28C28" text-anchor="start" letter-spacing="7.04">DEPORTIVO</text></svg>

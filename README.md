@@ -44,7 +44,7 @@ lib/
   widgets/       componentes reutilizables
 functions/       Cloud Functions (validar solvencia, confirmar pago, estadísticas)
 docs/            documentos de OpenUP (docs/hito1) y diagramas UML en PlantUML (docs/uml)
-design/          logo, paleta y maquetas de las vistas
+design/          logo y capturas del prototipo en Figma (fundamentos y pantallas)
 test/            pruebas unitarias y de widgets
 ```
 
