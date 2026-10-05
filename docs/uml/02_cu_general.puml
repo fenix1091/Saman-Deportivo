@@ -8,7 +8,6 @@ actor "Estudiante" as E
 actor "Entrenador" as T
 actor "Administrador" as A
 actor "Usuario\nautenticado" as U
-actor "BD Central\nUNIMET" as BD <<sistema>>
 actor "PayPal" as PP <<sistema>>
 E -|> V
 E -|> U
@@ -65,6 +64,5 @@ CU05 .> CU04 : <<extend>>
 CU07 .> CU08 : <<include>>
 CU07 .> CU09 : <<include>>
 CU14 .> CU13 : <<include>>
-CU08 --> BD
 CU09 --> PP
 @enduml

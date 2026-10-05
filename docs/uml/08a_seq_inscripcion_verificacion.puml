@@ -8,7 +8,6 @@ control ":InscripcionViewModel" as VM
 participant ":InscripcionRepository" as R
 database "Cloud Firestore" as FS
 participant "Cloud Functions" as CF
-participant "BD Central UNIMET" as BD
 
 E -> V : pulsa "Inscribirme"
 V -> VM : inscribirse(deporteId)
@@ -21,8 +20,8 @@ alt no hay cupos disponibles
   V --> E : muestra mensaje y sugiere otros deportes
 else hay cupo
   VM -> CF : validarSolvencia(carnet)
-  CF -> BD : consultarEstudiante(carnet)
-  BD --> CF : {estado, solvente}
+  CF -> FS : get(usuarios/estudianteId)
+  FS --> CF : {estado, solvente}
   alt inactivo o no solvente
     CF --> VM : rechazado(motivo)
     VM --> V : "No cumples los requisitos: <motivo>"
@@ -37,7 +36,7 @@ else hay cupo
     V --> E : pantalla "Confirmar inscripción"
   end
 end
-note over E, BD
+note over E, CF
   Continúa en (b) Pago y confirmación
 end note
 @enduml

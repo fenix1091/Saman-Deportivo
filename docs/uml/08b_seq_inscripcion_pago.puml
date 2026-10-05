@@ -7,7 +7,7 @@ boundary ":PagoView" as V
 control ":InscripcionViewModel" as VM
 database "Cloud Firestore" as FS
 participant "Cloud Functions" as CF
-participant "PayPal" as PP
+actor "PayPal" as PP <<sistema>>
 
 note over E, PP
   Precondición: inscripción creada en PENDIENTE_PAGO (parte a)

@@ -18,7 +18,6 @@ cloud "Firebase (Google Cloud)" {
 }
 cloud "Servicios externos" {
   [PayPal REST API\n(sandbox)] as PP
-  [BD Central UNIMET\n(API de solvencia,\nsimulada en el MVP)] as BD
 }
 Views --> VMs
 VMs --> Repos
@@ -30,5 +29,4 @@ Repos --> ST : imágenes
 Repos --> CF : llamadas HTTPS
 CF --> FS : transacciones de cupo
 CF --> PP : capturar / reembolsar
-CF --> BD : consultar estado
 @enduml

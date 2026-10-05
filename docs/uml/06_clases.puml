@@ -18,6 +18,7 @@ abstract class Persona {
 class Estudiante {
   - carnet : String
   - estado : EstadoEstudiante
+  - solvente : bool
   - carrera : String
   + consultarCatalogo(filtro : FiltroBusqueda) : List<Deporte>
   + inscribirse(deporte : Deporte) : Inscripcion
