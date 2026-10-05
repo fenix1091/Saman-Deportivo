@@ -1,4 +1,4 @@
-<p align="center"><img src="design/marca/logo_horizontal.png" width="360" alt="Samán Deportivo"></p>
+<p align="center"><img width="883" height="408" alt="dasdsdasdsad" src="https://github.com/user-attachments/assets/3aa91aea-9f1e-4c2a-ba14-108b54efddbd" />
 
 # Samán Deportivo
 
