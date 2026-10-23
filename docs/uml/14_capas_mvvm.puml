@@ -1,0 +1,59 @@
+@startuml
+!include _estilo.iuml
+title Línea base de la arquitectura del cliente (MVVM + Repositorio)
+skinparam componentStyle rectangle
+left to right direction
+
+package "lib/views (Vista)" as V {
+  [InicioView] as IV
+  [LoginView] as LV
+  [RegistroView] as RV
+  [RecuperarClaveView] as RCV
+  [PerfilView] as PV
+  [Pantallas de cada módulo\n(catálogo, entrenador, admin)] as MV
+}
+package "lib/viewmodels (VistaModelo)" as VM {
+  [AuthViewModel] as AVM
+  [PerfilViewModel] as PVM
+  [ViewModels de cada módulo] as MVM
+}
+package "lib/repositories (Repositorio)" as R {
+  interface AuthRepository as AR
+  [AuthRepositoryLocal\n(en memoria, desarrollo y pruebas)] as ARL
+  [AuthRepositoryFirebase\n(Auth + Firestore + Storage)] as ARF
+  interface "Repositorios de cada módulo" as MR
+}
+package "lib/models (Modelo)" as M {
+  [Persona, Estudiante,\nEntrenador, Administrador] as PE
+  [Deporte, Horario, Inscripción,\nPago, Asistencia, Reseña] as DOM
+}
+package "lib/core" as C {
+  [router.dart\n(go_router + guardia por rol)] as RT
+  [validadores.dart] as VAL
+  [theme.dart] as TH
+}
+
+IV --> RT
+LV --> AVM
+RV --> AVM
+RCV --> AVM
+PV --> PVM
+MV --> MVM
+AVM --> AR
+PVM --> AR
+MVM --> MR
+ARL ..|> AR
+ARF ..|> AR
+AR --> PE
+MR --> DOM
+RT --> AVM : escucha la sesión
+LV ..> VAL
+RV ..> VAL
+PV ..> VAL
+
+note bottom of ARF
+  Pendiente: la implementa el responsable
+  de Firebase. Se activa cambiando una
+  línea de main.dart.
+end note
+@enduml

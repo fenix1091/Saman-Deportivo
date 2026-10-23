@@ -1,0 +1,39 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-03 Gestionar perfil
+autonumber
+actor "Usuario" as U
+boundary ":PerfilView" as V
+control ":PerfilViewModel" as VM
+participant ":AuthRepository" as R
+participant "Cloud Storage" as ST
+database "Cloud Firestore" as FS
+
+U -> V : abre "Mi perfil"
+V -> VM : usuario
+VM --> V : datos comunes y del rol (solo lectura)
+opt cambia la foto
+  U -> V : pulsa "Cambiar foto" y elige una imagen
+  V -> VM : elegirFoto(bytes, nombre)
+  alt mayor a 2 MB o formato no permitido
+    VM --> V : error
+    V --> U : explica el motivo y conserva la foto (A1)
+  else válida
+    VM --> V : vista previa
+  end
+end
+U -> V : edita el teléfono y pulsa "Guardar"
+V -> V : Validadores.telefono()
+V -> VM : guardar(telefono)
+opt hay foto nueva
+  VM -> R : subirFotoPerfil(uid, bytes, ext)
+  R -> ST : putData(fotos/uid)
+  ST --> R : URL de descarga
+  R --> VM : fotoUrl
+end
+VM -> R : actualizarPerfil(usuario.copiarPerfil(telefono, fotoUrl))
+R -> FS : update(usuarios/uid, {telefono, fotoUrl})
+R --> VM : Persona
+VM --> V : guardado
+V --> U : "Perfil actualizado"
+@enduml

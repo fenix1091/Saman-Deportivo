@@ -1,0 +1,24 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de actividad — guardia de rutas por rol
+start
+:El usuario abre una ruta\n(o cambia la sesión);
+if (¿Hay sesión abierta?) then (no)
+  if (¿La ruta es pública?\n/ /login /registro\n/recuperar-clave /catalogo) then (sí)
+    :Mostrar la ruta;
+  else (no)
+    :Ir a /login?destino=<ruta>;
+  endif
+else (sí)
+  if (¿Es /login o /registro?) then (sí)
+    :Ir al destino pendiente o\na la pantalla de inicio del rol;
+  elseif (¿Es /entrenador/* y el rol\nno es Entrenador?) then (sí)
+    :Ir a la pantalla de inicio del rol;
+  elseif (¿Es /admin/* y el rol\nno es Administrador?) then (sí)
+    :Ir a la pantalla de inicio del rol;
+  else (no)
+    :Mostrar la ruta;
+  endif
+endif
+stop
+@enduml

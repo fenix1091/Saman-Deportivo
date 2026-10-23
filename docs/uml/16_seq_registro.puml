@@ -1,0 +1,39 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-01 Registrarse
+autonumber
+actor "Estudiante" as U
+boundary ":RegistroView" as V
+participant ":Validadores" as VAL
+control ":AuthViewModel" as VM
+participant ":AuthRepository" as R
+participant "Firebase Auth" as FA
+database "Cloud Firestore" as FS
+
+U -> V : ingresa cédula, nombre, correo,\ncarnet y contraseña
+U -> V : pulsa "Crear cuenta"
+V -> VAL : validar cada campo
+alt algún campo inválido
+  VAL --> V : mensajes de error
+  V --> U : marca los campos y explica el formato (A1)
+else datos válidos
+  V -> VM : registrar(datos)
+  VM -> VM : normalizarCedula()
+  VM -> R : registrarEstudiante(datos)
+  R -> FS : ¿existen cédula, carnet o correo?
+  alt ya registrado
+    FS --> R : sí
+    R --> VM : AuthException(cedula/carnet/correoYaRegistrado)
+    VM --> V : error
+    V --> U : "Ya existe una cuenta" + Iniciar sesión /\nRecuperar contraseña (A2)
+  else disponible
+    R -> FA : createUserWithEmailAndPassword()
+    FA --> R : User(uid)
+    R -> FS : set(usuarios/uid, {rol: estudiante, ...})
+    R -> FA : sendEmailVerification()
+    R --> VM : Estudiante
+    VM --> V : registro exitoso
+    V --> U : aviso de verificación y /catalogo
+  end
+end
+@enduml

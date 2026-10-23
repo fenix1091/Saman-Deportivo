@@ -1,0 +1,48 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-02 Iniciar sesión (con guardia de rutas)
+autonumber
+actor "Usuario" as U
+boundary ":LoginView" as V
+control ":AuthViewModel" as VM
+participant ":AuthRepository" as R
+participant "Firebase Auth" as FA
+database "Cloud Firestore" as FS
+participant ":GoRouter\n(guardia)" as G
+
+U -> V : ingresa correo y contraseña
+U -> V : pulsa "Entrar"
+V -> V : Validadores.correo()
+alt formato inválido
+  V --> U : "El correo no es válido" (A1)
+else formato válido
+  V -> VM : iniciarSesion(correo, clave)
+  VM -> R : iniciarSesion(correo, clave)
+  R -> FA : signInWithEmailAndPassword()
+  alt credenciales incorrectas
+    FA --> R : error
+    R --> VM : AuthException(credencialesInvalidas)
+    VM --> V : error
+    V --> U : "Correo o contraseña inválidos" (A2)
+  else 5 intentos fallidos
+    FA --> R : too-many-requests
+    R --> VM : AuthException(demasiadosIntentos)
+    V --> U : "Espera unos minutos" (A2)
+  else credenciales correctas
+    FA --> R : User(uid)
+    R -> FS : get(usuarios/uid)
+    FS --> R : {rol, nombre, ...}
+    R -> R : Persona.desdeMapa()
+    R --> VM : Estudiante | Entrenador | Administrador
+    VM -> G : notifyListeners()
+    G -> G : redirigir(usuario, ruta)
+    alt Estudiante
+      G --> U : /catalogo
+    else Entrenador
+      G --> U : /entrenador/mis-deportes
+    else Administrador
+      G --> U : /admin/dashboard
+    end
+  end
+end
+@enduml
