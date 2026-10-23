@@ -51,16 +51,13 @@ test/            pruebas unitarias y de widgets
 ## Cómo ejecutar
 
 ```bash
-# 1. Generar las carpetas de plataforma (no reemplaza lib/)
-flutter create . --platforms=web,android,ios --org ve.edu.unimet
-
-# 2. Descargar dependencias y ejecutar en el navegador
 flutter pub get
 flutter run -d chrome
 ```
 
-La conexión con Firebase se configura en la fase de Elaboración (Hito 2) con
-`flutterfire configure`.
+La app está conectada al proyecto de Firebase `saman-deportivo-7b59f` (web, Android, iOS y
+Windows). La configuración está en `lib/firebase_options.dart` y `firebase.json`; si se agrega
+otra plataforma, se vuelve a ejecutar `flutterfire configure`.
 
 ## Flujo de trabajo
 

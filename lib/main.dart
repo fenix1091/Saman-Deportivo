@@ -1,13 +1,17 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'core/theme.dart';
+import 'firebase_options.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const SamanDeportivoApp());
 }
 
 /// Punto de entrada de Samán Deportivo.
-/// En el Hito 2 se agregan Firebase, las rutas (go_router) y los ViewModels (provider).
+/// En el Hito 2 se agregan las rutas (go_router) y los ViewModels (provider).
 class SamanDeportivoApp extends StatelessWidget {
   const SamanDeportivoApp({super.key});
 
