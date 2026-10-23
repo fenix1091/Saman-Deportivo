@@ -53,12 +53,34 @@ class AuthViewModel extends ChangeNotifier {
         ));
   }
 
+  /// Inicia sesión con correo y contraseña (CU-02). Devuelve `true` si las credenciales son válidas.
+  Future<bool> iniciarSesion(String correo, String clave) {
+    return _ejecutar(() => _repositorio.iniciarSesion(correo.trim(), clave));
+  }
+
+  /// Envía el enlace para restablecer la contraseña (CU-02, A3).
+  Future<bool> recuperarClave(String correo) {
+    return _ejecutar(() => _repositorio.enviarRecuperacionClave(correo.trim()));
+  }
+
+  Future<void> cerrarSesion() => _repositorio.cerrarSesion();
+
+  /// Pantalla inicial de cada rol después de iniciar sesión.
+  static String rutaInicio(Rol rol) => switch (rol) {
+        Rol.estudiante => '/catalogo',
+        Rol.entrenador => '/entrenador/mis-deportes',
+        Rol.administrador => '/admin/dashboard',
+      };
+
   Future<bool> _ejecutar(Future<Object?> Function() accion) async {
     _cargando = true;
     _error = null;
     notifyListeners();
     try {
       await accion();
+      // El stream avisa en la siguiente vuelta del bucle de eventos; se lee ya para
+      // que la vista pueda navegar según el rol apenas termina la acción.
+      _usuario = _repositorio.usuarioActual;
       return true;
     } on AuthException catch (e) {
       _error = e.error;

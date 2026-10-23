@@ -27,6 +27,11 @@ class InicioView extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
+                FilledButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Iniciar sesión'),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => context.go('/registro'),
                   child: const Text('Crear cuenta'),

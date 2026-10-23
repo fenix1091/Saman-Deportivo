@@ -16,7 +16,17 @@ class EnConstruccionView extends StatelessWidget {
     final usuario = context.watch<AuthViewModel>().usuario;
     final textos = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: Text(titulo)),
+      appBar: AppBar(
+        title: Text(titulo),
+        actions: [
+          if (usuario != null)
+            IconButton(
+              tooltip: 'Cerrar sesión',
+              icon: const Icon(Icons.logout),
+              onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
+            ),
+        ],
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
