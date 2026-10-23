@@ -108,7 +108,7 @@ class _PerfilViewState extends State<PerfilView> {
               ),
               const SizedBox(height: 8),
               Text(
-                'La cédula, el correo y los datos académicos solo los puede cambiar la Coordinación de Deportes.',
+                'La cédula, el correo y los datos de tu rol solo los puede cambiar la Coordinación de Deportes.',
                 style: textos.bodySmall,
                 textAlign: TextAlign.center,
               ),
