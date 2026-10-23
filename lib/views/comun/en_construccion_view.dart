@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_view_model.dart';
@@ -19,12 +20,18 @@ class EnConstruccionView extends StatelessWidget {
       appBar: AppBar(
         title: Text(titulo),
         actions: [
-          if (usuario != null)
+          if (usuario != null) ...[
+            IconButton(
+              tooltip: 'Mi perfil',
+              icon: const Icon(Icons.account_circle_outlined),
+              onPressed: () => context.push('/perfil'),
+            ),
             IconButton(
               tooltip: 'Cerrar sesión',
               icon: const Icon(Icons.logout),
               onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
             ),
+          ],
         ],
       ),
       body: Center(

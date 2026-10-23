@@ -75,8 +75,7 @@ class Validadores {
     return null;
   }
 
-  static String? confirmarClave(String? valor, String clave) =>
-      valor != clave ? 'Las contraseñas no coinciden.' : null;
+  static String? confirmarClave(String? valor, String clave) => valor != clave ? 'Las contraseñas no coinciden.' : null;
 
   /// Teléfono móvil venezolano, opcional: 0414-1234567.
   static String? telefono(String? valor) {

@@ -29,6 +29,26 @@ void main() {
     expect(find.text('Panel de administración'), findsOneWidget);
   });
 
+  testWidgets('el entrenador ve sus datos en el perfil y cambia su teléfono', (tester) async {
+    await abrirLogin(tester);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'entrenador@unimet.edu.ve');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'Entrenador123');
+    await tester.tap(find.text('Entrar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Mi perfil'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fútbol'), findsOneWidget);
+    expect(find.text('V-20333444'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono'), '0412-555');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('celular válido'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono'), '0412-5550000');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Perfil actualizado'), findsOneWidget);
+  });
+
   testWidgets('una contraseña incorrecta muestra el error y no entra', (tester) async {
     await abrirLogin(tester);
     await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'admin@unimet.edu.ve');

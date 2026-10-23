@@ -53,8 +53,7 @@ enum ErrorAuth {
   final String mensaje;
 
   /// Los errores de cuenta duplicada ofrecen "Iniciar sesión" o "Recuperar contraseña" (CU-01, A2).
-  bool get esCuentaExistente =>
-      this == correoYaRegistrado || this == cedulaYaRegistrada || this == carnetYaRegistrado;
+  bool get esCuentaExistente => this == correoYaRegistrado || this == cedulaYaRegistrada || this == carnetYaRegistrado;
 }
 
 class AuthException implements Exception {

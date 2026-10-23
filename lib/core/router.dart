@@ -1,8 +1,12 @@
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../models/persona.dart';
+import '../repositories/auth_repository.dart';
 import '../viewmodels/auth_view_model.dart';
+import '../viewmodels/perfil_view_model.dart';
 import '../views/comun/en_construccion_view.dart';
+import '../views/comun/perfil_view.dart';
 import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
 import '../views/publico/recuperar_clave_view.dart';
@@ -29,10 +33,18 @@ GoRouter crearRouter(AuthViewModel auth) {
       GoRoute(path: '/recuperar-clave', builder: (_, __) => const RecuperarClaveView()),
       GoRoute(path: '/catalogo', builder: (_, __) => const EnConstruccionView(titulo: 'Catálogo de deportes')),
       GoRoute(
+        path: '/perfil',
+        builder: (context, __) => ChangeNotifierProvider(
+          create: (_) => PerfilViewModel(context.read<AuthRepository>()),
+          child: const PerfilView(),
+        ),
+      ),
+      GoRoute(
         path: '/entrenador/mis-deportes',
         builder: (_, __) => const EnConstruccionView(titulo: 'Mis deportes'),
       ),
-      GoRoute(path: '/admin/dashboard', builder: (_, __) => const EnConstruccionView(titulo: 'Panel de administración')),
+      GoRoute(
+          path: '/admin/dashboard', builder: (_, __) => const EnConstruccionView(titulo: 'Panel de administración')),
     ],
   );
 }

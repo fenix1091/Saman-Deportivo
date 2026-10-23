@@ -12,6 +12,7 @@ dependencies:
   provider: ^6.1.2
   go_router: ^14.2.0
   google_fonts: ^6.2.1
+  image_picker: ^1.2.4
   # Se agregan en el Hito 2 con `flutterfire configure`:
   # firebase_core, firebase_auth, cloud_firestore, firebase_storage, cloud_functions
 
