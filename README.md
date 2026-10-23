@@ -53,6 +53,8 @@ test/            pruebas unitarias y de widgets
 ```bash
 # 1. Generar las carpetas de plataforma (no reemplaza lib/)
 flutter create . --platforms=web,android,ios --org ve.edu.unimet
+#    flutter create agrega un test de ejemplo que no aplica a esta app: bórralo
+rm test/widget_test.dart
 
 # 2. Descargar dependencias y ejecutar en el navegador
 flutter pub get
