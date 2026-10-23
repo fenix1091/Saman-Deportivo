@@ -53,8 +53,6 @@ test/            pruebas unitarias y de widgets
 ```bash
 # 1. Generar las carpetas de plataforma (no reemplaza lib/)
 flutter create . --platforms=web,android,ios --org ve.edu.unimet
-#    flutter create agrega un test de ejemplo que no aplica a esta app: bórralo
-rm test/widget_test.dart
 
 # 2. Descargar dependencias y ejecutar en el navegador
 flutter pub get
@@ -63,20 +61,6 @@ flutter run -d chrome
 
 La conexión con Firebase se configura en la fase de Elaboración (Hito 2) con
 `flutterfire configure`.
-
-### Modo local (sin Firebase)
-
-Mientras Firebase no esté conectado, la app usa `AuthRepositoryLocal`, un repositorio en
-memoria que imita Firebase Auth (los datos se pierden al recargar). Cuentas de prueba:
-
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Estudiante | estudiante@correo.unimet.edu.ve | Estudiante123 |
-| Entrenador | entrenador@unimet.edu.ve | Entrenador123 |
-| Administrador | admin@unimet.edu.ve | Admin1234 |
-
-Para pasar a Firebase basta con crear una clase que implemente `AuthRepository` y
-cambiar la línea que lo elige en `lib/main.dart`; las vistas y los ViewModels no cambian.
 
 ## Flujo de trabajo
 

@@ -32,8 +32,6 @@ ThemeData buildTheme() {
       headlineMedium: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: AppColors.texto),
       titleLarge: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppColors.texto),
     ),
-    // Los mensajes de ayuda y de error de los formularios no se cortan en el teléfono.
-    inputDecorationTheme: const InputDecorationTheme(helperMaxLines: 3, errorMaxLines: 3),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(50),
