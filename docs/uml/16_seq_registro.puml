@@ -20,20 +20,25 @@ else datos válidos
   V -> VM : registrar(datos)
   VM -> VM : normalizarCedula()
   VM -> R : registrarEstudiante(datos)
-  R -> FS : ¿existen cédula, carnet o correo?
-  alt ya registrado
-    FS --> R : sí
-    R --> VM : AuthException(cedula/carnet/correoYaRegistrado)
-    VM --> V : error
+  R -> FA : createUserWithEmailAndPassword()
+  alt correo ya registrado
+    FA --> R : email-already-in-use
+    R --> VM : AuthException(correoYaRegistrado)
     V --> U : "Ya existe una cuenta" + Iniciar sesión /\nRecuperar contraseña (A2)
-  else disponible
-    R -> FA : createUserWithEmailAndPassword()
+  else cuenta creada
     FA --> R : User(uid)
-    R -> FS : set(usuarios/uid, {rol: estudiante, ...})
-    R -> FA : sendEmailVerification()
-    R --> VM : Estudiante
-    VM --> V : registro exitoso
-    V --> U : aviso de verificación y /catalogo
+    R -> FS : escritura en lote: usuarios/uid,\ncedulas/{cedula}, carnets/{carnet}
+    alt cédula o carnet ya registrados
+      FS --> R : rechazada por las reglas (el índice existe)
+      R -> FA : delete() del usuario recién creado
+      R --> VM : AuthException(cedula/carnetYaRegistrado)
+      V --> U : "Ya existe una cuenta" + opciones (A2)
+    else guardado
+      R -> FA : sendEmailVerification()
+      R --> VM : Estudiante
+      VM --> V : registro exitoso
+      V --> U : aviso de verificación y /catalogo
+    end
   end
 end
 @enduml
