@@ -44,3 +44,7 @@ service-account*.json
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Pruebas de las reglas
+pruebas_reglas/node_modules/
+pruebas_reglas/*.log

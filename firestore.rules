@@ -1,0 +1,104 @@
+rules_version = '2';
+
+// Reglas de seguridad de Samán Deportivo.
+// Hacen cumplir en el servidor lo mismo que la guardia de rutas en la app:
+// cada usuario solo lee y edita su perfil, nadie puede darse otro rol y
+// solo el administrador gestiona los datos deportivos.
+// Pruebas: pruebas_reglas/ (npm test, con el emulador de Firestore).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+    function rutaUsuario(uid) {
+      return /databases/$(database)/documents/usuarios/$(uid);
+    }
+    function rol() {
+      return get(rutaUsuario(request.auth.uid)).data.rol;
+    }
+    function tienePerfil() {
+      return autenticado() && exists(rutaUsuario(request.auth.uid));
+    }
+    function esAdmin() {
+      return tienePerfil() && rol() == 'administrador';
+    }
+    function esEntrenador() {
+      return tienePerfil() && rol() == 'entrenador';
+    }
+
+    // ---------- Usuarios (RF-01, RF-02, RF-03) ----------
+    match /usuarios/{uid} {
+      allow get: if autenticado() && (request.auth.uid == uid || esAdmin() || esEntrenador());
+      allow list: if esAdmin() || esEntrenador();
+
+      // Registro: solo el propio estudiante, con sus datos iniciales fijos.
+      allow create: if autenticado()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
+                                                  'carnet', 'estado', 'solvente', 'carrera', 'creadoEn'])
+        && request.resource.data.rol == 'estudiante'
+        && request.resource.data.estado == 'activo'
+        && request.resource.data.solvente == false
+        && request.resource.data.correo == request.auth.token.email
+        && request.resource.data.creadoEn == request.time;
+
+      // Perfil: el dueño solo cambia teléfono y foto; el administrador, todo.
+      allow update: if esAdmin()
+        || (autenticado()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['telefono', 'fotoUrl'])
+          && request.resource.data.telefono is string
+          && request.resource.data.telefono.size() <= 20
+          && request.resource.data.fotoUrl is string
+          && request.resource.data.fotoUrl.size() < 1000000);
+
+      allow delete: if esAdmin();
+    }
+
+    // Índices de unicidad: un documento por cédula y por carnet. Se crean en el
+    // mismo lote que el usuario y no se pueden sobrescribir, así que una cédula
+    // o un carnet repetidos hacen fallar el registro.
+    match /cedulas/{cedula} {
+      allow get: if autenticado();
+      allow create: if autenticado()
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(rutaUsuario(request.auth.uid)).data.cedula == cedula;
+      allow delete: if esAdmin();
+    }
+    match /carnets/{carnet} {
+      allow get: if autenticado();
+      allow create: if autenticado()
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(rutaUsuario(request.auth.uid)).data.carnet == carnet;
+      allow delete: if esAdmin();
+    }
+
+    // ---------- Estructura base de la gestión deportiva ----------
+    // El catálogo es público; solo el administrador lo modifica (RF-04, RF-15, RF-17).
+    match /deportes/{codigo} {
+      allow read: if true;
+      allow write: if esAdmin();
+      match /horarios/{id} {
+        allow read: if true;
+        allow write: if esAdmin();
+      }
+    }
+
+    // Inscripciones, pagos, asistencias y reseñas se abren en el Hito 3, cuando se
+    // programen sus módulos. Por ahora solo las maneja el administrador.
+    match /inscripciones/{id} {
+      allow read, write: if esAdmin();
+    }
+    match /pagos/{id} {
+      allow read, write: if esAdmin();
+    }
+    match /asistencias/{id} {
+      allow read, write: if esAdmin();
+    }
+    match /resenas/{id} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+  }
+}
