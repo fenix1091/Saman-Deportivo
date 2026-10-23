@@ -59,6 +59,23 @@ La app está conectada al proyecto de Firebase `saman-deportivo-7b59f` (web, And
 Windows). La configuración está en `lib/firebase_options.dart` y `firebase.json`; si se agrega
 otra plataforma, se vuelve a ejecutar `flutterfire configure`.
 
+### Pruebas
+
+```bash
+flutter test                       # modelos, validaciones, ViewModels, rutas y pantallas
+cd pruebas_reglas && npm install && npm test   # reglas de Firestore (necesita Java 21)
+```
+
+### Reglas de seguridad
+
+Las reglas de Firestore están en `firestore.rules`. Después de cambiarlas hay que publicarlas:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+(o copiarlas en la consola de Firebase, en Firestore Database → Reglas).
+
 ## Flujo de trabajo
 
 - `main`: versión estable, se actualiza al cerrar cada hito.
