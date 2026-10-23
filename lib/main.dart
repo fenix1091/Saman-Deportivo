@@ -1,49 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'core/router.dart';
 import 'core/theme.dart';
+import 'repositories/auth_repository.dart';
+import 'repositories/auth_repository_local.dart';
+import 'viewmodels/auth_view_model.dart';
 
 void main() {
-  runApp(const SamanDeportivoApp());
+  // Mientras no esté configurado Firebase se usa el repositorio en memoria;
+  // al conectarlo basta con cambiar esta línea por la implementación de Firebase.
+  final AuthRepository repositorio = AuthRepositoryLocal.conDatosDePrueba();
+  runApp(SamanDeportivoApp(repositorio: repositorio));
 }
 
 /// Punto de entrada de Samán Deportivo.
-/// En el Hito 2 se agregan Firebase, las rutas (go_router) y los ViewModels (provider).
-class SamanDeportivoApp extends StatelessWidget {
-  const SamanDeportivoApp({super.key});
+class SamanDeportivoApp extends StatefulWidget {
+  const SamanDeportivoApp({super.key, required this.repositorio});
+
+  final AuthRepository repositorio;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Samán Deportivo',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      home: const _Bienvenida(),
-    );
-  }
+  State<SamanDeportivoApp> createState() => _SamanDeportivoAppState();
 }
 
-class _Bienvenida extends StatelessWidget {
-  const _Bienvenida();
+class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
+  late final AuthViewModel _auth = AuthViewModel(widget.repositorio);
+  late final GoRouter _router = crearRouter(_auth);
+
+  @override
+  void dispose() {
+    _router.dispose();
+    _auth.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset('design/marca/logo_horizontal.png', width: 320),
-              const SizedBox(height: 16),
-              Text(
-                'Tu deporte en la UNIMET, a un toque',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.gris),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+    return MultiProvider(
+      providers: [
+        Provider<AuthRepository>.value(value: widget.repositorio),
+        ChangeNotifierProvider<AuthViewModel>.value(value: _auth),
+      ],
+      child: MaterialApp.router(
+        title: 'Samán Deportivo',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        routerConfig: _router,
       ),
     );
   }
