@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # This file configures the analyzer, which statically analyzes Dart code to
 # check for errors, warnings, and lints.
 #
@@ -9,6 +10,8 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+=======
+>>>>>>> main
 analyzer:
   exclude:
     - build/**
@@ -16,14 +19,18 @@ analyzer:
     - ios/**
     - web/**
     - windows/**
+<<<<<<< HEAD
 <<<<<<< Updated upstream
     - macos/**
     - linux/**
 =======
+=======
+>>>>>>> main
     - pruebas_reglas/**
     - lib/firebase_options.dart
     - macos/**
 include: package:flutter_lints/flutter.yaml
+<<<<<<< HEAD
 >>>>>>> Stashed changes
 
 linter:
@@ -43,3 +50,11 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+=======
+
+linter:
+  rules:
+    prefer_const_constructors: true
+    prefer_single_quotes: true
+    public_member_api_docs: false
+>>>>>>> main

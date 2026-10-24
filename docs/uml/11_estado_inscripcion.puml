@@ -1,0 +1,18 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de estados — Inscripción
+state "PENDIENTE_PAGO" as PendientePago
+state "CONFIRMADA" as Confirmada
+state "RECHAZADA" as Rechazada
+state "CANCELADA" as Cancelada
+state "EXPIRADA" as Expirada
+[*] --> PendientePago : estudiante solvente\nsolicita inscripción
+PendientePago --> Confirmada : pago completado\n[hay cupo] / cuposOcupados++
+PendientePago --> Rechazada : pago fallido o\n[cupo agotado] / reembolso
+PendientePago --> Expirada : 15 min sin pagar
+Confirmada --> Cancelada : estudiante cancela\n/ cuposOcupados--
+Confirmada --> Cancelada : administrador da de baja\nel deporte / cuposOcupados--
+Rechazada --> [*]
+Expirada --> [*]
+Cancelada --> [*]
+@enduml

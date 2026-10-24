@@ -1,0 +1,42 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-02 Iniciar sesión
+autonumber
+actor "Usuario" as U
+boundary ":LoginView" as V
+control ":AuthViewModel" as VM
+participant ":AuthRepository" as R
+participant "Firebase Auth" as FA
+database "Cloud Firestore" as FS
+
+U -> V : ingresa correo y contraseña
+U -> V : pulsa "Iniciar sesión"
+V -> VM : iniciarSesion(correo, clave)
+VM -> VM : validarFormato(correo)
+alt formato inválido
+  VM --> V : error "Correo no válido"
+  V --> U : muestra mensaje
+else formato válido
+  VM -> R : signIn(correo, clave)
+  R -> FA : signInWithEmailAndPassword()
+  alt credenciales incorrectas
+    FA --> R : FirebaseAuthException
+    R --> VM : error
+    VM --> V : "Correo o contraseña inválidos"
+    V --> U : muestra mensaje
+  else credenciales correctas
+    FA --> R : User(uid)
+    R -> FS : get(usuarios/uid)
+    FS --> R : {rol, nombre, estado}
+    R --> VM : Usuario(rol)
+    VM --> V : navegar según rol
+    alt rol = Estudiante
+      V --> U : /catalogo
+    else rol = Entrenador
+      V --> U : /entrenador/mis-deportes
+    else rol = Administrador
+      V --> U : /admin/dashboard
+    end
+  end
+end
+@enduml

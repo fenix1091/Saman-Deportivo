@@ -1,0 +1,13 @@
+{
+  "name": "pruebas-reglas-saman-deportivo",
+  "private": true,
+  "description": "Pruebas de firestore.rules con el emulador de Firestore (requiere Java 11 o superior).",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-saman-deportivo \"node --test\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.1.0",
+    "firebase-tools": "15.32.1"
+  }
+}
