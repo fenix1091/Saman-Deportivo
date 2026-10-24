@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/inscripcion.dart';
+import '../models/resena.dart';
 
 class InscripcionRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -18,7 +19,7 @@ class InscripcionRepository {
             .toList());
   }
 
-  /// 2. Cancelar inscripción con Transacción
+  /// 2. Cancelar inscripción con Transacción (CU-10)
   Future<void> cancelarInscripcion(
       String inscripcionId, String deporteCodigo) async {
     await _db.runTransaction((transaction) async {
@@ -27,12 +28,10 @@ class InscripcionRepository {
 
       final depSnap = await transaction.get(depRef);
 
-      // Cambia el estado en la inscripción a 'cancelada'
       transaction.update(inscRef, {
         'estado': 'cancelada',
       });
 
-      // Libera el cupo restando 1 en el deporte
       if (depSnap.exists) {
         final cuposActuales = depSnap.data()?['cuposOcupados'] as int? ?? 1;
         if (cuposActuales > 0) {
@@ -40,5 +39,29 @@ class InscripcionRepository {
         }
       }
     });
+  }
+
+  /// 3. Publicar o actualizar Reseña (CU-12)
+  Future<void> publicarResena({
+    required String deporteCodigo,
+    required String estudianteId,
+    required int calificacion,
+    required String comentario,
+  }) async {
+    final resenaId = '${deporteCodigo}_$estudianteId';
+
+    final resena = Resena(
+      id: resenaId,
+      deporteCodigo: deporteCodigo,
+      estudianteId: estudianteId,
+      calificacion: calificacion,
+      comentario: comentario,
+      fecha: DateTime.now(),
+    );
+
+    await _db
+        .collection('resenas')
+        .doc(resenaId)
+        .set(resena.aMapa(), SetOptions(merge: true));
   }
 }

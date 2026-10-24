@@ -53,4 +53,26 @@ class MisInscripcionesViewModel extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Publica o actualiza una reseña
+  Future<bool> publicarResena({
+    required String deporteCodigo,
+    required String estudianteId,
+    required int calificacion,
+    required String comentario,
+  }) async {
+    try {
+      await _repository.publicarResena(
+        deporteCodigo: deporteCodigo,
+        estudianteId: estudianteId,
+        calificacion: calificacion,
+        comentario: comentario,
+      );
+      return true;
+    } catch (e) {
+      _error = 'Error al publicar la reseña: $e';
+      notifyListeners();
+      return false;
+    }
+  }
 }
