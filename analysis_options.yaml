@@ -16,8 +16,15 @@ analyzer:
     - ios/**
     - web/**
     - windows/**
+<<<<<<< Updated upstream
     - macos/**
     - linux/**
+=======
+    - pruebas_reglas/**
+    - lib/firebase_options.dart
+    - macos/**
+include: package:flutter_lints/flutter.yaml
+>>>>>>> Stashed changes
 
 linter:
   # The lint rules applied to this project can be customized in the
