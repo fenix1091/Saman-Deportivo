@@ -50,6 +50,22 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final vm = context.watch<AuthViewModel>();
     return Scaffold(
+      // AppBar para regresar a la pantalla de bienvenida (InicioView)
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver al inicio',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
+      ),
       body: FormularioCentrado(
         child: Form(
           key: _formulario,
@@ -59,7 +75,8 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 Image.asset('design/marca/logo_horizontal.png', height: 72),
                 const SizedBox(height: 24),
-                Text('Inicia sesión', style: Theme.of(context).textTheme.headlineMedium),
+                Text('Inicia sesión',
+                    style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _correo,
@@ -75,8 +92,11 @@ class _LoginViewState extends State<LoginView> {
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     suffixIcon: IconButton(
-                      tooltip: _verClave ? 'Ocultar contraseña' : 'Mostrar contraseña',
-                      icon: Icon(_verClave ? Icons.visibility_off : Icons.visibility),
+                      tooltip: _verClave
+                          ? 'Ocultar contraseña'
+                          : 'Mostrar contraseña',
+                      icon: Icon(
+                          _verClave ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _verClave = !_verClave),
                     ),
                   ),
@@ -99,13 +119,22 @@ class _LoginViewState extends State<LoginView> {
                 FilledButton(
                   onPressed: vm.cargando ? null : _entrar,
                   child: vm.cargando
-                      ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                      ? const SizedBox.square(
+                          dimension: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5))
                       : const Text('Entrar'),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => context.go('/registro'),
-                  child: const Text('¿No tienes cuenta? Regístrate con tu carnet'),
+                  child:
+                      const Text('¿No tienes cuenta? Regístrate con tu carnet'),
+                ),
+                // Botón para acceder directamente al catálogo como visitante
+                TextButton.icon(
+                  icon: const Icon(Icons.sports_soccer, size: 18),
+                  label: const Text('Entrar como visitante (Ver catálogo)'),
+                  onPressed: () => context.go('/catalogo'),
                 ),
               ],
             ),
