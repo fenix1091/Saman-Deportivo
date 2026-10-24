@@ -32,16 +32,30 @@ service cloud.firestore {
       allow get: if autenticado() && (request.auth.uid == uid || esAdmin() || esEntrenador());
       allow list: if esAdmin() || esEntrenador();
 
-      // Registro: solo el propio estudiante, con sus datos iniciales fijos.
-      allow create: if autenticado()
-        && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
-                                                  'carnet', 'estado', 'solvente', 'carrera', 'creadoEn'])
-        && request.resource.data.rol == 'estudiante'
-        && request.resource.data.estado == 'activo'
-        && request.resource.data.solvente == false
-        && request.resource.data.correo == request.auth.token.email
-        && request.resource.data.creadoEn == request.time;
+      // El registro público solo admite estudiantes; el administrador puede crear entrenadores.
+      allow create: if (autenticado()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
+                                                    'carnet', 'estado', 'solvente', 'carrera', 'creadoEn'])
+          && request.resource.data.rol == 'estudiante'
+          && request.resource.data.estado == 'activo'
+          && request.resource.data.solvente == false
+          && request.resource.data.correo == request.auth.token.email
+          && request.resource.data.creadoEn == request.time)
+        || (esAdmin()
+          && request.resource.data.keys().hasOnly(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
+                                                    'especialidad', 'aniosExperiencia'])
+          && request.resource.data.keys().hasAll(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
+                                                   'especialidad', 'aniosExperiencia'])
+          && request.resource.data.rol == 'entrenador'
+          && request.resource.data.cedula is string
+          && request.resource.data.nombre is string
+          && request.resource.data.correo is string
+          && request.resource.data.telefono is string
+          && request.resource.data.fotoUrl is string
+          && request.resource.data.especialidad is string
+          && request.resource.data.aniosExperiencia is int
+          && request.resource.data.aniosExperiencia >= 0);
 
       // Perfil: el dueño solo cambia teléfono y foto; el administrador, todo.
       allow update: if esAdmin()
@@ -61,9 +75,12 @@ service cloud.firestore {
     // o un carnet repetidos hacen fallar el registro.
     match /cedulas/{cedula} {
       allow get: if autenticado();
-      allow create: if autenticado()
-        && request.resource.data.uid == request.auth.uid
-        && getAfter(rutaUsuario(request.auth.uid)).data.cedula == cedula;
+      allow create: if (autenticado()
+          && request.resource.data.uid == request.auth.uid
+          && getAfter(rutaUsuario(request.auth.uid)).data.cedula == cedula)
+        || (esAdmin()
+          && getAfter(rutaUsuario(request.resource.data.uid)).data.rol == 'entrenador'
+          && getAfter(rutaUsuario(request.resource.data.uid)).data.cedula == cedula);
       allow delete: if esAdmin();
     }
     match /carnets/{carnet} {

@@ -76,6 +76,12 @@ firebase deploy --only firestore:rules
 
 (o copiarlas en la consola de Firebase, en Firestore Database → Reglas).
 
+Desde el panel de administración se pueden crear clases, editar cupos y horarios,
+asignar entrenadores y registrar cuentas de entrenador. Firebase envía a cada entrenador
+un enlace de restablecimiento para que configure su contraseña; si no llega, el panel
+permite reenviarlo. Verifica que la plantilla de restablecimiento esté habilitada en
+Firebase Authentication → Plantillas.
+
 ## Flujo de trabajo
 
 - `main`: versión estable, se actualiza al cerrar cada hito.

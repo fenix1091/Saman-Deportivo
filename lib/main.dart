@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'firebase_options.dart';
+import 'repositories/admin_repository_firebase.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/auth_repository_firebase.dart';
 import 'viewmodels/auth_view_model.dart';
@@ -20,9 +21,11 @@ Future<void> main() async {
 ///
 /// Recibe el repositorio de autenticación para que las pruebas puedan usar uno falso.
 class SamanDeportivoApp extends StatefulWidget {
-  const SamanDeportivoApp({super.key, required this.repositorio});
+  const SamanDeportivoApp(
+      {super.key, required this.repositorio, this.adminRepository});
 
   final AuthRepository repositorio;
+  final AdminRepository? adminRepository;
 
   @override
   State<SamanDeportivoApp> createState() => _SamanDeportivoAppState();
@@ -30,7 +33,8 @@ class SamanDeportivoApp extends StatefulWidget {
 
 class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
   late final AuthViewModel _auth = AuthViewModel(widget.repositorio);
-  late final GoRouter _router = crearRouter(_auth);
+  late final GoRouter _router =
+      crearRouter(_auth, adminRepository: widget.adminRepository);
 
   @override
   void dispose() {

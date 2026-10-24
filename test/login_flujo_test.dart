@@ -2,7 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:saman_deportivo/main.dart';
+import 'package:saman_deportivo/models/deporte.dart';
+import 'package:saman_deportivo/models/persona.dart';
+import 'package:saman_deportivo/repositories/admin_repository_firebase.dart';
 import 'falsos/auth_repository_falso.dart';
+
+class _AdminRepositoryFalso implements AdminRepository {
+  @override
+  Future<void> asignarEntrenador(String codigo, String entrenadorId) async {}
+
+  @override
+  Future<void> actualizarActivoDeporte(String codigo, bool activo) async {}
+
+  @override
+  Future<void> eliminarHorario(String codigo, String horarioId) async {}
+
+  @override
+  Future<void> guardarDeporte(Deporte deporte) async {}
+
+  @override
+  Future<void> guardarHorario(String codigo, Horario horario) async {}
+
+  @override
+  Stream<List<Deporte>> observarDeportes() => Stream.value(const []);
+
+  @override
+  Stream<List<Entrenador>> observarEntrenadores() => Stream.value(const []);
+
+  @override
+  Stream<List<Horario>> observarHorarios(String codigo) =>
+      Stream.value(const []);
+
+  @override
+  Future<void> registrarEntrenador({
+    required String cedula,
+    required String nombre,
+    required String correo,
+    required String telefono,
+    required String especialidad,
+    required int aniosExperiencia,
+  }) async {}
+
+  @override
+  Future<void> reenviarEnlace(String correo) async {}
+}
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -13,7 +56,11 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     await tester.pumpWidget(
-      SamanDeportivoApp(repositorio: AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero)),
+      SamanDeportivoApp(
+        repositorio:
+            AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero),
+        adminRepository: _AdminRepositoryFalso(),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Iniciar sesión'));
@@ -22,37 +69,49 @@ void main() {
 
   testWidgets('el administrador entra y llega a su panel', (tester) async {
     await abrirLogin(tester);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'admin@unimet.edu.ve');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'Admin1234');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Correo'), 'admin@unimet.edu.ve');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Contraseña'), 'Admin1234');
     await tester.tap(find.text('Entrar'));
     await tester.pumpAndSettle();
-    expect(find.text('Panel de administración'), findsOneWidget);
+    expect(find.text('Administración deportiva'), findsOneWidget);
+    expect(find.text('Clases y horarios'), findsOneWidget);
+    expect(find.text('Entrenadores'), findsOneWidget);
   });
 
-  testWidgets('el entrenador ve sus datos en el perfil y cambia su teléfono', (tester) async {
+  testWidgets('el entrenador ve sus datos en el perfil y cambia su teléfono',
+      (tester) async {
     await abrirLogin(tester);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'entrenador@unimet.edu.ve');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'Entrenador123');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Correo'),
+        'entrenador@unimet.edu.ve');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Contraseña'), 'Entrenador123');
     await tester.tap(find.text('Entrar'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Mi perfil'));
     await tester.pumpAndSettle();
     expect(find.text('Fútbol'), findsOneWidget);
     expect(find.text('V-20333444'), findsOneWidget);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono'), '0412-555');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Teléfono'), '0412-555');
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
     expect(find.textContaining('celular válido'), findsOneWidget);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Teléfono'), '0412-5550000');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Teléfono'), '0412-5550000');
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
     expect(find.text('Perfil actualizado'), findsOneWidget);
   });
 
-  testWidgets('una contraseña incorrecta muestra el error y no entra', (tester) async {
+  testWidgets('una contraseña incorrecta muestra el error y no entra',
+      (tester) async {
     await abrirLogin(tester);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'admin@unimet.edu.ve');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'Incorrecta1');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Correo'), 'admin@unimet.edu.ve');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Contraseña'), 'Incorrecta1');
     await tester.tap(find.text('Entrar'));
     await tester.pumpAndSettle();
     expect(find.text('Correo o contraseña inválidos.'), findsOneWidget);
