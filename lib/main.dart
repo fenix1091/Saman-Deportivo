@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/auth_repository_firebase.dart';
 import 'viewmodels/auth_view_model.dart';
+import 'viewmodels/mis_inscripciones_view_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,7 @@ class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
       providers: [
         Provider<AuthRepository>.value(value: widget.repositorio),
         ChangeNotifierProvider<AuthViewModel>.value(value: _auth),
+        ChangeNotifierProvider(create: (_) => MisInscripcionesViewModel()),
       ],
       child: MaterialApp.router(
         title: 'Samán Deportivo',
