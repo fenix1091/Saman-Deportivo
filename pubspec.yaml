@@ -1,0 +1,30 @@
+name: saman_deportivo
+description: "Samán Deportivo: plataforma de gestión de clubes deportivos de la UNIMET."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  go_router: ^14.2.0
+  google_fonts: ^6.2.1
+  # Firebase (proyecto saman-deportivo-7b59f, configurado con `flutterfire configure`)
+  firebase_core: ^5.0.0
+  firebase_auth: ^7.0.0
+  cloud_firestore: ^7.0.0
+  image_picker: ^1.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - design/marca/logo_horizontal.png
+    - design/marca/logo_icono.png

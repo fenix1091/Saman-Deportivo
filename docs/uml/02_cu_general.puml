@@ -1,0 +1,68 @@
+@startuml
+!include _estilo.iuml
+title Diagrama general de casos de uso — Samán Deportivo
+left to right direction
+skinparam packageStyle rectangle
+actor "Visitante" as V
+actor "Estudiante" as E
+actor "Entrenador" as T
+actor "Administrador" as A
+actor "Usuario\nautenticado" as U
+actor "PayPal" as PP <<sistema>>
+E -|> V
+E -|> U
+T -|> U
+A -|> U
+rectangle "Sistema Samán Deportivo" {
+  package "Autenticación y perfil" {
+    usecase "CU-01 Registrarse" as CU01
+    usecase "CU-02 Iniciar sesión" as CU02
+    usecase "CU-03 Gestionar perfil" as CU03
+  }
+  package "Catálogo e inscripciones" {
+    usecase "CU-04 Consultar catálogo\nde deportes" as CU04
+    usecase "CU-05 Filtrar y buscar\ndeportes" as CU05
+    usecase "CU-06 Ver detalle\nde deporte" as CU06
+    usecase "CU-07 Inscribirse\nen un deporte" as CU07
+    usecase "CU-08 Validar solvencia\ny estado" as CU08
+    usecase "CU-09 Pagar reserva\nde cupo" as CU09
+    usecase "CU-10 Cancelar\ninscripción" as CU10
+    usecase "CU-11 Consultar mis\ninscripciones" as CU11
+    usecase "CU-12 Publicar reseña" as CU12
+  }
+  package "Entrenamiento" {
+    usecase "CU-13 Consultar\nestudiantes inscritos" as CU13
+    usecase "CU-14 Registrar\nasistencia" as CU14
+    usecase "CU-15 Consultar historial\nde asistencia" as CU15
+  }
+  package "Administración" {
+    usecase "CU-16 Gestionar deportes\ny cupos máximos" as CU16
+    usecase "CU-17 Asignar entrenador" as CU17
+    usecase "CU-18 Configurar horarios" as CU18
+    usecase "CU-19 Registrar entrenador" as CU19
+    usecase "CU-20 Ver dashboard\nde estadísticas" as CU20
+  }
+}
+U --> CU02
+U --> CU03
+V --> CU04
+V --> CU06
+E --> CU01
+E --> CU07
+E --> CU10
+E --> CU11
+E --> CU12
+T --> CU13
+T --> CU14
+T --> CU15
+A --> CU16
+A --> CU17
+A --> CU18
+A --> CU19
+A --> CU20
+CU05 .> CU04 : <<extend>>
+CU07 .> CU08 : <<include>>
+CU07 .> CU09 : <<include>>
+CU14 .> CU13 : <<include>>
+CU09 --> PP
+@enduml

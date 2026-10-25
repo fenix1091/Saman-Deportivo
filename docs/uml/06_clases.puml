@@ -1,0 +1,172 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de clases (modelo de dominio) — Samán Deportivo
+skinparam classAttributeIconSize 0
+hide empty members
+
+abstract class Persona {
+  - cedula : String
+  - nombre : String
+  - correo : String
+  - telefono : String
+  - fotoUrl : String
+  + iniciarSesion(correo, clave) : bool
+  + cerrarSesion() : void
+  + actualizarPerfil(datos) : void
+}
+
+class Estudiante {
+  - carnet : String
+  - estado : EstadoEstudiante
+  - solvente : bool
+  - carrera : String
+  + consultarCatalogo(filtro : FiltroBusqueda) : List<Deporte>
+  + inscribirse(deporte : Deporte) : Inscripcion
+  + cancelarInscripcion(inscripcion : Inscripcion) : void
+  + publicarResena(deporte, calificacion, comentario) : Resena
+  + estaActivo() : bool
+}
+
+class Entrenador {
+  - especialidad : String
+  - aniosExperiencia : int
+  + consultarInscritos(deporte : Deporte) : List<Estudiante>
+  + registrarAsistencia(deporte, fecha, registros) : void
+  + consultarHistorial(deporte : Deporte) : List<Asistencia>
+}
+
+class Administrador {
+  - cargo : String
+  + registrarDeporte(datos) : Deporte
+  + modificarDeporte(deporte, datos) : void
+  + definirCupoMaximo(deporte, cupo : int) : void
+  + asignarEntrenador(deporte, entrenador) : void
+  + configurarHorario(deporte, horario) : void
+  + registrarEntrenador(datos) : Entrenador
+  + verDashboard() : Estadisticas
+}
+
+class Deporte {
+  - codigo : String {unique}
+  - nombre : String
+  - descripcion : String
+  - categoria : String
+  - cupoMaximo : int
+  - cuposOcupados : int
+  - costoReserva : double
+  - imagenUrl : String
+  - activo : bool
+  - vecesBuscado : int
+  + cuposDisponibles() : int
+  + hayCupo() : bool
+  + ocuparCupo() : void
+  + liberarCupo() : void
+  + calificacionPromedio() : double
+}
+
+class Horario {
+  - dia : DiaSemana
+  - horaInicio : Time
+  - horaFin : Time
+  - lugar : String
+  + seSolapaCon(otro : Horario) : bool
+}
+
+class Inscripcion {
+  - id : String
+  - fechaInscripcion : DateTime
+  - estado : EstadoInscripcion
+  + confirmar() : void
+  + cancelar(motivo : String) : void
+  + rechazar(motivo : String) : void
+  + estaVigente() : bool
+}
+
+class Pago {
+  - id : String
+  - monto : double
+  - moneda : String
+  - metodo : String = "PayPal"
+  - referenciaExterna : String
+  - fecha : DateTime
+  - estado : EstadoPago
+  + reembolsar() : void
+}
+
+class Asistencia {
+  - id : String
+  - inscripcion : Inscripcion
+  - estudiante : Estudiante
+  - deporte : Deporte
+  - fecha : Date
+  - estado : EstadoAsistencia
+  - observacion : String
+}
+
+class Resena {
+  - id : String
+  - calificacion : int {1..5}
+  - comentario : String
+  - fecha : DateTime
+}
+
+enum EstadoEstudiante {
+  ACTIVO
+  INACTIVO
+}
+enum EstadoInscripcion {
+  PENDIENTE_PAGO
+  CONFIRMADA
+  CANCELADA
+  RECHAZADA
+  EXPIRADA
+}
+enum EstadoAsistencia {
+  PRESENTE
+  AUSENTE
+}
+enum EstadoPago {
+  PENDIENTE
+  COMPLETADO
+  FALLIDO
+  REEMBOLSADO
+}
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+Persona <|-- Estudiante
+Persona <|-- Entrenador
+Persona <|-- Administrador
+
+Entrenador "0..1" -- "0..*" Deporte : dirige >
+Administrador "1" -- "0..*" Deporte : gestiona >
+Deporte "1" *-- "1..*" Horario : se imparte en >
+Estudiante "1" -- "0..*" Inscripcion : realiza >
+Deporte "1" -- "0..*" Inscripcion : recibe >
+Inscripcion "1" -- "0..1" Pago : se garantiza con >
+Inscripcion "1" *-- "0..*" Asistencia : registra >
+Deporte "1" -- "0..*" Asistencia : controla >
+Estudiante "1" -- "0..*" Asistencia : tiene >
+Entrenador "1" -- "0..*" Asistencia : toma >
+Estudiante "1" -- "0..*" Resena : escribe >
+Deporte "1" -- "0..*" Resena : recibe >
+
+Estudiante ..> EstadoEstudiante
+Inscripcion ..> EstadoInscripcion
+Asistencia ..> EstadoAsistencia
+Pago ..> EstadoPago
+Horario ..> DiaSemana
+
+note bottom of Inscripcion
+  Un estudiante solo puede tener una
+  inscripción vigente por deporte, y solo
+  se confirma si hay cupo y está solvente.
+end note
+@enduml

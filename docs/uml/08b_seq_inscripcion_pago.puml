@@ -1,0 +1,44 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-07 Inscribirse en un deporte (b) Pago y confirmación
+autonumber
+actor "Estudiante" as E
+boundary ":PagoView" as V
+control ":InscripcionViewModel" as VM
+database "Cloud Firestore" as FS
+participant "Cloud Functions" as CF
+actor "PayPal" as PP <<sistema>>
+
+note over E, PP
+  Precondición: inscripción creada en PENDIENTE_PAGO (parte a)
+end note
+E -> V : pulsa "Pagar con PayPal"
+V -> PP : crearOrden(monto)
+E -> PP : aprueba el pago
+PP --> V : orderId
+V -> VM : confirmarPago(orderId, inscripcionId)
+VM -> CF : confirmarInscripcion(orderId, inscripcionId)
+CF -> PP : capturarOrden(orderId)
+PP --> CF : COMPLETED
+CF -> FS : runTransaction()
+note right of FS
+  Dentro de la transacción:
+  si cuposOcupados < cupoMaximo:
+    cuposOcupados++
+    inscripción = CONFIRMADA
+    crear Pago(COMPLETADO)
+end note
+alt el cupo se agotó durante el pago
+  FS --> CF : sin cupo
+  CF -> PP : reembolsar(orderId)
+  CF -> FS : inscripción = RECHAZADA
+  CF --> VM : rechazado("cupo agotado")
+  VM --> V : informa y confirma reembolso
+  V --> E : "El cupo se agotó. Tu pago fue reembolsado"
+else cupo reservado
+  FS --> CF : ok
+  CF --> VM : confirmada
+  VM --> V : comprobante de inscripción
+  V --> E : "¡Inscripción confirmada!"
+end
+@enduml

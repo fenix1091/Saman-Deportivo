@@ -1,0 +1,31 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-10 Cancelar inscripción
+autonumber
+actor "Estudiante" as E
+boundary ":MisInscripcionesView" as V
+control ":InscripcionViewModel" as VM
+participant ":InscripcionRepository" as R
+database "Cloud Firestore" as FS
+
+E -> V : selecciona inscripción y pulsa "Cancelar"
+V --> E : diálogo de confirmación
+E -> V : confirma (motivo opcional)
+V -> VM : cancelar(inscripcionId, motivo)
+VM -> R : cancelarInscripcion(inscripcionId, motivo)
+R -> FS : runTransaction()
+note right of FS
+  inscripción.estado = CANCELADA
+  deporte.cuposOcupados--
+end note
+alt la inscripción ya no está vigente
+  FS --> R : error
+  R --> VM : error
+  VM --> V : "La inscripción ya fue cancelada"
+else cancelación exitosa
+  FS --> R : ok
+  R --> VM : ok
+  VM --> V : actualizar lista
+  V --> E : "Inscripción cancelada. El cupo quedó liberado"
+end
+@enduml

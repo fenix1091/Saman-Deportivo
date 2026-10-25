@@ -1,0 +1,33 @@
+@startuml
+!include _estilo.iuml
+title Diagrama de secuencia — CU-14 Registrar asistencia
+autonumber
+actor "Entrenador" as T
+boundary ":AsistenciaView" as V
+control ":AsistenciaViewModel" as VM
+participant ":AsistenciaRepository" as R
+database "Cloud Firestore" as FS
+
+T -> V : elige disciplina y fecha del entrenamiento
+V -> VM : cargarInscritos(deporteId, fecha)
+VM -> R : obtenerInscritosConfirmados(deporteId)
+R -> FS : query(inscripciones: deporteId, estado=CONFIRMADA)
+FS --> R : lista de inscripciones
+R --> VM : List<Estudiante>
+VM --> V : lista (todos PRESENTE por defecto)
+loop por cada estudiante
+  T -> V : marca PRESENTE / AUSENTE
+end
+T -> V : pulsa "Guardar asistencia"
+V -> VM : guardar(registros)
+opt ya existe asistencia para esa fecha
+  VM --> V : "Ya se registró. ¿Deseas actualizarla?"
+  T -> V : confirma
+end
+VM -> R : guardarAsistencia(deporteId, fecha, registros)
+R -> FS : batch.set(asistencias/...)
+FS --> R : ok
+R --> VM : ok
+VM --> V : resumen (presentes / ausentes)
+V --> T : "Asistencia guardada"
+@enduml

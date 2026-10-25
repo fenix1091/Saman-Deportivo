@@ -1,0 +1,55 @@
+@startuml
+!include _estilo.iuml
+title Estructura de rutas (navegación) de la aplicación
+hide empty description
+state "/  (inicio público)" as Home
+state "/login" as Login
+state "/registro" as Registro
+state "/recuperar-clave" as Recuperar
+state "/catalogo" as Catalogo
+state "/deporte/:codigo" as Detalle
+
+state "Estudiante" as SE {
+  state "/inscripcion/:codigo/pago" as Pago
+  state "/inscripcion/:id/comprobante" as Comprobante
+  state "/mis-inscripciones" as MisIns
+  state "/deporte/:codigo/resena" as Resena
+  state "/perfil" as PerfilE
+}
+state "Entrenador" as ST {
+  state "/entrenador/mis-deportes" as MisDep
+  state "/entrenador/deporte/:codigo/inscritos" as Inscritos
+  state "/entrenador/deporte/:codigo/asistencia" as Asist
+  state "/entrenador/deporte/:codigo/historial" as Hist
+}
+state "Administrador" as SA {
+  state "/admin/dashboard" as Dash
+  state "/admin/deportes" as AdmDep
+  state "/admin/deportes/nuevo\n/admin/deportes/:codigo/editar" as FormDep
+  state "/admin/deportes/:codigo/horarios" as Horarios
+  state "/admin/entrenadores" as AdmEnt
+}
+
+[*] --> Home
+Home --> Catalogo
+Home --> Login
+Catalogo --> Detalle
+Login --> Registro
+Login --> Recuperar
+Login --> Catalogo : rol Estudiante
+Login --> MisDep : rol Entrenador
+Login --> Dash : rol Administrador
+Detalle --> Pago : Inscribirme\n[con sesión]
+Detalle --> Login : Inscribirme\n[sin sesión]
+Pago --> Comprobante
+Comprobante --> MisIns
+MisIns --> Resena
+Catalogo --> PerfilE
+MisDep --> Inscritos
+Inscritos --> Asist
+Inscritos --> Hist
+Dash --> AdmDep
+AdmDep --> FormDep
+FormDep --> Horarios
+Dash --> AdmEnt
+@enduml

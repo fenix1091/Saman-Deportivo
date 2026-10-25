@@ -1,0 +1,32 @@
+@startuml
+!include _estilo.iuml
+title Arquitectura técnica preliminar — Flutter + Firebase
+node "Dispositivo del usuario" {
+  package "App Flutter (Web PWA / Android / iOS)" {
+    [Vistas (Widgets)] as Views
+    [ViewModels\n(Provider / ChangeNotifier)] as VMs
+    [Repositorios y servicios] as Repos
+    [Modelos de dominio] as Models
+  }
+}
+cloud "Firebase (Google Cloud)" {
+  [Firebase Hosting\n(PWA)] as Host
+  [Firebase Authentication] as Auth
+  database "Cloud Firestore" as FS
+  [Cloud Storage\n(imágenes de deportes\ny fotos de perfil)] as ST
+  [Cloud Functions\n(validar solvencia,\nconfirmar pago, estadísticas)] as CF
+}
+cloud "Servicios externos" {
+  [PayPal REST API\n(sandbox)] as PP
+}
+Views --> VMs
+VMs --> Repos
+Repos --> Models
+Host ..> Views : sirve la app web
+Repos --> Auth : login / registro
+Repos --> FS : CRUD + tiempo real
+Repos --> ST : imágenes
+Repos --> CF : llamadas HTTPS
+CF --> FS : transacciones de cupo
+CF --> PP : capturar / reembolsar
+@enduml

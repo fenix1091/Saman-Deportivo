@@ -1,0 +1,17 @@
+@startuml
+!include _estilo.iuml
+title Actores del sistema Samán Deportivo
+actor "Visitante" as V
+actor "Usuario autenticado" as U
+actor "Estudiante" as E
+actor "Entrenador" as T
+actor "Administrador" as A
+actor "PayPal\n(Pasarela de pagos)" as PP <<sistema>>
+E -up-|> V
+E -up-|> U
+T -up-|> U
+A -up-|> U
+V -[hidden]right- U
+U -[hidden]right- PP
+note bottom of PP : Actor secundario:\nprocesa el pago que\nreserva el cupo
+@enduml
