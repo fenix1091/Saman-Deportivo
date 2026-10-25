@@ -93,9 +93,13 @@ service cloud.firestore {
 
     // ---------- Estructura base de la gestión deportiva ----------
     // El catálogo es público; solo el administrador lo modifica (RF-04, RF-15, RF-17).
+    // Cualquiera puede sumar 1 al contador de consultas para las estadísticas de
+    // deportes más buscados (postcondición de CU-04), y nada más.
     match /deportes/{codigo} {
       allow read: if true;
       allow write: if esAdmin();
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vecesBuscado'])
+        && request.resource.data.vecesBuscado == resource.data.get('vecesBuscado', 0) + 1;
       match /horarios/{id} {
         allow read: if true;
         allow write: if esAdmin();

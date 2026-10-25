@@ -7,6 +7,7 @@ import 'package:saman_deportivo/models/persona.dart';
 import 'package:saman_deportivo/repositories/admin_repository_firebase.dart';
 import 'package:saman_deportivo/repositories/asistencia_repository.dart';
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/deporte_repository_falso.dart';
 
 class _AsistenciaRepositoryFalso implements AsistenciaRepository {
   @override
@@ -78,6 +79,7 @@ void main() {
       SamanDeportivoApp(
         repositorio:
             AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero),
+        deportes: DeporteRepositoryFalso.conDatosDePrueba(),
         adminRepository: _AdminRepositoryFalso(),
         asistenciaRepository: _AsistenciaRepositoryFalso(),
       ),

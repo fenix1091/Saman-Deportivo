@@ -4,7 +4,56 @@
 /// `deportes/{codigo}/horarios`.
 library;
 
-enum DiaSemana { lunes, martes, miercoles, jueves, viernes, sabado, domingo }
+enum DiaSemana {
+  lunes('Lunes'),
+  martes('Martes'),
+  miercoles('Miércoles'),
+  jueves('Jueves'),
+  viernes('Viernes'),
+  sabado('Sábado'),
+  domingo('Domingo');
+
+  const DiaSemana(this.etiqueta);
+
+  final String etiqueta;
+}
+
+/// Franjas horarias del filtro del catálogo (CU-05), según la hora de inicio.
+enum FranjaHoraria {
+  manana('Mañana', 0, 12 * 60),
+  tarde('Tarde', 12 * 60, 18 * 60),
+  noche('Noche', 18 * 60, 24 * 60);
+
+  const FranjaHoraria(this.etiqueta, this.desde, this.hasta);
+
+  final String etiqueta;
+
+  /// Minutos desde la medianoche: [desde] incluido, [hasta] excluido.
+  final int desde;
+  final int hasta;
+}
+
+/// Datos públicos del entrenador asignado.
+///
+/// La colección `usuarios` no es pública, así que al asignar el entrenador (RF-18)
+/// se copian en el deporte el nombre, la especialidad y la experiencia que muestra
+/// el catálogo.
+class EntrenadorAsignado {
+  const EntrenadorAsignado({required this.nombre, this.especialidad = '', this.aniosExperiencia = 0});
+
+  final String nombre;
+  final String especialidad;
+  final int aniosExperiencia;
+
+  Map<String, dynamic> aMapa() =>
+      {'nombre': nombre, 'especialidad': especialidad, 'aniosExperiencia': aniosExperiencia};
+
+  factory EntrenadorAsignado.desdeMapa(Map<String, dynamic> mapa) => EntrenadorAsignado(
+        nombre: mapa['nombre'] as String? ?? '',
+        especialidad: mapa['especialidad'] as String? ?? '',
+        aniosExperiencia: (mapa['aniosExperiencia'] as num?)?.toInt() ?? 0,
+      );
+}
 
 class Deporte {
   const Deporte({
@@ -17,6 +66,7 @@ class Deporte {
     this.costoReserva = 0,
     this.imagenUrl = '',
     this.entrenadorId = '',
+    this.entrenador,
     this.activo = true,
     this.vecesBuscado = 0,
   });
@@ -33,6 +83,7 @@ class Deporte {
 
   /// uid del entrenador asignado; vacío si aún no tiene.
   final String entrenadorId;
+  final EntrenadorAsignado? entrenador;
   final bool activo;
   final int vecesBuscado;
 
@@ -49,6 +100,7 @@ class Deporte {
         'costoReserva': costoReserva,
         'imagenUrl': imagenUrl,
         'entrenadorId': entrenadorId,
+        if (entrenador != null) 'entrenador': entrenador!.aMapa(),
         'activo': activo,
         'vecesBuscado': vecesBuscado,
       };
@@ -63,6 +115,9 @@ class Deporte {
         costoReserva: (mapa['costoReserva'] as num?)?.toDouble() ?? 0,
         imagenUrl: mapa['imagenUrl'] as String? ?? '',
         entrenadorId: mapa['entrenadorId'] as String? ?? '',
+        entrenador: mapa['entrenador'] is Map
+            ? EntrenadorAsignado.desdeMapa(Map<String, dynamic>.from(mapa['entrenador'] as Map))
+            : null,
         activo: mapa['activo'] as bool? ?? true,
         vecesBuscado: (mapa['vecesBuscado'] as num?)?.toInt() ?? 0,
       );
@@ -83,6 +138,15 @@ class Horario {
   final String horaInicio;
   final String horaFin;
   final String lugar;
+
+  /// Franja a la que pertenece según su hora de inicio.
+  FranjaHoraria get franja {
+    final inicio = _minutos(horaInicio);
+    return FranjaHoraria.values.firstWhere((f) => inicio >= f.desde && inicio < f.hasta);
+  }
+
+  /// Por ejemplo: "Martes 16:00 - 18:00".
+  String get etiqueta => '${dia.etiqueta} $horaInicio - $horaFin';
 
   static int _minutos(String hora) {
     final partes = hora.split(':');
