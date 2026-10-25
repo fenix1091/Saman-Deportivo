@@ -1,1 +1,5 @@
+<<<<<<< HEAD
+{"flutter":{"platforms":{"android":{"default":{"projectId":"saman-deportivo-7b59f","appId":"1:591886284161:android:a22c8e36210f59e0c96480","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"saman-deportivo-7b59f","configurations":{"android":"1:591886284161:android:a22c8e36210f59e0c96480","ios":"1:591886284161:ios:bf041c0252ae5ab2c96480","macos":"1:591886284161:ios:bf041c0252ae5ab2c96480","web":"1:591886284161:web:4505fc4fa3311fe3c96480","windows":"1:591886284161:web:27a03109229275c2c96480"}}}}}}
+=======
 {"flutter":{"platforms":{"android":{"default":{"projectId":"saman-deportivo-7b59f","appId":"1:591886284161:android:a22c8e36210f59e0c96480","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"saman-deportivo-7b59f","configurations":{"android":"1:591886284161:android:a22c8e36210f59e0c96480","ios":"1:591886284161:ios:bf041c0252ae5ab2c96480","macos":"1:591886284161:ios:bf041c0252ae5ab2c96480","web":"1:591886284161:web:4505fc4fa3311fe3c96480","windows":"1:591886284161:web:27a03109229275c2c96480"}}}}},"firestore":{"rules":"firestore.rules"}}
+>>>>>>> main
