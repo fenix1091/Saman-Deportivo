@@ -143,6 +143,33 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
   test('una foto que no cabe en el documento se rechaza', async () => {
     await assertFails(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { fotoUrl: 'x'.repeat(1000001) }));
   });
+
+  test('el administrador crea entrenadores y su índice de cédula, pero otros roles no', async () => {
+    const entrenador = {
+      rol: 'entrenador',
+      cedula: 'V-55555555',
+      nombre: 'Nuevo Entrenador',
+      correo: 'nuevo@unimet.edu.ve',
+      telefono: '',
+      fotoUrl: '',
+      especialidad: 'Natación',
+      aniosExperiencia: 3,
+    };
+    const crear = (db, uid) => {
+      const lote = writeBatch(db);
+      lote.set(doc(db, 'usuarios', uid), entrenador);
+      lote.set(doc(db, 'cedulas', entrenador.cedula), { uid });
+      return lote.commit();
+    };
+    await assertSucceeds(crear(comoAdmin(), 'ent2'));
+    await assertFails(crear(comoEstudiante(), 'ent3'));
+    await assertFails(crear(comoAdmin(), 'ent4'));
+    await assertFails(setDoc(doc(comoAdmin(), 'usuarios', 'admin-extra'), {
+      ...entrenador,
+      rol: 'administrador',
+      cedula: 'V-66666666',
+    }));
+  });
 });
 
 describe('Estructura base de la gestión deportiva', () => {
@@ -152,6 +179,14 @@ describe('Estructura base de la gestión deportiva', () => {
     await assertFails(setDoc(doc(comoEstudiante(), 'deportes/BAS-01'), { nombre: 'Básquet', cupoMaximo: 20 }));
     await assertFails(updateDoc(doc(comoEntrenador(), 'deportes/FUT-01'), { cupoMaximo: 99 }));
     await assertSucceeds(setDoc(doc(comoAdmin(), 'deportes/BAS-01'), { nombre: 'Básquet', cupoMaximo: 20 }));
+  });
+
+  test('solo el administrador configura horarios y asigna entrenadores', async () => {
+    const horario = { dia: 'lunes', horaInicio: '16:00', horaFin: '18:00', lugar: 'Cancha 1' };
+    await assertSucceeds(setDoc(doc(comoAdmin(), 'deportes/FUT-01/horarios/h1'), horario));
+    await assertFails(setDoc(doc(comoEstudiante(), 'deportes/FUT-01/horarios/h2'), horario));
+    await assertSucceeds(updateDoc(doc(comoAdmin(), 'deportes/FUT-01'), { entrenadorId: 'ent1' }));
+    await assertFails(updateDoc(doc(comoEntrenador(), 'deportes/FUT-01'), { entrenadorId: 'ent1' }));
   });
 
   test('las inscripciones y los pagos quedan cerrados hasta el Hito 3', async () => {

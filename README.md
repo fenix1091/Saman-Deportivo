@@ -1,5 +1,3 @@
-<p align="center"><img width="883" height="408" alt="dasdsdasdsad" src="https://github.com/user-attachments/assets/3aa91aea-9f1e-4c2a-ba14-108b54efddbd" />
-
 # Samán Deportivo
 
 Plataforma web y móvil (PWA) para la gestión de clubes deportivos de la comunidad de la
@@ -75,6 +73,12 @@ firebase deploy --only firestore:rules
 ```
 
 (o copiarlas en la consola de Firebase, en Firestore Database → Reglas).
+
+Desde el panel de administración se pueden crear clases, editar cupos y horarios,
+asignar entrenadores y registrar cuentas de entrenador. Firebase envía a cada entrenador
+un enlace de restablecimiento para que configure su contraseña; si no llega, el panel
+permite reenviarlo. Verifica que la plantilla de restablecimiento esté habilitada en
+Firebase Authentication → Plantillas.
 
 ## Flujo de trabajo
 
