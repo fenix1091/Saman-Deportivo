@@ -8,6 +8,7 @@ import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/perfil_view_model.dart';
 import '../views/comun/en_construccion_view.dart';
 import '../views/comun/perfil_view.dart';
+import '../views/entrenador/mis_deportes_screen.dart'; // <-- IMPORTACIÓN AGREGADA
 import '../views/publico/deportes_catalogo_view.dart'; // <-- IMPORTACIÓN AGREGADA
 import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
@@ -62,7 +63,10 @@ GoRouter crearRouter(AuthViewModel auth) {
       ),
       GoRoute(
         path: '/entrenador/mis-deportes',
-        builder: (_, __) => const EnConstruccionView(titulo: 'Mis deportes'),
+        builder: (_, state) {
+          final deporteId = state.extra as String? ?? 'futbol';
+          return MisDeportesScreen(deporteId: deporteId);
+        },
       ),
       GoRoute(
           path: '/admin/dashboard',
