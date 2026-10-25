@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart'; // Importación agregada para navegación
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -24,7 +25,8 @@ class _PerfilViewState extends State<PerfilView> {
   @override
   void initState() {
     super.initState();
-    _telefono = TextEditingController(text: context.read<PerfilViewModel>().usuario?.telefono ?? '');
+    _telefono = TextEditingController(
+        text: context.read<PerfilViewModel>().usuario?.telefono ?? '');
   }
 
   @override
@@ -34,8 +36,11 @@ class _PerfilViewState extends State<PerfilView> {
   }
 
   Future<void> _cambiarFoto() async {
-    final archivo =
-        await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 80);
+    final archivo = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80);
     if (archivo == null || !mounted) return;
     final bytes = await archivo.readAsBytes();
     if (!mounted) return;
@@ -44,9 +49,11 @@ class _PerfilViewState extends State<PerfilView> {
 
   Future<void> _guardar() async {
     if (!_formulario.currentState!.validate()) return;
-    final ok = await context.read<PerfilViewModel>().guardar(telefono: _telefono.text);
+    final ok =
+        await context.read<PerfilViewModel>().guardar(telefono: _telefono.text);
     if (ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
     }
   }
 
@@ -58,6 +65,18 @@ class _PerfilViewState extends State<PerfilView> {
     final textos = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(
+        // Flecha de regreso para salir de Mi Perfil
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/catalogo');
+            }
+          },
+        ),
         title: const Text('Mi perfil'),
         actions: [
           IconButton(
@@ -74,7 +93,10 @@ class _PerfilViewState extends State<PerfilView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(
-                child: AvatarUsuario(nombre: usuario.nombre, fotoUrl: usuario.fotoUrl, bytes: vm.fotoNueva),
+                child: AvatarUsuario(
+                    nombre: usuario.nombre,
+                    fotoUrl: usuario.fotoUrl,
+                    bytes: vm.fotoNueva),
               ),
               Center(
                 child: TextButton.icon(
@@ -83,8 +105,10 @@ class _PerfilViewState extends State<PerfilView> {
                   label: const Text('Cambiar foto'),
                 ),
               ),
-              Text(usuario.nombre, style: textos.titleLarge, textAlign: TextAlign.center),
-              Text(_nombreRol(usuario.rol), style: textos.bodyMedium, textAlign: TextAlign.center),
+              Text(usuario.nombre,
+                  style: textos.titleLarge, textAlign: TextAlign.center),
+              Text(_nombreRol(usuario.rol),
+                  style: textos.bodyMedium, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               _Dato(etiqueta: 'Cédula', valor: usuario.cedula),
               _Dato(etiqueta: 'Correo', valor: usuario.correo),
@@ -92,7 +116,8 @@ class _PerfilViewState extends State<PerfilView> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _telefono,
-                decoration: const InputDecoration(labelText: 'Teléfono', hintText: '0414-1234567'),
+                decoration: const InputDecoration(
+                    labelText: 'Teléfono', hintText: '0414-1234567'),
                 keyboardType: TextInputType.phone,
                 validator: Validadores.telefono,
               ),
@@ -104,7 +129,9 @@ class _PerfilViewState extends State<PerfilView> {
               FilledButton(
                 onPressed: vm.guardando ? null : _guardar,
                 child: vm.guardando
-                    ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                    ? const SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5))
                     : const Text('Guardar'),
               ),
               const SizedBox(height: 8),
@@ -129,12 +156,17 @@ class _PerfilViewState extends State<PerfilView> {
   static List<Widget> _datosDelRol(Persona usuario) => switch (usuario) {
         Estudiante e => [
             _Dato(etiqueta: 'Carnet', valor: e.carnet),
-            _Dato(etiqueta: 'Estado', valor: e.estaActivo() ? 'Activo' : 'Inactivo'),
-            if (e.carrera.isNotEmpty) _Dato(etiqueta: 'Carrera', valor: e.carrera),
+            _Dato(
+                etiqueta: 'Estado',
+                valor: e.estaActivo() ? 'Activo' : 'Inactivo'),
+            if (e.carrera.isNotEmpty)
+              _Dato(etiqueta: 'Carrera', valor: e.carrera),
           ],
         Entrenador e => [
             _Dato(etiqueta: 'Especialidad', valor: e.especialidad),
-            _Dato(etiqueta: 'Años de experiencia', valor: '${e.aniosExperiencia}'),
+            _Dato(
+                etiqueta: 'Años de experiencia',
+                valor: '${e.aniosExperiencia}'),
           ],
         Administrador a => [
             if (a.cargo.isNotEmpty) _Dato(etiqueta: 'Cargo', valor: a.cargo),
@@ -158,7 +190,11 @@ class _Dato extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 150, child: Text(etiqueta, style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
+          SizedBox(
+              width: 150,
+              child: Text(etiqueta,
+                  style: textos.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600))),
           Expanded(child: Text(valor, style: textos.bodyMedium)),
         ],
       ),

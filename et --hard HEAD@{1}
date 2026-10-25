@@ -1,0 +1,11 @@
+[33mfd7d8e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/firebase-setup[m[33m, [m[1;31morigin/feature/firebase-setup[m[33m)[m HEAD@{0}: checkout: moving from feature/firebase-setup to feature/firebase-setup
+[33mfd7d8e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/firebase-setup[m[33m, [m[1;31morigin/feature/firebase-setup[m[33m)[m HEAD@{1}: checkout: moving from feature/firebase-setup to feature/firebase-setup
+[33mfd7d8e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/firebase-setup[m[33m, [m[1;31morigin/feature/firebase-setup[m[33m)[m HEAD@{2}: commit: Le update: Integracion de catalogo, filtros avanzados y detalle de deportes (RF-04, RF-05, RF-06). Adicional, agregada la colección deporte al firebase
+[33md6d0521[m[33m ([m[1;32mmaster[m[33m, [m[1;32mfeature/catalogo-deportes[m[33m)[m HEAD@{3}: checkout: moving from main to feature/firebase-setup
+[33mb70d7f3[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{4}: reset: moving to HEAD
+[33mb70d7f3[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{5}: checkout: moving from feature/catalogo-deportes to main
+[33md6d0521[m[33m ([m[1;32mmaster[m[33m, [m[1;32mfeature/catalogo-deportes[m[33m)[m HEAD@{6}: reset: moving to HEAD
+[33md6d0521[m[33m ([m[1;32mmaster[m[33m, [m[1;32mfeature/catalogo-deportes[m[33m)[m HEAD@{7}: checkout: moving from feature/firebase-setup to feature/catalogo-deportes
+[33md6d0521[m[33m ([m[1;32mmaster[m[33m, [m[1;32mfeature/catalogo-deportes[m[33m)[m HEAD@{8}: checkout: moving from feature/firebase-setup to feature/firebase-setup
+[33md6d0521[m[33m ([m[1;32mmaster[m[33m, [m[1;32mfeature/catalogo-deportes[m[33m)[m HEAD@{9}: checkout: moving from master to feature/firebase-setup
+[33md6d0521[m[33m ([m[1;32mmaster[m[33m, [m[1;32mfeature/catalogo-deportes[m[33m)[m HEAD@{10}: commit (initial): hE LOGRADO DAROS EL FIREBASE, CHAMBEAR

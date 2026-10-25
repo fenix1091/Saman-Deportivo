@@ -10,6 +10,8 @@ import '../viewmodels/perfil_view_model.dart';
 import '../views/admin/admin_dashboard_view.dart';
 import '../views/comun/en_construccion_view.dart';
 import '../views/comun/perfil_view.dart';
+import '../views/entrenador/mis_deportes_screen.dart'; // <-- IMPORTACIÓN AGREGADA
+import '../views/publico/deportes_catalogo_view.dart'; // <-- IMPORTACIÓN AGREGADA
 import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
 import '../views/publico/recuperar_clave_view.dart';
@@ -53,6 +55,11 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
           path: '/catalogo',
           builder: (_, __) =>
               const EnConstruccionView(titulo: 'Catálogo de deportes')),
+
+      // CAMBIO CLAVE: Se reemplaza EnConstruccionView por tu nueva vista
+      GoRoute(
+          path: '/catalogo', builder: (_, __) => const DeportesCatalogoView()),
+
       GoRoute(
         path: '/perfil',
         builder: (context, __) => ChangeNotifierProvider(
@@ -62,13 +69,19 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
       ),
       GoRoute(
         path: '/entrenador/mis-deportes',
-        builder: (_, __) => const EnConstruccionView(titulo: 'Mis deportes'),
+        builder: (_, state) {
+          final deporteId = state.extra as String? ?? 'futbol';
+          return MisDeportesScreen(deporteId: deporteId);
+        },
       ),
       GoRoute(
         path: '/admin/dashboard',
         builder: (_, __) => AdminDashboardView(
             repositorio: adminRepository ?? AdminRepositoryFirebase()),
       ),
+          path: '/admin/dashboard',
+          builder: (_, __) =>
+              const EnConstruccionView(titulo: 'Panel de administración')),
     ],
   );
 }

@@ -1,5 +1,3 @@
-<p align="center"><img width="883" height="408" alt="dasdsdasdsad" src="https://github.com/user-attachments/assets/3aa91aea-9f1e-4c2a-ba14-108b54efddbd" />
-
 # Samán Deportivo
 
 Plataforma web y móvil (PWA) para la gestión de clubes deportivos de la comunidad de la
