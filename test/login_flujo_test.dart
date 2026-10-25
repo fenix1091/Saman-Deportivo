@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:saman_deportivo/main.dart';
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/deporte_repository_falso.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -13,7 +14,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     await tester.pumpWidget(
-      SamanDeportivoApp(repositorio: AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero)),
+      SamanDeportivoApp(
+        repositorio: AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero),
+        deportes: DeporteRepositoryFalso.conDatosDePrueba(),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Iniciar sesión'));

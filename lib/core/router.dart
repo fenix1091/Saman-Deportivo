@@ -4,24 +4,29 @@ import 'package:provider/provider.dart';
 
 import '../models/persona.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/deporte_repository.dart';
+import '../repositories/inscripcion_repository.dart';
+import '../repositories/pasarela_pago.dart';
 import '../viewmodels/auth_view_model.dart';
+import '../viewmodels/catalogo_view_model.dart';
+import '../viewmodels/detalle_deporte_view_model.dart';
+import '../viewmodels/inscripcion_view_model.dart';
 import '../viewmodels/perfil_view_model.dart';
 import '../views/comun/en_construccion_view.dart';
 import '../views/comun/perfil_view.dart';
-import '../views/publico/deportes_catalogo_view.dart'; // <-- IMPORTACIÓN AGREGADA
+import '../views/estudiante/inscripcion_view.dart';
+import '../views/publico/catalogo_view.dart';
+import '../views/publico/detalle_deporte_view.dart';
 import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
 import '../views/publico/recuperar_clave_view.dart';
 import '../views/publico/registro_view.dart';
 
-/// Rutas que se pueden abrir sin iniciar sesión.
-const _rutasPublicas = {
-  '/',
-  '/login',
-  '/registro',
-  '/recuperar-clave',
-  '/catalogo'
-};
+/// Rutas que se pueden abrir sin iniciar sesión. El detalle de cada deporte
+/// (/catalogo/{codigo}) también es público (CU-06).
+const _rutasPublicas = {'/', '/login', '/registro', '/recuperar-clave', '/catalogo'};
+
+bool _esPublica(String ruta) => _rutasPublicas.contains(ruta) || ruta.startsWith('/catalogo/');
 
 /// Rutas de la aplicación (ver el diagrama de rutas del Hito 1).
 ///
@@ -30,29 +35,51 @@ const _rutasPublicas = {
 GoRouter crearRouter(AuthViewModel auth) {
   return GoRouter(
     refreshListenable: auth,
-    redirect: (context, state) =>
-        redirigir(auth.usuario, state.uri, listo: auth.listo),
+    redirect: (context, state) => redirigir(auth.usuario, state.uri, listo: auth.listo),
     routes: [
       GoRoute(
         path: '/cargando',
-        builder: (_, __) =>
-            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        builder: (_, __) => const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
       GoRoute(path: '/', builder: (_, __) => const InicioView()),
       GoRoute(
         path: '/login',
-        builder: (_, state) =>
-            LoginView(destino: state.uri.queryParameters['destino']),
+        builder: (_, state) => LoginView(destino: state.uri.queryParameters['destino']),
       ),
       GoRoute(path: '/registro', builder: (_, __) => const RegistroView()),
+      GoRoute(path: '/recuperar-clave', builder: (_, __) => const RecuperarClaveView()),
       GoRoute(
-          path: '/recuperar-clave',
-          builder: (_, __) => const RecuperarClaveView()),
-
-      // CAMBIO CLAVE: Se reemplaza EnConstruccionView por tu nueva vista
+        path: '/catalogo',
+        builder: (context, __) => ChangeNotifierProvider(
+          create: (_) => CatalogoViewModel(context.read<DeporteRepository>()),
+          child: const CatalogoView(),
+        ),
+        routes: [
+          GoRoute(
+            path: ':codigo',
+            builder: (context, state) => ChangeNotifierProvider(
+              key: ValueKey(state.pathParameters['codigo']),
+              create: (_) => DetalleDeporteViewModel(context.read<DeporteRepository>(), state.pathParameters['codigo']!),
+              child: const DetalleDeporteView(),
+            ),
+          ),
+        ],
+      ),
       GoRoute(
-          path: '/catalogo', builder: (_, __) => const DeportesCatalogoView()),
-
+        path: '/estudiante/inscribir/:codigo',
+        builder: (context, state) => ChangeNotifierProvider(
+          key: ValueKey(state.pathParameters['codigo']),
+          create: (_) => InscripcionViewModel(
+            deportes: context.read<DeporteRepository>(),
+            inscripciones: context.read<InscripcionRepository>(),
+            pasarela: context.read<PasarelaPago>(),
+            // La guardia solo deja entrar a /estudiante con sesión de estudiante.
+            estudiante: context.read<AuthViewModel>().usuario! as Estudiante,
+            codigo: state.pathParameters['codigo']!,
+          ),
+          child: const InscripcionView(),
+        ),
+      ),
       GoRoute(
         path: '/perfil',
         builder: (context, __) => ChangeNotifierProvider(
@@ -65,9 +92,7 @@ GoRouter crearRouter(AuthViewModel auth) {
         builder: (_, __) => const EnConstruccionView(titulo: 'Mis deportes'),
       ),
       GoRoute(
-          path: '/admin/dashboard',
-          builder: (_, __) =>
-              const EnConstruccionView(titulo: 'Panel de administración')),
+          path: '/admin/dashboard', builder: (_, __) => const EnConstruccionView(titulo: 'Panel de administración')),
     ],
   );
 }
@@ -79,8 +104,7 @@ GoRouter crearRouter(AuthViewModel auth) {
 String? redirigir(Persona? usuario, Uri uri, {bool listo = true}) {
   if (!listo) {
     if (uri.path == '/cargando') return null;
-    return Uri(path: '/cargando', queryParameters: {'destino': uri.toString()})
-        .toString();
+    return Uri(path: '/cargando', queryParameters: {'destino': uri.toString()}).toString();
   }
   if (uri.path == '/cargando') {
     final destino = Uri.parse(uri.queryParameters['destino'] ?? '/');
@@ -88,17 +112,15 @@ String? redirigir(Persona? usuario, Uri uri, {bool listo = true}) {
   }
   final ruta = uri.path;
   if (usuario == null) {
-    if (_rutasPublicas.contains(ruta)) return null;
-    return Uri(path: '/login', queryParameters: {'destino': uri.toString()})
-        .toString();
+    if (_esPublica(ruta)) return null;
+    return Uri(path: '/login', queryParameters: {'destino': uri.toString()}).toString();
   }
   final inicio = AuthViewModel.rutaInicio(usuario.rol);
   if (ruta == '/login' || ruta == '/registro') {
     return uri.queryParameters['destino'] ?? inicio;
   }
-  if (ruta.startsWith('/entrenador') && usuario.rol != Rol.entrenador)
-    return inicio;
-  if (ruta.startsWith('/admin') && usuario.rol != Rol.administrador)
-    return inicio;
+  if (ruta.startsWith('/estudiante') && usuario.rol != Rol.estudiante) return inicio;
+  if (ruta.startsWith('/entrenador') && usuario.rol != Rol.entrenador) return inicio;
+  if (ruta.startsWith('/admin') && usuario.rol != Rol.administrador) return inicio;
   return null;
 }

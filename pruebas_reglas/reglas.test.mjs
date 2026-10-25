@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch,
+  collection, deleteDoc, doc, getDoc, getDocs, increment, serverTimestamp, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 
 let entorno;
@@ -157,5 +157,21 @@ describe('Estructura base de la gestión deportiva', () => {
   test('las inscripciones y los pagos quedan cerrados hasta el Hito 3', async () => {
     await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones/i1'), { estudianteId: 'est1', deporteCodigo: 'FUT-01' }));
     await assertFails(setDoc(doc(comoEstudiante(), 'pagos/p1'), { monto: 5 }));
+  });
+});
+
+describe('Catálogo público (RF-04, RF-05, RF-06)', () => {
+  test('cualquiera lee los deportes, sus horarios y sus reseñas', async () => {
+    await assertSucceeds(getDocs(collection(sinSesion(), 'deportes')));
+    await assertSucceeds(getDocs(collection(sinSesion(), 'deportes/FUT-01/horarios')));
+    await assertSucceeds(getDocs(collection(sinSesion(), 'resenas')));
+  });
+
+  test('una consulta suma 1 al contador de deportes más buscados, y nada más', async () => {
+    await assertSucceeds(updateDoc(doc(sinSesion(), 'deportes/FUT-01'), { vecesBuscado: increment(1) }));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'deportes/FUT-01'), { vecesBuscado: increment(1) }));
+    await assertFails(updateDoc(doc(sinSesion(), 'deportes/FUT-01'), { vecesBuscado: 1000 }));
+    await assertFails(updateDoc(doc(sinSesion(), 'deportes/FUT-01'), { vecesBuscado: increment(1), cupoMaximo: 99 }));
+    await assertFails(updateDoc(doc(comoEstudiante(), 'deportes/FUT-01'), { cuposOcupados: 0 }));
   });
 });

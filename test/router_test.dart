@@ -20,7 +20,7 @@ void main() {
 
   group('Guardia de rutas', () {
     test('sin sesión, las rutas públicas se abren', () {
-      for (final ruta in ['/', '/login', '/registro', '/recuperar-clave', '/catalogo']) {
+      for (final ruta in ['/', '/login', '/registro', '/recuperar-clave', '/catalogo', '/catalogo/FUT-01']) {
         expect(redirigir(null, Uri.parse(ruta)), isNull, reason: ruta);
       }
     });
