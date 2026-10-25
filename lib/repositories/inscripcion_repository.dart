@@ -26,7 +26,14 @@ class InscripcionRepository {
       final inscRef = _inscripciones.doc(inscripcionId);
       final depRef = _db.collection('deportes').doc(deporteCodigo);
 
+      final inscSnap = await transaction.get(inscRef);
       final depSnap = await transaction.get(depRef);
+
+      // Solo se cancela una inscripción vigente; si ya estaba cancelada no se libera otro cupo.
+      final estado = inscSnap.data()?['estado'];
+      if (estado != 'pendientePago' && estado != 'confirmada') {
+        throw StateError('La inscripción ya no está vigente.');
+      }
 
       transaction.update(inscRef, {
         'estado': 'cancelada',

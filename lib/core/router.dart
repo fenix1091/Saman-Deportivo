@@ -11,6 +11,8 @@ import '../viewmodels/perfil_view_model.dart';
 import '../views/admin/admin_dashboard_view.dart';
 import '../views/comun/perfil_view.dart';
 import '../views/entrenador/mis_deportes_screen.dart';
+import '../views/estudiante/estudiante_dashboard_view.dart';
+import '../views/mis_inscripciones_view.dart';
 import '../views/publico/deportes_catalogo_view.dart';
 import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
@@ -64,6 +66,12 @@ GoRouter crearRouter(AuthViewModel auth,
         ),
       ),
       GoRoute(
+          path: '/estudiante',
+          builder: (_, __) => const EstudianteDashboardView()),
+      GoRoute(
+          path: '/mis-inscripciones',
+          builder: (_, __) => const MisInscripcionesView()),
+      GoRoute(
         path: '/entrenador/mis-deportes',
         builder: (_, state) {
           final deporteId = state.extra as String? ?? 'futbol';
@@ -108,5 +116,7 @@ String? redirigir(Persona? usuario, Uri uri, {bool listo = true}) {
     return inicio;
   if (ruta.startsWith('/admin') && usuario.rol != Rol.administrador)
     return inicio;
+  if ((ruta == '/estudiante' || ruta == '/mis-inscripciones') &&
+      usuario.rol != Rol.estudiante) return inicio;
   return null;
 }

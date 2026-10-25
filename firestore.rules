@@ -14,6 +14,9 @@ service cloud.firestore {
     function rutaUsuario(uid) {
       return /databases/$(database)/documents/usuarios/$(uid);
     }
+    function rutaInscripcion(id) {
+      return /databases/$(database)/documents/inscripciones/$(id);
+    }
     function rol() {
       return get(rutaUsuario(request.auth.uid)).data.rol;
     }
@@ -96,6 +99,13 @@ service cloud.firestore {
     match /deportes/{codigo} {
       allow read: if true;
       allow write: if esAdmin();
+      // Al cancelar (CU-10) el estudiante libera un cupo, solo en la misma
+      // transacción en la que su inscripción vigente pasa a cancelada.
+      allow update: if autenticado()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
+        && request.resource.data.cuposOcupados == resource.data.cuposOcupados - 1
+        && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado in ['pendientePago', 'confirmada']
+        && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'cancelada';
       match /horarios/{id} {
         allow read: if true;
         allow write: if esAdmin();
@@ -104,8 +114,18 @@ service cloud.firestore {
 
     // Inscripciones, pagos, asistencias y reseñas se abren en el Hito 3, cuando se
     // programen sus módulos. Por ahora solo las maneja el administrador.
+    // Consultar y cancelar (CU-10, CU-11): el estudiante ve las suyas y solo
+    // puede pasar una vigente a cancelada. El id es {codigoDeporte}_{uid}.
     match /inscripciones/{id} {
-      allow read, write: if esAdmin();
+      allow read: if esAdmin() || esEntrenador()
+        || (autenticado() && resource.data.estudianteId == request.auth.uid);
+      allow update: if esAdmin()
+        || (autenticado()
+          && resource.data.estudianteId == request.auth.uid
+          && resource.data.estado in ['pendientePago', 'confirmada']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+          && request.resource.data.estado == 'cancelada');
+      allow create, delete: if esAdmin();
     }
     match /pagos/{id} {
       allow read, write: if esAdmin();
@@ -113,9 +133,20 @@ service cloud.firestore {
     match /asistencias/{id} {
       allow read, write: if esAdmin();
     }
+    // Reseñas (CU-12): una por estudiante y deporte, solo si está inscrito.
     match /resenas/{id} {
       allow read: if true;
-      allow write: if esAdmin();
+      allow create, update: if autenticado()
+        && id == request.resource.data.deporteCodigo + '_' + request.auth.uid
+        && request.resource.data.estudianteId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['estudianteId', 'deporteCodigo', 'calificacion', 'comentario', 'fecha'])
+        && request.resource.data.calificacion is int
+        && request.resource.data.calificacion >= 1
+        && request.resource.data.calificacion <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 500
+        && get(rutaInscripcion(id)).data.estado == 'confirmada';
+      allow delete: if esAdmin();
     }
   }
 }

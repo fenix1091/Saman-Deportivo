@@ -53,6 +53,11 @@ class _DeportesCatalogoViewState extends State<DeportesCatalogoView> {
                   _vm.limpiarFiltros();
                 },
               ),
+              IconButton(
+                tooltip: 'Mis inscripciones',
+                icon: const Icon(Icons.assignment_outlined),
+                onPressed: () => context.push('/mis-inscripciones'),
+              ),
               // 2. Icono de Perfil para editar cuenta (RF-01)
               IconButton(
                 tooltip: 'Mi Perfil',
