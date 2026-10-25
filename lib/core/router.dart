@@ -3,9 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/persona.dart';
+import '../repositories/admin_repository_firebase.dart';
 import '../repositories/auth_repository.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/perfil_view_model.dart';
+import '../views/admin/admin_dashboard_view.dart';
 import '../views/comun/en_construccion_view.dart';
 import '../views/comun/perfil_view.dart';
 import '../views/entrenador/mis_deportes_screen.dart'; // <-- IMPORTACIÓN AGREGADA
@@ -28,7 +30,7 @@ const _rutasPublicas = {
 ///
 /// El guardia de autenticación manda al login a quien abre una ruta protegida sin
 /// sesión, y a su pantalla de inicio a quien intenta entrar en la sección de otro rol.
-GoRouter crearRouter(AuthViewModel auth) {
+GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
   return GoRouter(
     refreshListenable: auth,
     redirect: (context, state) =>
@@ -49,6 +51,10 @@ GoRouter crearRouter(AuthViewModel auth) {
       GoRoute(
           path: '/recuperar-clave',
           builder: (_, __) => const RecuperarClaveView()),
+      GoRoute(
+          path: '/catalogo',
+          builder: (_, __) =>
+              const EnConstruccionView(titulo: 'Catálogo de deportes')),
 
       // CAMBIO CLAVE: Se reemplaza EnConstruccionView por tu nueva vista
       GoRoute(
@@ -69,6 +75,10 @@ GoRouter crearRouter(AuthViewModel auth) {
         },
       ),
       GoRoute(
+        path: '/admin/dashboard',
+        builder: (_, __) => AdminDashboardView(
+            repositorio: adminRepository ?? AdminRepositoryFirebase()),
+      ),
           path: '/admin/dashboard',
           builder: (_, __) =>
               const EnConstruccionView(titulo: 'Panel de administración')),
