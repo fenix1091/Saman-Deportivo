@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, increment, serverTimestamp, setDoc, updateDoc, writeBatch,
+  collection, deleteDoc, doc, getDoc, getDocs, increment, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch,
 } from 'firebase/firestore';
 
 let entorno;
@@ -143,7 +143,6 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
   test('una foto que no cabe en el documento se rechaza', async () => {
     await assertFails(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { fotoUrl: 'x'.repeat(1000001) }));
   });
-
   test('el administrador crea entrenadores y su índice de cédula, pero otros roles no', async () => {
     const entrenador = {
       rol: 'entrenador',
@@ -189,7 +188,7 @@ describe('Estructura base de la gestión deportiva', () => {
     await assertFails(updateDoc(doc(comoEntrenador(), 'deportes/FUT-01'), { entrenadorId: 'ent1' }));
   });
 
-  test('las inscripciones y los pagos quedan cerrados hasta el Hito 3', async () => {
+  test('un estudiante no puede escribir inscripciones ni pagos inventados', async () => {
     await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones/i1'), { estudianteId: 'est1', deporteCodigo: 'FUT-01' }));
     await assertFails(setDoc(doc(comoEstudiante(), 'pagos/p1'), { monto: 5 }));
   });
@@ -208,5 +207,98 @@ describe('Catálogo público (RF-04, RF-05, RF-06)', () => {
     await assertFails(updateDoc(doc(sinSesion(), 'deportes/FUT-01'), { vecesBuscado: 1000 }));
     await assertFails(updateDoc(doc(sinSesion(), 'deportes/FUT-01'), { vecesBuscado: increment(1), cupoMaximo: 99 }));
     await assertFails(updateDoc(doc(comoEstudiante(), 'deportes/FUT-01'), { cuposOcupados: 0 }));
+  });
+});
+
+describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', () => {
+  const ID = 'FUT-01_est1';
+  const reserva = () => ({
+    estudianteId: 'est1', deporteCodigo: 'FUT-01', fechaInscripcion: serverTimestamp(),
+    estado: 'pendientePago', motivo: '', pagoId: '',
+  });
+
+  /** Escribe sin reglas, como lo haría la consola de Firebase. */
+  const preparar = (ruta, datos) =>
+    entorno.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), ruta), datos));
+
+  /** Hace lo mismo que InscripcionRepositoryFirebase.confirmarPago, en un lote. */
+  function confirmar(db, { cupos = 21, monto = 5, estadoPago = 'completado', estadoInscripcion = 'confirmada' } = {}) {
+    const pagoId = `${ID}_${Date.now()}`;
+    const lote = writeBatch(db);
+    lote.set(doc(db, 'pagos', pagoId), {
+      inscripcionId: ID, monto, moneda: 'USD', metodo: 'PayPal', referenciaExterna: 'SANDBOX-1',
+      fecha: serverTimestamp(), estado: estadoPago,
+    });
+    if (cupos !== null) lote.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: cupos });
+    lote.update(doc(db, 'inscripciones', ID), estadoInscripcion === 'confirmada'
+      ? { estado: 'confirmada', pagoId }
+      : { estado: estadoInscripcion, motivo: 'Sin cupo' });
+    return lote.commit();
+  }
+
+  beforeEach(async () => {
+    await preparar('deportes/FUT-01', {
+      nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 20, costoReserva: 5, activo: true, entrenadorId: 'ent1',
+    });
+    await entorno.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), 'usuarios/est1'), { solvente: true }));
+  });
+
+  test('un estudiante activo y solvente reserva su cupo', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await assertSucceeds(getDoc(doc(comoEstudiante(), 'inscripciones', ID)));
+  });
+
+  test('un estudiante no solvente o inactivo no puede reservar, aunque se salte la app (RN-01)', async () => {
+    await assertFails(setDoc(doc(comoOtroEstudiante(), 'inscripciones/FUT-01_est2'),
+      { ...reserva(), estudianteId: 'est2' }));
+    await entorno.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), 'usuarios/est1'), { estado: 'inactivo' }));
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+  });
+
+  test('no puede reservar a nombre de otro, ni sin cupos, ni dos veces seguidas (RN-02, RN-03)', async () => {
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones/FUT-01_est2'), { ...reserva(), estudianteId: 'est2' }));
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones', ID), { ...reserva(), estado: 'confirmada' }));
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await preparar('deportes/FUT-01', { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 25, activo: true, entrenadorId: 'ent1' });
+    await preparar(`inscripciones/${ID}`, { ...reserva(), estado: 'cancelada', fechaInscripcion: Timestamp.now() });
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+  });
+
+  test('otro estudiante no puede ver la inscripción ni el pago', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await assertFails(getDoc(doc(comoOtroEstudiante(), 'inscripciones', ID)));
+    await assertSucceeds(getDoc(doc(comoEntrenador(), 'inscripciones', ID)));
+  });
+
+  test('el pago completado confirma la inscripción y ocupa un cupo, todo junto (CU-07, paso 6)', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await assertSucceeds(confirmar(comoEstudiante()));
+  });
+
+  test('no se puede confirmar sin pagar, sin ocupar el cupo, ni pagando otro monto', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await assertFails(updateDoc(doc(comoEstudiante(), 'inscripciones', ID), { estado: 'confirmada', pagoId: 'x' }));
+    await assertFails(confirmar(comoEstudiante(), { cupos: null }));
+    await assertFails(confirmar(comoEstudiante(), { cupos: 22 }));
+    await assertFails(confirmar(comoEstudiante(), { monto: 0.01 }));
+    await assertFails(updateDoc(doc(comoEstudiante(), 'deportes/FUT-01'), { cuposOcupados: 21 }));
+  });
+
+  test('nunca se pasa del cupo máximo; sin cupo se rechaza y se reembolsa (RNF-05, CU-07 A5)', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await preparar('deportes/FUT-01', {
+      nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 25, costoReserva: 5, activo: true, entrenadorId: 'ent1',
+    });
+    await assertFails(confirmar(comoEstudiante(), { cupos: 26 }));
+    await assertSucceeds(confirmar(comoEstudiante(), { cupos: null, estadoPago: 'reembolsado', estadoInscripcion: 'rechazada' }));
+  });
+
+  test('una reserva vencida no se puede pagar y se puede marcar como expirada (RN-05)', async () => {
+    const haceVeinteMinutos = Timestamp.fromMillis(Date.now() - 20 * 60 * 1000);
+    await preparar(`inscripciones/${ID}`, { ...reserva(), fechaInscripcion: haceVeinteMinutos });
+    await assertFails(confirmar(comoEstudiante()));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'inscripciones', ID), { estado: 'expirada', motivo: 'Vencida' }));
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
   });
 });

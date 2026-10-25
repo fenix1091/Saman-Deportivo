@@ -60,6 +60,9 @@ class AuthRepositoryFalso implements AuthRepository {
   Persona? _actual;
   int _siguienteId = 1;
 
+  /// Agrega otra cuenta, por ejemplo un estudiante solvente.
+  void agregarCuenta(Persona usuario, String clave) => _agregar(usuario, clave);
+
   void _agregar(Persona usuario, String clave) {
     _usuarios[usuario.uid] = usuario;
     _claves[usuario.uid] = clave;

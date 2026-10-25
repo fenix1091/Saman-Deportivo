@@ -26,6 +26,25 @@ service cloud.firestore {
     function esEntrenador() {
       return tienePerfil() && rol() == 'entrenador';
     }
+    // RN-01 (CU-08): solo un estudiante activo y solvente puede reservar un cupo.
+    // La solvencia la marca la Coordinación de Deportes y el estudiante no puede cambiarla.
+    function esEstudianteHabilitado() {
+      let perfil = get(rutaUsuario(request.auth.uid)).data;
+      return tienePerfil() && perfil.rol == 'estudiante' && perfil.estado == 'activo' && perfil.solvente == true;
+    }
+    function rutaDeporte(codigo) {
+      return /databases/$(database)/documents/deportes/$(codigo);
+    }
+    function rutaInscripcion(id) {
+      return /databases/$(database)/documents/inscripciones/$(id);
+    }
+    function rutaPago(id) {
+      return /databases/$(database)/documents/pagos/$(id);
+    }
+    // RN-05: una reserva pendiente de pago vence a los 15 minutos.
+    function vencida(inscripcion) {
+      return request.time > inscripcion.fechaInscripcion + duration.value(15, 'm');
+    }
 
     // ---------- Usuarios (RF-01, RF-02, RF-03) ----------
     match /usuarios/{uid} {
@@ -100,20 +119,108 @@ service cloud.firestore {
       allow write: if esAdmin();
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vecesBuscado'])
         && request.resource.data.vecesBuscado == resource.data.get('vecesBuscado', 0) + 1;
+      // RF-08 y RNF-05: el estudiante solo suma 1 cupo, sin pasar del máximo, y solo en la
+      // misma transacción que confirma su inscripción pagada (RN-02, RN-06).
+      allow update: if autenticado()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
+        && request.resource.data.cuposOcupados == resource.data.get('cuposOcupados', 0) + 1
+        && request.resource.data.cuposOcupados <= resource.data.cupoMaximo
+        && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'pendientePago'
+        && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'confirmada';
       match /horarios/{id} {
         allow read: if true;
         allow write: if esAdmin();
       }
     }
 
-    // Inscripciones, pagos, asistencias y reseñas se abren en el Hito 3, cuando se
-    // programen sus módulos. Por ahora solo las maneja el administrador.
+    // ---------- Inscripción, cupos y pago (RF-07, RF-08, RF-09) ----------
+    // El id es {codigo}_{uid}: un estudiante tiene un solo documento por deporte (RN-03).
     match /inscripciones/{id} {
-      allow read, write: if esAdmin();
+      function esDueno() {
+        return autenticado() && resource.data.estudianteId == request.auth.uid;
+      }
+      function cambia(campos) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
+      }
+      // CU-07, paso 4: reserva en PENDIENTE_PAGO si está habilitado y queda cupo.
+      function reservaValida() {
+        let datos = request.resource.data;
+        let deporte = get(rutaDeporte(datos.deporteCodigo)).data;
+        return esEstudianteHabilitado()
+          && id == datos.deporteCodigo + '_' + request.auth.uid
+          && datos.keys().hasOnly(['estudianteId', 'deporteCodigo', 'fechaInscripcion', 'estado', 'motivo', 'pagoId'])
+          && datos.estudianteId == request.auth.uid
+          && datos.estado == 'pendientePago'
+          && datos.fechaInscripcion == request.time
+          && datos.pagoId == ''
+          && deporte.activo == true
+          && deporte.get('entrenadorId', '') != ''
+          && deporte.get('cuposOcupados', 0) < deporte.cupoMaximo;
+      }
+
+      allow read: if esAdmin() || esEntrenador() || esDueno();
+
+      allow create: if reservaValida();
+      // Volver a reservar después de cancelar, de un rechazo o de una reserva vencida.
+      allow update: if reservaValida()
+        && (resource.data.estado in ['cancelada', 'rechazada', 'expirada']
+          || (resource.data.estado == 'pendientePago' && vencida(resource.data)));
+
+      // CU-07, paso 6: se confirma con un pago completado y ocupando un cupo, todo junto.
+      allow update: if esDueno()
+        && resource.data.estado == 'pendientePago'
+        && !vencida(resource.data)
+        && cambia(['estado', 'pagoId'])
+        && request.resource.data.estado == 'confirmada'
+        && getAfter(rutaPago(request.resource.data.pagoId)).data.inscripcionId == id
+        && getAfter(rutaPago(request.resource.data.pagoId)).data.estado == 'completado'
+        && getAfter(rutaDeporte(resource.data.deporteCodigo)).data.cuposOcupados
+          == get(rutaDeporte(resource.data.deporteCodigo)).data.get('cuposOcupados', 0) + 1;
+
+      // CU-07, A5: rechazada solo si de verdad ya no queda cupo.
+      allow update: if esDueno()
+        && resource.data.estado == 'pendientePago'
+        && cambia(['estado', 'motivo'])
+        && request.resource.data.estado == 'rechazada'
+        && get(rutaDeporte(resource.data.deporteCodigo)).data.get('cuposOcupados', 0)
+          >= get(rutaDeporte(resource.data.deporteCodigo)).data.cupoMaximo;
+
+      // RN-05: el propio estudiante marca como expirada su reserva vencida.
+      allow update: if esDueno()
+        && resource.data.estado == 'pendientePago'
+        && vencida(resource.data)
+        && cambia(['estado', 'motivo'])
+        && request.resource.data.estado == 'expirada';
+
+      allow write: if esAdmin();
     }
+
+    // Trazabilidad del pago (RF-09): solo se guarda la referencia de PayPal, nunca la
+    // tarjeta (RNF-03). El id es {idInscripcion}_{milisegundos} y no se puede editar.
     match /pagos/{id} {
-      allow read, write: if esAdmin();
+      function inscripcionDelPago() {
+        return request.resource.data.inscripcionId;
+      }
+      allow read: if esAdmin()
+        || (autenticado() && resource.data.inscripcionId.split('_')[1] == request.auth.uid);
+      allow create: if autenticado()
+        && request.resource.data.keys().hasOnly(['inscripcionId', 'monto', 'moneda', 'metodo', 'referenciaExterna',
+                                                  'fecha', 'estado'])
+        && inscripcionDelPago().split('_')[1] == request.auth.uid
+        && id.matches(inscripcionDelPago() + '_[0-9]+')
+        && request.resource.data.fecha == request.time
+        && request.resource.data.referenciaExterna is string
+        && request.resource.data.referenciaExterna.size() > 0
+        && request.resource.data.monto == get(rutaDeporte(inscripcionDelPago().split('_')[0])).data.costoReserva
+        && ((request.resource.data.estado == 'completado'
+            && getAfter(rutaInscripcion(inscripcionDelPago())).data.estado == 'confirmada'
+            && getAfter(rutaInscripcion(inscripcionDelPago())).data.pagoId == id)
+          || (request.resource.data.estado == 'reembolsado'
+            && getAfter(rutaInscripcion(inscripcionDelPago())).data.estado == 'rechazada'));
+      allow update, delete: if esAdmin();
     }
+
+    // Asistencias y reseñas se abren cuando se programen sus módulos (RF-13, RF-15).
     match /asistencias/{id} {
       allow read, write: if esAdmin();
     }

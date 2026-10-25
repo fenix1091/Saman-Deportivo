@@ -5,6 +5,7 @@ import 'package:saman_deportivo/main.dart';
 
 import 'falsos/auth_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
+import 'falsos/inscripcion_repository_falso.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -15,7 +16,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     final deportes = DeporteRepositoryFalso.conDatosDePrueba();
-    await tester.pumpWidget(SamanDeportivoApp(repositorio: AuthRepositoryFalso.conDatosDePrueba(), deportes: deportes));
+    await tester.pumpWidget(SamanDeportivoApp(
+      repositorio: AuthRepositoryFalso.conDatosDePrueba(),
+      deportes: deportes,
+      inscripciones: InscripcionRepositoryFalso(deportes),
+      pasarela: PasarelaFalsa(),
+    ));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ver deportes sin iniciar sesión'));
     await tester.pumpAndSettle();
@@ -67,7 +73,7 @@ void main() {
 
     deportes.cambiarCupos('FUT-01', 25);
     await tester.pumpAndSettle();
-    expect(find.text('Sin cupos'), findsOneWidget);
+    expect(find.text('Sin cupos'), findsWidgets);
   });
 
   testWidgets('en el teléfono el catálogo se ve en una columna sin desbordarse', (tester) async {
