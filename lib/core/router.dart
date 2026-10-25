@@ -4,14 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../models/persona.dart';
 import '../repositories/admin_repository_firebase.dart';
+import '../repositories/asistencia_repository.dart';
 import '../repositories/auth_repository.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/perfil_view_model.dart';
 import '../views/admin/admin_dashboard_view.dart';
-import '../views/comun/en_construccion_view.dart';
 import '../views/comun/perfil_view.dart';
-import '../views/entrenador/mis_deportes_screen.dart'; // <-- IMPORTACIÓN AGREGADA
-import '../views/publico/deportes_catalogo_view.dart'; // <-- IMPORTACIÓN AGREGADA
+import '../views/entrenador/mis_deportes_screen.dart';
+import '../views/publico/deportes_catalogo_view.dart';
 import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
 import '../views/publico/recuperar_clave_view.dart';
@@ -30,7 +30,9 @@ const _rutasPublicas = {
 ///
 /// El guardia de autenticación manda al login a quien abre una ruta protegida sin
 /// sesión, y a su pantalla de inicio a quien intenta entrar en la sección de otro rol.
-GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
+GoRouter crearRouter(AuthViewModel auth,
+    {AdminRepository? adminRepository,
+    AsistenciaRepository? asistenciaRepository}) {
   return GoRouter(
     refreshListenable: auth,
     redirect: (context, state) =>
@@ -52,12 +54,6 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
           path: '/recuperar-clave',
           builder: (_, __) => const RecuperarClaveView()),
       GoRoute(
-          path: '/catalogo',
-          builder: (_, __) =>
-              const EnConstruccionView(titulo: 'Catálogo de deportes')),
-
-      // CAMBIO CLAVE: Se reemplaza EnConstruccionView por tu nueva vista
-      GoRoute(
           path: '/catalogo', builder: (_, __) => const DeportesCatalogoView()),
 
       GoRoute(
@@ -71,7 +67,8 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
         path: '/entrenador/mis-deportes',
         builder: (_, state) {
           final deporteId = state.extra as String? ?? 'futbol';
-          return MisDeportesScreen(deporteId: deporteId);
+          return MisDeportesScreen(
+              deporteId: deporteId, repositorio: asistenciaRepository);
         },
       ),
       GoRoute(
@@ -79,9 +76,6 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
         builder: (_, __) => AdminDashboardView(
             repositorio: adminRepository ?? AdminRepositoryFirebase()),
       ),
-          path: '/admin/dashboard',
-          builder: (_, __) =>
-              const EnConstruccionView(titulo: 'Panel de administración')),
     ],
   );
 }

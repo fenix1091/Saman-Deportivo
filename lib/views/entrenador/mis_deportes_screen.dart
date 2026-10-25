@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
 import '../../repositories/asistencia_repository.dart';
+import '../../viewmodels/auth_view_model.dart';
 
 class MisDeportesScreen extends StatefulWidget {
   final String deporteId;
 
-  const MisDeportesScreen({super.key, required this.deporteId});
+  final AsistenciaRepository? repositorio;
+
+  const MisDeportesScreen(
+      {super.key, required this.deporteId, this.repositorio});
 
   @override
   State<MisDeportesScreen> createState() => _MisDeportesScreenState();
 }
 
 class _MisDeportesScreenState extends State<MisDeportesScreen> {
-  final AsistenciaRepository _asistenciaRepo = AsistenciaRepository();
+  late final AsistenciaRepository _asistenciaRepo =
+      widget.repositorio ?? AsistenciaRepository();
   DateTime _fechaSeleccionada = DateTime.now();
   final Map<String, bool> _asistenciaMap = {};
 
@@ -22,6 +30,18 @@ class _MisDeportesScreenState extends State<MisDeportesScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('Gestión de Asistencia - ${widget.deporteId}'),
+          actions: [
+            IconButton(
+              tooltip: 'Mi perfil',
+              icon: const Icon(Icons.account_circle_outlined),
+              onPressed: () => context.push('/perfil'),
+            ),
+            IconButton(
+              tooltip: 'Cerrar sesión',
+              icon: const Icon(Icons.logout),
+              onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(

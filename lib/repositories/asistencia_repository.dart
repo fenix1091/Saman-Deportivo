@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AsistenciaRepository {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  AsistenciaRepository({FirebaseFirestore? db})
+      : _db = db ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _db;
 
   /// RF-14: Obtener estudiantes inscritos en una disciplina
   Stream<List<Map<String, dynamic>>> obtenerEstudiantesInscritos(

@@ -5,7 +5,26 @@ import 'package:saman_deportivo/main.dart';
 import 'package:saman_deportivo/models/deporte.dart';
 import 'package:saman_deportivo/models/persona.dart';
 import 'package:saman_deportivo/repositories/admin_repository_firebase.dart';
+import 'package:saman_deportivo/repositories/asistencia_repository.dart';
 import 'falsos/auth_repository_falso.dart';
+
+class _AsistenciaRepositoryFalso implements AsistenciaRepository {
+  @override
+  Stream<List<Map<String, dynamic>>> obtenerEstudiantesInscritos(
+          String deporteId) =>
+      Stream.value(const []);
+
+  @override
+  Future<void> registrarAsistencia({
+    required String deporteId,
+    required DateTime fecha,
+    required Map<String, bool> asistenciaMap,
+  }) async {}
+
+  @override
+  Stream<Map<String, double>> obtenerPorcentajesAsistencia(String deporteId) =>
+      Stream.value(const {});
+}
 
 class _AdminRepositoryFalso implements AdminRepository {
   @override
@@ -60,6 +79,7 @@ void main() {
         repositorio:
             AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero),
         adminRepository: _AdminRepositoryFalso(),
+        asistenciaRepository: _AsistenciaRepositoryFalso(),
       ),
     );
     await tester.pumpAndSettle();
