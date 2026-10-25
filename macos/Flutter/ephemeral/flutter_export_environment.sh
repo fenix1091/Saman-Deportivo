@@ -1,11 +1,11 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=D:\Development\flutter"
-export "FLUTTER_APPLICATION_PATH=D:\Development\Saman deportivo"
-export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=D:\Development\Saman deportivo\macos\Flutter\ephemeral\Packages\.packages\FlutterFramework"
+export "FLUTTER_ROOT=C:\Flutter"
+export "FLUTTER_APPLICATION_PATH=C:\Users\Adriana\Downloads\Saman-Deportivo-main\Saman-Deportivo-main"
+export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=C:\Users\Adriana\Downloads\Saman-Deportivo-main\Saman-Deportivo-main\macos\Flutter\ephemeral\Packages\.packages\FlutterFramework"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_BUILD_DIR=build"
-export "FLUTTER_BUILD_NAME=1.0.0"
+export "FLUTTER_BUILD_NAME=0.1.0"
 export "FLUTTER_BUILD_NUMBER=1"
 export "DART_OBFUSCATION=false"
 export "TRACK_WIDGET_CREATION=true"
