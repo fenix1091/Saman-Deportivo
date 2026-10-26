@@ -16,6 +16,7 @@ import 'repositories/inscripcion_repository.dart';
 import 'repositories/inscripcion_repository_firebase.dart';
 import 'repositories/pasarela_pago.dart';
 import 'viewmodels/auth_view_model.dart';
+import 'viewmodels/mis_inscripciones_view_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +78,8 @@ class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
         Provider<InscripcionRepository>(create: (_) => widget.inscripciones ?? InscripcionRepositoryFirebase()),
         Provider<PasarelaPago>(create: (_) => widget.pasarela ?? PasarelaPayPalSimulada()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _auth),
+        ChangeNotifierProvider(
+            create: (context) => MisInscripcionesViewModel(context.read<InscripcionRepository>())),
       ],
       child: MaterialApp.router(
         title: 'Samán Deportivo',

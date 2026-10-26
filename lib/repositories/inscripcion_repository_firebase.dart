@@ -4,6 +4,7 @@ import '../models/deporte.dart';
 import '../models/inscripcion.dart';
 import '../models/pago.dart';
 import '../models/persona.dart';
+import '../models/resena.dart';
 import 'inscripcion_repository.dart';
 
 /// [InscripcionRepository] sobre Cloud Firestore.
@@ -105,6 +106,38 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
         'estado': EstadoInscripcion.expirada.name,
         'motivo': 'Pasaron ${Inscripcion.minutosParaPagar} minutos sin completar el pago.',
       });
+    } catch (e) {
+      throw _traducir(e);
+    }
+  }
+
+  @override
+  Future<void> cancelar(String inscripcionId, String deporteCodigo) async {
+    final refInscripcion = _inscripciones.doc(inscripcionId);
+    final refDeporte = _db.collection('deportes').doc(deporteCodigo);
+    try {
+      await _db.runTransaction((tx) async {
+        final inscripcion = await tx.get(refInscripcion);
+        final deporte = await tx.get(refDeporte);
+        final estado = inscripcion.data()?['estado'];
+        if (estado != EstadoInscripcion.pendientePago.name && estado != EstadoInscripcion.confirmada.name) {
+          throw const InscripcionException(ErrorInscripcion.noVigente);
+        }
+        tx.update(refInscripcion, {'estado': EstadoInscripcion.cancelada.name});
+        final ocupados = (deporte.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
+        if (estado == EstadoInscripcion.confirmada.name && ocupados > 0) {
+          tx.update(refDeporte, {'cuposOcupados': ocupados - 1});
+        }
+      });
+    } catch (e) {
+      throw _traducir(e);
+    }
+  }
+
+  @override
+  Future<void> publicarResena(Resena resena) async {
+    try {
+      await _db.collection('resenas').doc(resena.id).set(resena.aMapa());
     } catch (e) {
       throw _traducir(e);
     }

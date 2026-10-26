@@ -127,6 +127,14 @@ service cloud.firestore {
         && request.resource.data.cuposOcupados <= resource.data.cupoMaximo
         && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'pendientePago'
         && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'confirmada';
+      // CU-10: al cancelar una inscripción confirmada se libera su cupo, solo en la
+      // misma transacción en la que pasa a cancelada. Una reserva pendiente de pago
+      // no ocupaba cupo (RN-06), así que al cancelarla no se libera ninguno.
+      allow update: if autenticado()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
+        && request.resource.data.cuposOcupados == resource.data.get('cuposOcupados', 0) - 1
+        && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'confirmada'
+        && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'cancelada';
       match /horarios/{id} {
         allow read: if true;
         allow write: if esAdmin();
@@ -192,6 +200,12 @@ service cloud.firestore {
         && cambia(['estado', 'motivo'])
         && request.resource.data.estado == 'expirada';
 
+      // CU-10: el estudiante cancela su inscripción vigente.
+      allow update: if esDueno()
+        && resource.data.estado in ['pendientePago', 'confirmada']
+        && cambia(['estado'])
+        && request.resource.data.estado == 'cancelada';
+
       allow write: if esAdmin();
     }
 
@@ -224,9 +238,22 @@ service cloud.firestore {
     match /asistencias/{id} {
       allow read, write: if esAdmin();
     }
+    // Reseñas (CU-12): una por estudiante y deporte, solo si está inscrito.
     match /resenas/{id} {
       allow read: if true;
-      allow write: if esAdmin();
+      allow create, update: if autenticado()
+        && id == request.resource.data.deporteCodigo + '_' + request.auth.uid
+        && request.resource.data.estudianteId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['estudianteId', 'autor', 'deporteCodigo', 'calificacion', 'comentario', 'fecha'])
+        && request.resource.data.get('autor', '') is string
+        && request.resource.data.get('autor', '').size() <= 80
+        && request.resource.data.calificacion is int
+        && request.resource.data.calificacion >= 1
+        && request.resource.data.calificacion <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 500
+        && get(rutaInscripcion(id)).data.estado == 'confirmada';
+      allow delete: if esAdmin();
     }
   }
 }

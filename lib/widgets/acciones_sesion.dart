@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../models/persona.dart';
 import '../viewmodels/auth_view_model.dart';
 
 /// Botones de la barra superior en las pantallas que también ven los visitantes.
@@ -24,6 +25,12 @@ class AccionesSesion extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (auth.usuario!.rol == Rol.estudiante)
+          IconButton(
+            tooltip: 'Mis inscripciones',
+            icon: const Icon(Icons.assignment_outlined),
+            onPressed: () => context.push('/mis-inscripciones'),
+          ),
         IconButton(
           tooltip: 'Mi perfil',
           icon: const Icon(Icons.account_circle_outlined),

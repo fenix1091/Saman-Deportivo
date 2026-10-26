@@ -2,6 +2,7 @@ import '../models/deporte.dart';
 import '../models/inscripcion.dart';
 import '../models/pago.dart';
 import '../models/persona.dart';
+import '../models/resena.dart';
 
 /// Contrato de acceso a las inscripciones y sus pagos (CU-07, CU-09).
 ///
@@ -26,6 +27,13 @@ abstract class InscripcionRepository {
 
   /// Marca como EXPIRADA una reserva cuyo plazo de pago pasó (RN-05).
   Future<void> expirar(Inscripcion inscripcion);
+
+  /// Cancela una inscripción vigente (CU-10). Si estaba confirmada libera su cupo
+  /// en la misma transacción; una reserva pendiente de pago no ocupaba cupo (RN-06).
+  Future<void> cancelar(String inscripcionId, String deporteCodigo);
+
+  /// Publica o actualiza la reseña del estudiante sobre un deporte (CU-12).
+  Future<void> publicarResena(Resena resena);
 }
 
 /// Motivos por los que puede fallar una inscripción.
@@ -35,6 +43,7 @@ enum ErrorInscripcion {
   reservaVencida('Tu reserva venció porque pasaron 15 minutos sin pagar. Vuelve a intentarlo.'),
   pagoCancelado('Cancelaste el pago. Tu reserva sigue apartada mientras no venza.'),
   pagoRechazado('PayPal rechazó el pago. Revisa tu método de pago e inténtalo de nuevo.'),
+  noVigente('Esta inscripción ya no está vigente.'),
   sinPermiso('No tienes permiso para hacer esto.'),
   sinConexion('No hay conexión. Revisa tu internet e inténtalo de nuevo.'),
   desconocido('Ocurrió un error inesperado. Inténtalo de nuevo.');

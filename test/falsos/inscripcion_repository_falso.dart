@@ -4,6 +4,7 @@ import 'package:saman_deportivo/models/deporte.dart';
 import 'package:saman_deportivo/models/inscripcion.dart';
 import 'package:saman_deportivo/models/pago.dart';
 import 'package:saman_deportivo/models/persona.dart';
+import 'package:saman_deportivo/models/resena.dart';
 import 'package:saman_deportivo/repositories/inscripcion_repository.dart';
 import 'package:saman_deportivo/repositories/pasarela_pago.dart';
 
@@ -20,6 +21,7 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
   final DateTime Function() _reloj;
   final guardadas = <String, Inscripcion>{};
   final pagos = <Pago>[];
+  final resenas = <String, Resena>{};
   final _cambios = StreamController<void>.broadcast();
 
   /// Agrega una inscripción ya existente (por ejemplo, en otra disciplina).
@@ -83,6 +85,23 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
   Future<void> expirar(Inscripcion inscripcion) async {
     agregar(Inscripcion.desdeMapa(inscripcion.id, {...inscripcion.aMapa(), 'estado': EstadoInscripcion.expirada.name}));
   }
+
+  @override
+  Future<void> cancelar(String inscripcionId, String deporteCodigo) async {
+    final actual = guardadas[inscripcionId];
+    final estado = actual?.estado;
+    if (estado != EstadoInscripcion.pendientePago && estado != EstadoInscripcion.confirmada) {
+      throw const InscripcionException(ErrorInscripcion.noVigente);
+    }
+    agregar(Inscripcion.desdeMapa(inscripcionId, {...actual!.aMapa(), 'estado': EstadoInscripcion.cancelada.name}));
+    if (estado == EstadoInscripcion.confirmada) {
+      final deporte = deportes.leer(deporteCodigo)!;
+      deportes.cambiarCupos(deporteCodigo, deporte.cuposOcupados - 1);
+    }
+  }
+
+  @override
+  Future<void> publicarResena(Resena resena) async => resenas[resena.id] = resena;
 }
 
 /// Pasarela de pruebas: aprueba al instante, o falla con [error] si se asigna.

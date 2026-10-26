@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, increment, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch,
+  collection, deleteDoc, doc, getDoc, getDocs, increment, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc,
+  where, writeBatch,
 } from 'firebase/firestore';
 
 let entorno;
@@ -300,5 +301,51 @@ describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', (
     await assertFails(confirmar(comoEstudiante()));
     await assertSucceeds(updateDoc(doc(comoEstudiante(), 'inscripciones', ID), { estado: 'expirada', motivo: 'Vencida' }));
     await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+  });
+});
+
+describe('Consultar y cancelar inscripciones, reseñas (RF-10 a RF-13)', () => {
+  const sembrar = (estado) => entorno.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 3 });
+    await setDoc(doc(db, 'inscripciones/FUT-01_est1'), { estudianteId: 'est1', deporteCodigo: 'FUT-01', estado, motivo: '' });
+  });
+  const cancelar = (db) => runTransaction(db, async (t) => {
+    t.update(doc(db, 'inscripciones/FUT-01_est1'), { estado: 'cancelada' });
+    t.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: 2 });
+  });
+  const resena = { estudianteId: 'est1', autor: 'Uno', deporteCodigo: 'FUT-01', calificacion: 5, comentario: 'Muy bueno', fecha: new Date() };
+
+  test('el estudiante ve sus inscripciones pero no las de otro', async () => {
+    await sembrar('confirmada');
+    await assertSucceeds(getDocs(query(collection(comoEstudiante(), 'inscripciones'), where('estudianteId', '==', 'est1'))));
+    await assertFails(getDoc(doc(comoOtroEstudiante(), 'inscripciones/FUT-01_est1')));
+  });
+
+  test('cancelar su inscripción vigente libera un cupo, pero no dos veces ni la de otro', async () => {
+    await sembrar('confirmada');
+    await assertFails(cancelar(comoOtroEstudiante()));
+    await assertSucceeds(cancelar(comoEstudiante()));
+    await assertFails(cancelar(comoEstudiante()));
+  });
+
+  test('cancelar una reserva pendiente de pago no libera cupo, porque no lo ocupaba (RN-06)', async () => {
+    await sembrar('pendientePago');
+    await assertFails(cancelar(comoEstudiante()));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'inscripciones/FUT-01_est1'), { estado: 'cancelada' }));
+  });
+
+  test('no puede liberar cupos sin cancelar ni cambiar otros campos', async () => {
+    await sembrar('confirmada');
+    await assertFails(updateDoc(doc(comoEstudiante(), 'deportes/FUT-01'), { cuposOcupados: 2 }));
+    await assertFails(updateDoc(doc(comoEstudiante(), 'inscripciones/FUT-01_est1'), { estado: 'confirmada', motivo: 'x' }));
+  });
+
+  test('solo un inscrito confirmado publica su reseña, de 1 a 5', async () => {
+    await sembrar('confirmada');
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'resenas/FUT-01_est1'), resena));
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas/FUT-01_est1'), { ...resena, calificacion: 6 }));
+    await assertFails(setDoc(doc(comoOtroEstudiante(), 'resenas/FUT-01_est2'), { ...resena, estudianteId: 'est2' }));
+    await assertFails(setDoc(doc(comoOtroEstudiante(), 'resenas/FUT-01_est1'), resena));
   });
 });
