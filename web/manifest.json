@@ -1,13 +1,4 @@
 {
-<<<<<<< HEAD
-    "name": "saman_deportivo",
-    "short_name": "saman_deportivo",
-    "start_url": ".",
-    "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-=======
     "name": "Samán Deportivo",
     "short_name": "Samán",
     "start_url": ".",
@@ -15,7 +6,6 @@
     "background_color": "#F6F8F6",
     "theme_color": "#2E8B57",
     "description": "Plataforma de gestión de clubes deportivos de la UNIMET.",
->>>>>>> main
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
