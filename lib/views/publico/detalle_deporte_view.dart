@@ -288,7 +288,7 @@ class _Dato extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, size: 20, color: AppColors.verdeSaman),
+          Icon(icono, size: 20, color: AppColors.naranja),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

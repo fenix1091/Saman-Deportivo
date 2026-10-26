@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Colores de la marca Samán Deportivo (ver design/marca/paleta.png).
+/// Colores de la marca Samán Deportivo. El naranja es el color principal (hoja
+/// Foundations del Figma); el verde queda para lo que salió bien y para el logo.
 class AppColors {
   static const verdeSaman = Color(0xFF1F5E3A);
   static const verdeHoja = Color(0xFF2E8B57);
   static const verdeClaro = Color(0xFFE6F2EA);
-  static const naranja = Color(0xFFF28C28);
+  static const naranja = Color(0xFFF58220);
+  static const naranjaClaro = Color(0xFFFDEBD7);
   static const azul = Color(0xFF1B3A6B);
   static const rojo = Color(0xFFC8433A);
   static const texto = Color(0xFF1C2321);
@@ -19,9 +21,10 @@ ThemeData buildTheme() {
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.verdeHoja,
-      primary: AppColors.verdeHoja,
-      secondary: AppColors.naranja,
+      seedColor: AppColors.naranja,
+      primary: AppColors.naranja,
+      onPrimary: Colors.white,
+      secondary: AppColors.verdeHoja,
       tertiary: AppColors.azul,
       error: AppColors.rojo,
     ),

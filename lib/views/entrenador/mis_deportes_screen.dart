@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme.dart';
 import '../../repositories/asistencia_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 
@@ -140,7 +141,9 @@ class _MisDeportesScreenState extends State<MisDeportesScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.naranja,
+                  foregroundColor: Colors.white),
               onPressed: () async {
                 try {
                   await _asistenciaRepo.registrarAsistencia(

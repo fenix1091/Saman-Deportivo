@@ -132,7 +132,7 @@ class _Resumen extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.schedule, size: 18, color: AppColors.verdeSaman),
+                    const Icon(Icons.schedule, size: 18, color: AppColors.naranja),
                     const SizedBox(width: 8),
                     Expanded(child: Text(h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}')),
                   ],
@@ -266,10 +266,10 @@ class _Aviso extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.verdeClaro, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: AppColors.naranjaClaro, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
-          const Icon(Icons.timer_outlined, color: AppColors.verdeSaman),
+          const Icon(Icons.timer_outlined, color: AppColors.naranja),
           const SizedBox(width: 8),
           Expanded(child: Text(texto)),
         ],

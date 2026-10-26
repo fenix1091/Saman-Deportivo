@@ -239,7 +239,7 @@ class _TarjetaDeporte extends StatelessWidget {
                 for (final h in horarios.take(maxHorarios))
                   Row(
                     children: [
-                      const Icon(Icons.schedule, size: 16, color: AppColors.verdeSaman),
+                      const Icon(Icons.schedule, size: 16, color: AppColors.naranja),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(h.etiqueta, style: textos.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
