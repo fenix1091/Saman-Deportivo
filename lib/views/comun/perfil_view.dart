@@ -21,6 +21,7 @@ class PerfilView extends StatefulWidget {
 class _PerfilViewState extends State<PerfilView> {
   final _formulario = GlobalKey<FormState>();
   late final TextEditingController _nombre;
+  late final TextEditingController _apellido;
   late final TextEditingController _telefono;
 
   @override
@@ -28,12 +29,14 @@ class _PerfilViewState extends State<PerfilView> {
     super.initState();
     final usuario = context.read<PerfilViewModel>().usuario;
     _nombre = TextEditingController(text: usuario?.nombre ?? '');
+    _apellido = TextEditingController(text: usuario?.apellido ?? '');
     _telefono = TextEditingController(text: usuario?.telefono ?? '');
   }
 
   @override
   void dispose() {
     _nombre.dispose();
+    _apellido.dispose();
     _telefono.dispose();
     super.dispose();
   }
@@ -53,7 +56,11 @@ class _PerfilViewState extends State<PerfilView> {
   Future<void> _guardar() async {
     if (!_formulario.currentState!.validate()) return;
     final ok =
-        await context.read<PerfilViewModel>().guardar(nombre: _nombre.text, telefono: _telefono.text);
+        await context.read<PerfilViewModel>().guardar(
+          nombre: _nombre.text,
+          apellido: _apellido.text,
+          telefono: _telefono.text,
+        );
     if (ok && mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
@@ -97,7 +104,7 @@ class _PerfilViewState extends State<PerfilView> {
             children: [
               Center(
                 child: AvatarUsuario(
-                    nombre: usuario.nombre,
+                    nombre: usuario.nombreCompleto,
                     fotoUrl: usuario.fotoUrl,
                     bytes: vm.fotoNueva),
               ),
@@ -108,7 +115,7 @@ class _PerfilViewState extends State<PerfilView> {
                   label: const Text('Cambiar foto'),
                 ),
               ),
-              Text(usuario.nombre,
+              Text(usuario.nombreCompleto,
                   style: textos.titleLarge, textAlign: TextAlign.center),
               Text(_nombreRol(usuario.rol),
                   style: textos.bodyMedium, textAlign: TextAlign.center),
@@ -119,10 +126,18 @@ class _PerfilViewState extends State<PerfilView> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _nombre,
-                decoration: const InputDecoration(labelText: 'Nombre y apellido'),
+                decoration: const InputDecoration(labelText: 'Nombre'),
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 validator: Validadores.nombre,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _apellido,
+                decoration: const InputDecoration(labelText: 'Apellido'),
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                validator: Validadores.apellido,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -166,7 +181,7 @@ class _PerfilViewState extends State<PerfilView> {
 
   static List<Widget> _datosDelRol(Persona usuario) => switch (usuario) {
         Estudiante e => [
-            _Dato(etiqueta: 'Carnet', valor: e.carnet),
+            _Dato(etiqueta: 'Carnet', valor: e.carnet.isEmpty ? 'No registrado' : e.carnet),
             _Dato(
                 etiqueta: 'Estado',
                 valor: e.estaActivo() ? 'Activo' : 'Inactivo'),

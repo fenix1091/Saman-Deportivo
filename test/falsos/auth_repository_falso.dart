@@ -19,7 +19,8 @@ class AuthRepositoryFalso implements AuthRepository {
       const Estudiante(
         uid: 'est-demo',
         cedula: 30111222,
-        nombre: 'Estudiante Prueba',
+        nombre: 'Estudiante',
+        apellido: 'Prueba',
         correo: 'estudiante@correo.unimet.edu.ve',
         carnet: '20231110001',
         carrera: 'Ingeniería de Sistemas',
@@ -30,7 +31,8 @@ class AuthRepositoryFalso implements AuthRepository {
       const Entrenador(
         uid: 'ent-demo',
         cedula: 20333444,
-        nombre: 'Entrenador Prueba',
+        nombre: 'Entrenador',
+        apellido: 'Prueba',
         correo: 'entrenador@unimet.edu.ve',
         especialidad: 'Fútbol',
         aniosExperiencia: 8,
@@ -41,7 +43,8 @@ class AuthRepositoryFalso implements AuthRepository {
       const Administrador(
         uid: 'adm-demo',
         cedula: 15555666,
-        nombre: 'Administrador Prueba',
+        nombre: 'Administrador',
+        apellido: 'Prueba',
         correo: 'admin@unimet.edu.ve',
         cargo: 'Coordinación de Deportes',
       ),
@@ -95,6 +98,7 @@ class AuthRepositoryFalso implements AuthRepository {
     required String nacionalidad,
     required int cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String carnet,
     required String clave,
@@ -104,7 +108,7 @@ class AuthRepositoryFalso implements AuthRepository {
     if (_usuarios.values.any((u) => u.nacionalidad == nacionalidad && u.cedula == cedula)) {
       throw const AuthException(ErrorAuth.cedulaYaRegistrada);
     }
-    if (_usuarios.values.any((u) => u is Estudiante && u.carnet == carnet)) {
+    if (_usuarios.values.any((u) => carnet.isNotEmpty && u is Estudiante && u.carnet == carnet)) {
       throw const AuthException(ErrorAuth.carnetYaRegistrado);
     }
     final estudiante = Estudiante(
@@ -112,6 +116,7 @@ class AuthRepositoryFalso implements AuthRepository {
       nacionalidad: nacionalidad,
       cedula: cedula,
       nombre: nombre.trim(),
+      apellido: apellido.trim(),
       correo: correo.trim().toLowerCase(),
       carnet: carnet,
     );

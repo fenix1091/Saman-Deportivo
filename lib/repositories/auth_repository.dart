@@ -22,6 +22,7 @@ abstract class AuthRepository {
     required String nacionalidad,
     required int cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String carnet,
     required String clave,
@@ -35,7 +36,7 @@ abstract class AuthRepository {
 
   Future<void> cerrarSesion();
 
-  /// Guarda el nombre, el teléfono y la foto del perfil (CU-03).
+  /// Guarda el nombre, el apellido, el teléfono y la foto del perfil (CU-03).
   Future<Persona> actualizarPerfil(Persona usuario);
 
   /// Prepara la foto de perfil para guardarla y devuelve la dirección con la que se muestra (CU-03).

@@ -116,12 +116,15 @@ class _MisDeportesScreenState extends State<MisDeportesScreen> {
                 itemBuilder: (context, index) {
                   final est = estudiantes[index];
                   final uid = est['id'] as String;
-                  final nombre = est['nombre'] ?? 'Estudiante';
+                  final nombre = [est['nombre'], est['apellido']]
+                      .whereType<String>()
+                      .where((p) => p.isNotEmpty)
+                      .join(' ');
                   final carnet = est['carnet'] ?? 'Sin Carnet';
                   final bool estaPresente = _asistenciaMap[uid] ?? false;
 
                   return CheckboxListTile(
-                    title: Text(nombre),
+                    title: Text(nombre.isEmpty ? 'Estudiante' : nombre),
                     subtitle: Text('Carnet: $carnet'),
                     value: estaPresente,
                     onChanged: (val) {
@@ -200,7 +203,10 @@ class _MisDeportesScreenState extends State<MisDeportesScreen> {
               itemBuilder: (context, index) {
                 final est = estudiantes[index];
                 final uid = est['id'] as String;
-                final nombre = est['nombre'] ?? 'Estudiante';
+                final nombre = [est['nombre'], est['apellido']]
+                    .whereType<String>()
+                    .where((p) => p.isNotEmpty)
+                    .join(' ');
                 final carnet = est['carnet'] ?? 'Sin Carnet';
                 final pct = porcentajes[uid] ?? 0.0;
 
@@ -212,7 +218,7 @@ class _MisDeportesScreenState extends State<MisDeportesScreen> {
                           style: const TextStyle(
                               color: Colors.white, fontSize: 12)),
                     ),
-                    title: Text(nombre),
+                    title: Text(nombre.isEmpty ? 'Estudiante' : nombre),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

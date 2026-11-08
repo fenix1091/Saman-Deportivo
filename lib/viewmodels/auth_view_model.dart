@@ -55,6 +55,7 @@ class AuthViewModel extends ChangeNotifier {
     required String nacionalidad,
     required String cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String carnet,
     required String clave,
@@ -62,7 +63,8 @@ class AuthViewModel extends ChangeNotifier {
     return _ejecutar(() => _repositorio.registrarEstudiante(
           nacionalidad: nacionalidad,
           cedula: Validadores.numeroCedula(cedula),
-          nombre: nombre,
+          nombre: Validadores.normalizarNombre(nombre),
+          apellido: Validadores.normalizarNombre(apellido),
           correo: correo,
           carnet: carnet.trim(),
           clave: clave,

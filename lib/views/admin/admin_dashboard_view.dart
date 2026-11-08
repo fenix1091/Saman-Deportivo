@@ -9,6 +9,7 @@ import '../../models/deporte.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
 import '../../viewmodels/auth_view_model.dart';
+import 'usuarios_tab.dart';
 
 class AdminDashboardView extends StatelessWidget {
   const AdminDashboardView({super.key, required this.repositorio});
@@ -18,7 +19,7 @@ class AdminDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Administración deportiva'),
@@ -40,6 +41,7 @@ class AdminDashboardView extends StatelessWidget {
                   icon: Icon(Icons.event_available_outlined),
                   text: 'Clases y horarios'),
               Tab(icon: Icon(Icons.groups_outlined), text: 'Entrenadores'),
+              Tab(icon: Icon(Icons.manage_accounts_outlined), text: 'Usuarios'),
             ],
           ),
         ),
@@ -47,6 +49,7 @@ class AdminDashboardView extends StatelessWidget {
           children: [
             _ClasesTab(repositorio: repositorio),
             _EntrenadoresTab(repositorio: repositorio),
+            UsuariosTab(repositorio: repositorio),
           ],
         ),
       ),
@@ -219,7 +222,7 @@ class _TarjetaDeporte extends StatelessWidget {
                 const DropdownMenuItem(value: '', child: Text('Sin asignar')),
                 ...entrenadores.map(
                   (entrenador) => DropdownMenuItem(
-                      value: entrenador.uid, child: Text(entrenador.nombre)),
+                      value: entrenador.uid, child: Text(entrenador.nombreCompleto)),
                 ),
               ],
               onChanged: (uid) {
@@ -323,7 +326,7 @@ class _EntrenadoresTab extends StatelessWidget {
                           child: ListTile(
                             leading: const CircleAvatar(
                                 child: Icon(Icons.sports_handball_outlined)),
-                            title: Text(entrenador.nombre),
+                            title: Text(entrenador.nombreCompleto),
                             subtitle: Text(
                               '${entrenador.especialidad}\n${entrenador.correo}',
                               maxLines: 2,
@@ -724,6 +727,7 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
   final _formKey = GlobalKey<FormState>();
   final _cedula = TextEditingController();
   final _nombre = TextEditingController();
+  final _apellido = TextEditingController();
   final _correo = TextEditingController();
   final _telefono = TextEditingController();
   final _especialidad = TextEditingController();
@@ -734,6 +738,7 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
   void dispose() {
     _cedula.dispose();
     _nombre.dispose();
+    _apellido.dispose();
     _correo.dispose();
     _telefono.dispose();
     _especialidad.dispose();
@@ -755,10 +760,15 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
               children: [
                 TextFormField(
                   controller: _nombre,
-                  decoration:
-                      const InputDecoration(labelText: 'Nombre y apellido *'),
+                  decoration: const InputDecoration(labelText: 'Nombre *'),
                   textCapitalization: TextCapitalization.words,
                   validator: Validadores.nombre,
+                ),
+                TextFormField(
+                  controller: _apellido,
+                  decoration: const InputDecoration(labelText: 'Apellido *'),
+                  textCapitalization: TextCapitalization.words,
+                  validator: Validadores.apellido,
                 ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,7 +853,8 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
               _DatosEntrenador(
                 nacionalidad: _nacionalidad,
                 cedula: Validadores.numeroCedula(_cedula.text),
-                nombre: _nombre.text.trim(),
+                nombre: Validadores.normalizarNombre(_nombre.text),
+                apellido: Validadores.normalizarNombre(_apellido.text),
                 correo: _correo.text.trim().toLowerCase(),
                 telefono: _telefono.text.trim(),
                 especialidad: _especialidad.text.trim(),
@@ -863,6 +874,7 @@ class _DatosEntrenador {
     required this.nacionalidad,
     required this.cedula,
     required this.nombre,
+    required this.apellido,
     required this.correo,
     required this.telefono,
     required this.especialidad,
@@ -872,6 +884,7 @@ class _DatosEntrenador {
   final String nacionalidad;
   final int cedula;
   final String nombre;
+  final String apellido;
   final String correo;
   final String telefono;
   final String especialidad;
@@ -890,6 +903,7 @@ Future<void> _crearEntrenador(
       nacionalidad: datos.nacionalidad,
       cedula: datos.cedula,
       nombre: datos.nombre,
+      apellido: datos.apellido,
       correo: datos.correo,
       telefono: datos.telefono,
       especialidad: datos.especialidad,

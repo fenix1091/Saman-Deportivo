@@ -18,6 +18,7 @@ abstract class Persona {
     this.nacionalidad = 'V',
     required this.cedula,
     required this.nombre,
+    this.apellido = '',
     required this.correo,
     this.telefono = '',
     this.fotoUrl = '',
@@ -31,7 +32,9 @@ abstract class Persona {
   /// Número de cédula. Se guarda como número para que el administrador pueda
   /// ordenar y filtrar por rangos (por ejemplo, `cedula >= 30000000`).
   final int cedula;
+  /// Nombre(s) y apellido(s) van en campos separados para poder buscar y ordenar por cada uno.
   final String nombre;
+  final String apellido;
   final String correo;
   final String telefono;
   final String fotoUrl;
@@ -41,8 +44,11 @@ abstract class Persona {
   /// Cédula con su letra, como se muestra y como se usa en el índice `cedulas/{V-31985476}`.
   String get cedulaTexto => '$nacionalidad-$cedula';
 
+  /// Nombre y apellido juntos, solo para mostrarlos (no se guarda así en Firestore).
+  String get nombreCompleto => apellido.isEmpty ? nombre : '$nombre $apellido';
+
   /// Devuelve una copia con los datos editables del perfil cambiados.
-  Persona copiarPerfil({String? nombre, String? telefono, String? fotoUrl});
+  Persona copiarPerfil({String? nombre, String? apellido, String? telefono, String? fotoUrl});
 
   /// Convierte el usuario al documento que se guarda en Firestore.
   Map<String, dynamic> aMapa() => {
@@ -50,6 +56,7 @@ abstract class Persona {
         'nacionalidad': nacionalidad,
         'cedula': cedula,
         'nombre': nombre,
+        'apellido': apellido,
         'correo': correo,
         'telefono': telefono,
         'fotoUrl': fotoUrl,
@@ -89,6 +96,7 @@ class Estudiante extends Persona {
     super.nacionalidad,
     required super.cedula,
     required super.nombre,
+    super.apellido,
     required super.correo,
     super.telefono,
     super.fotoUrl,
@@ -112,11 +120,12 @@ class Estudiante extends Persona {
   bool estaActivo() => estado == EstadoEstudiante.activo;
 
   @override
-  Estudiante copiarPerfil({String? nombre, String? telefono, String? fotoUrl}) => Estudiante(
+  Estudiante copiarPerfil({String? nombre, String? apellido, String? telefono, String? fotoUrl}) => Estudiante(
         uid: uid,
         nacionalidad: nacionalidad,
         cedula: cedula,
         nombre: nombre ?? this.nombre,
+        apellido: apellido ?? this.apellido,
         correo: correo,
         telefono: telefono ?? this.telefono,
         fotoUrl: fotoUrl ?? this.fotoUrl,
@@ -140,6 +149,7 @@ class Estudiante extends Persona {
         nacionalidad: leerNacionalidad(mapa),
         cedula: leerCedula(mapa['cedula']),
         nombre: mapa['nombre'] as String,
+        apellido: mapa['apellido'] as String? ?? '',
         correo: mapa['correo'] as String,
         telefono: mapa['telefono'] as String? ?? '',
         fotoUrl: mapa['fotoUrl'] as String? ?? '',
@@ -157,6 +167,7 @@ class Entrenador extends Persona {
     super.nacionalidad,
     required super.cedula,
     required super.nombre,
+    super.apellido,
     required super.correo,
     super.telefono,
     super.fotoUrl,
@@ -171,11 +182,12 @@ class Entrenador extends Persona {
   Rol get rol => Rol.entrenador;
 
   @override
-  Entrenador copiarPerfil({String? nombre, String? telefono, String? fotoUrl}) => Entrenador(
+  Entrenador copiarPerfil({String? nombre, String? apellido, String? telefono, String? fotoUrl}) => Entrenador(
         uid: uid,
         nacionalidad: nacionalidad,
         cedula: cedula,
         nombre: nombre ?? this.nombre,
+        apellido: apellido ?? this.apellido,
         correo: correo,
         telefono: telefono ?? this.telefono,
         fotoUrl: fotoUrl ?? this.fotoUrl,
@@ -195,6 +207,7 @@ class Entrenador extends Persona {
         nacionalidad: leerNacionalidad(mapa),
         cedula: leerCedula(mapa['cedula']),
         nombre: mapa['nombre'] as String,
+        apellido: mapa['apellido'] as String? ?? '',
         correo: mapa['correo'] as String,
         telefono: mapa['telefono'] as String? ?? '',
         fotoUrl: mapa['fotoUrl'] as String? ?? '',
@@ -210,6 +223,7 @@ class Administrador extends Persona {
     super.nacionalidad,
     required super.cedula,
     required super.nombre,
+    super.apellido,
     required super.correo,
     super.telefono,
     super.fotoUrl,
@@ -222,11 +236,12 @@ class Administrador extends Persona {
   Rol get rol => Rol.administrador;
 
   @override
-  Administrador copiarPerfil({String? nombre, String? telefono, String? fotoUrl}) => Administrador(
+  Administrador copiarPerfil({String? nombre, String? apellido, String? telefono, String? fotoUrl}) => Administrador(
         uid: uid,
         nacionalidad: nacionalidad,
         cedula: cedula,
         nombre: nombre ?? this.nombre,
+        apellido: apellido ?? this.apellido,
         correo: correo,
         telefono: telefono ?? this.telefono,
         fotoUrl: fotoUrl ?? this.fotoUrl,
@@ -241,6 +256,7 @@ class Administrador extends Persona {
         nacionalidad: leerNacionalidad(mapa),
         cedula: leerCedula(mapa['cedula']),
         nombre: mapa['nombre'] as String,
+        apellido: mapa['apellido'] as String? ?? '',
         correo: mapa['correo'] as String,
         telefono: mapa['telefono'] as String? ?? '',
         fotoUrl: mapa['fotoUrl'] as String? ?? '',

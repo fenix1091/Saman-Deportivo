@@ -45,7 +45,7 @@ class EstudianteDashboardView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            usuario?.nombre ?? 'Estudiante',
+                            usuario?.nombreCompleto ?? 'Estudiante',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium

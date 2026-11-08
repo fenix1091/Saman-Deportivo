@@ -49,6 +49,11 @@ service cloud.firestore {
         && datos.cedula < 1000000000
         && datos.nacionalidad in ['V', 'E'];
     }
+    // Nombre y apellido van en campos separados (para buscar y ordenar por cada uno).
+    function nombreValido(datos) {
+      return datos.nombre is string && datos.nombre.size() >= 1 && datos.nombre.size() <= 40
+        && datos.apellido is string && datos.apellido.size() >= 1 && datos.apellido.size() <= 40;
+    }
     // Id del índice de unicidad: "V-31985476".
     function claveCedula(datos) {
       return datos.nacionalidad + '-' + string(datos.cedula);
@@ -66,22 +71,24 @@ service cloud.firestore {
       // El registro público solo admite estudiantes; el administrador puede crear entrenadores.
       allow create: if (autenticado()
           && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'correo', 'telefono',
-                                                    'fotoUrl', 'carnet', 'estado', 'solvente', 'carrera', 'creadoEn'])
+          && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'apellido', 'correo',
+                                                    'telefono', 'fotoUrl', 'carnet', 'estado', 'solvente', 'carrera',
+                                                    'creadoEn'])
           && request.resource.data.rol == 'estudiante'
           && cedulaValida(request.resource.data)
+          && nombreValido(request.resource.data)
           && request.resource.data.estado == 'activo'
           && request.resource.data.solvente == false
           && request.resource.data.correo == request.auth.token.email
           && request.resource.data.creadoEn == request.time)
         || (esAdmin()
-          && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'correo', 'telefono',
-                                                    'fotoUrl', 'especialidad', 'aniosExperiencia'])
-          && request.resource.data.keys().hasAll(['rol', 'nacionalidad', 'cedula', 'nombre', 'correo', 'telefono',
-                                                   'fotoUrl', 'especialidad', 'aniosExperiencia'])
+          && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'apellido', 'correo',
+                                                    'telefono', 'fotoUrl', 'especialidad', 'aniosExperiencia'])
+          && request.resource.data.keys().hasAll(['rol', 'nacionalidad', 'cedula', 'nombre', 'apellido', 'correo',
+                                                   'telefono', 'fotoUrl', 'especialidad', 'aniosExperiencia'])
           && request.resource.data.rol == 'entrenador'
           && cedulaValida(request.resource.data)
-          && request.resource.data.nombre is string
+          && nombreValido(request.resource.data)
           && request.resource.data.correo is string
           && request.resource.data.telefono is string
           && request.resource.data.fotoUrl is string
@@ -89,14 +96,12 @@ service cloud.firestore {
           && request.resource.data.aniosExperiencia is int
           && request.resource.data.aniosExperiencia >= 0);
 
-      // Perfil: el dueño solo cambia nombre, teléfono y foto; el administrador, todo.
+      // Perfil: el dueño solo cambia nombre, apellido, teléfono y foto; el administrador, todo.
       allow update: if esAdmin()
         || (autenticado()
           && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'telefono', 'fotoUrl'])
-          && request.resource.data.nombre is string
-          && request.resource.data.nombre.size() >= 3
-          && request.resource.data.nombre.size() <= 80
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'telefono', 'fotoUrl'])
+          && nombreValido(request.resource.data)
           && request.resource.data.telefono is string
           && request.resource.data.telefono.size() <= 20
           && request.resource.data.fotoUrl is string

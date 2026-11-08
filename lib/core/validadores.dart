@@ -7,6 +7,9 @@ class Validadores {
 
   static const dominioEstudiantes = '@correo.unimet.edu.ve';
 
+  /// Correos de la UNIMET que pueden registrarse: el de estudiante y el general.
+  static const dominiosUnimet = [dominioEstudiantes, '@unimet.edu.ve'];
+
   static final _correo = RegExp(r'^[\w.+-]+@[\w-]+(\.[\w-]+)+$');
   static final _cedula = RegExp(r'^\d{6,9}$');
   static final _carnet = RegExp(r'^\d{11}$');
@@ -27,8 +30,9 @@ class Validadores {
   static String? correoEstudiante(String? valor) {
     final error = correo(valor);
     if (error != null) return error;
-    if (!valor!.trim().toLowerCase().endsWith(dominioEstudiantes)) {
-      return 'Usa tu correo institucional ($dominioEstudiantes).';
+    final v = valor!.trim().toLowerCase();
+    if (!dominiosUnimet.any(v.endsWith)) {
+      return 'Usa tu correo de la UNIMET (${dominiosUnimet.join(' o ')}).';
     }
     return null;
   }
@@ -47,20 +51,39 @@ class Validadores {
   /// Convierte el texto del campo en el número que se guarda: "31.985.476" → 31985476.
   static int numeroCedula(String valor) => int.parse(valor.replaceAll(RegExp(r'[\s.]'), ''));
 
-  /// Carnet UNIMET: 11 dígitos.
+  /// Carnet UNIMET: opcional; si se escribe, son 11 dígitos.
   static String? carnet(String? valor) {
     final v = valor?.trim() ?? '';
-    if (v.isEmpty) return 'Ingresa tu carnet.';
+    if (v.isEmpty) return null;
     if (!_carnet.hasMatch(v)) return 'El carnet tiene 11 dígitos, sin guiones.';
     return null;
   }
 
-  static String? nombre(String? valor) {
-    final v = valor?.trim() ?? '';
-    if (v.isEmpty) return 'Ingresa tu nombre y apellido.';
-    if (v.split(RegExp(r'\s+')).length < 2) return 'Escribe al menos un nombre y un apellido.';
+  /// Solo letras (con acentos y ñ), espacios entre palabras y apóstrofo (D'Angelo).
+  static final _soloLetras = RegExp(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' ]+$");
+
+  /// Nombre(s), sin el apellido: "María José".
+  static String? nombre(String? valor) => _parteDelNombre(valor, 'nombre');
+
+  /// Apellido(s), sin el nombre: "Pérez López".
+  static String? apellido(String? valor) => _parteDelNombre(valor, 'apellido');
+
+  static String? _parteDelNombre(String? valor, String campo) {
+    final v = normalizarNombre(valor ?? '');
+    if (v.isEmpty) return 'Ingresa tu $campo.';
+    if (v.length > 40) return 'El $campo no puede pasar de 40 caracteres.';
+    if (!_soloLetras.hasMatch(v)) return 'Escribe el $campo solo con letras, sin números ni símbolos.';
     return null;
   }
+
+  /// Quita espacios de más y pone mayúscula inicial en cada palabra: "  maría   josé " → "María José".
+  /// Así todos los nombres se guardan igual y se encuentran al buscar.
+  static String normalizarNombre(String valor) => valor
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .map((p) => p[0].toUpperCase() + p.substring(1).toLowerCase())
+      .join(' ');
 
   /// Al menos 8 caracteres, una letra y un número (requisito especial de CU-01).
   static String? clave(String? valor) {

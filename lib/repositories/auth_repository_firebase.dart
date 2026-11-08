@@ -82,6 +82,7 @@ class AuthRepositoryFirebase implements AuthRepository {
     required String nacionalidad,
     required int cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String carnet,
     required String clave,
@@ -96,7 +97,8 @@ class AuthRepositoryFirebase implements AuthRepository {
         if ((await indiceCedula.get()).exists) {
           throw const AuthException(ErrorAuth.cedulaYaRegistrada);
         }
-        if ((await _db.collection('carnets').doc(carnet).get()).exists) {
+        // El carnet es opcional: solo se reserva si el estudiante lo escribió.
+        if (carnet.isNotEmpty && (await _db.collection('carnets').doc(carnet).get()).exists) {
           throw const AuthException(ErrorAuth.carnetYaRegistrado);
         }
         final estudiante = Estudiante(
@@ -104,13 +106,14 @@ class AuthRepositoryFirebase implements AuthRepository {
           nacionalidad: nacionalidad,
           cedula: cedula,
           nombre: nombre.trim(),
+          apellido: apellido.trim(),
           correo: user.email ?? correo.trim().toLowerCase(),
           carnet: carnet,
         );
         final lote = _db.batch()
           ..set(_usuarios.doc(user.uid), {...estudiante.aMapa(), 'creadoEn': FieldValue.serverTimestamp()})
-          ..set(indiceCedula, {'uid': user.uid})
-          ..set(_db.collection('carnets').doc(carnet), {'uid': user.uid});
+          ..set(indiceCedula, {'uid': user.uid});
+        if (carnet.isNotEmpty) lote.set(_db.collection('carnets').doc(carnet), {'uid': user.uid});
         await lote.commit();
         unawaited(user.sendEmailVerification().catchError((_) {}));
         _publicar(estudiante);
@@ -165,6 +168,7 @@ class AuthRepositoryFirebase implements AuthRepository {
     try {
       await _usuarios.doc(usuario.uid).update({
         'nombre': usuario.nombre,
+        'apellido': usuario.apellido,
         'telefono': usuario.telefono,
         'fotoUrl': usuario.fotoUrl,
       });

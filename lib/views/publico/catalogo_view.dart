@@ -40,11 +40,9 @@ class _CatalogoViewState extends State<CatalogoView> {
 
   void _abrirFiltros() {
     final vm = context.read<CatalogoViewModel>();
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => ChangeNotifierProvider.value(value: vm, child: _HojaFiltros(onLimpiar: _limpiarFiltros)),
+      builder: (_) => ChangeNotifierProvider.value(value: vm, child: _VentanaFiltros(onLimpiar: _limpiarFiltros)),
     );
   }
 
@@ -257,9 +255,9 @@ class _TarjetaDeporte extends StatelessWidget {
   }
 }
 
-/// Hoja con los filtros avanzados (CU-05, paso 1).
-class _HojaFiltros extends StatelessWidget {
-  const _HojaFiltros({required this.onLimpiar});
+/// Ventana emergente centrada con los filtros avanzados (CU-05, paso 1).
+class _VentanaFiltros extends StatelessWidget {
+  const _VentanaFiltros({required this.onLimpiar});
 
   final VoidCallback onLimpiar;
 
@@ -271,92 +269,120 @@ class _HojaFiltros extends StatelessWidget {
           padding: const EdgeInsets.only(top: 16, bottom: 8),
           child: Text(texto, style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
         );
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Filtros', style: textos.titleLarge),
-            titulo('Deporte'),
-            DropdownButtonFormField<String?>(
-              // La clave lo reconstruye cuando "Limpiar" quita el filtro.
-              key: ValueKey(vm.deporte),
-              initialValue: vm.deporte,
-              isExpanded: true,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('Todos')),
-                for (final nombre in vm.nombresDeporte) DropdownMenuItem(value: nombre, child: Text(nombre)),
-              ],
-              onChanged: vm.filtrarDeporte,
-            ),
-            if (vm.categorias.isNotEmpty) ...[
-              titulo('Categoría o especialidad'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 8, 0),
+              child: Row(
                 children: [
-                  for (final c in vm.categorias)
-                    ChoiceChip(
-                      label: Text(c),
-                      selected: vm.categoria == c,
-                      onSelected: (marcado) => vm.filtrarCategoria(marcado ? c : null),
-                    ),
+                  Expanded(child: Text('Filtros', style: textos.titleLarge)),
+                  IconButton(
+                    tooltip: 'Cerrar',
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ],
               ),
-            ],
-            titulo('Día'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final d in DiaSemana.values)
-                  ChoiceChip(
-                    label: Text(d.etiqueta),
-                    selected: vm.dia == d,
-                    onSelected: (marcado) => vm.filtrarDia(marcado ? d : null),
-                  ),
-              ],
             ),
-            titulo('Horario'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final f in FranjaHoraria.values)
-                  ChoiceChip(
-                    label: Text(f.etiqueta),
-                    selected: vm.franja == f,
-                    onSelected: (marcado) => vm.filtrarFranja(marcado ? f : null),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Solo con cupos disponibles'),
-              value: vm.soloConCupos,
-              onChanged: vm.filtrarSoloConCupos,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                    onPressed: vm.hayFiltros ? onLimpiar : null,
-                    child: const Text('Limpiar'),
-                  ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titulo('Deporte'),
+                    DropdownButtonFormField<String?>(
+                      // La clave lo reconstruye cuando "Limpiar" quita el filtro.
+                      key: ValueKey(vm.deporte),
+                      initialValue: vm.deporte,
+                      isExpanded: true,
+                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Todos')),
+                        for (final nombre in vm.nombresDeporte) DropdownMenuItem(value: nombre, child: Text(nombre)),
+                      ],
+                      onChanged: vm.filtrarDeporte,
+                    ),
+                    if (vm.categorias.isNotEmpty) ...[
+                      titulo('Categoría o especialidad'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final c in vm.categorias)
+                            ChoiceChip(
+                              label: Text(c),
+                              selected: vm.categoria == c,
+                              onSelected: (marcado) => vm.filtrarCategoria(marcado ? c : null),
+                            ),
+                        ],
+                      ),
+                    ],
+                    titulo('Día'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final d in DiaSemana.values)
+                          ChoiceChip(
+                            label: Text(d.etiqueta),
+                            selected: vm.dia == d,
+                            onSelected: (marcado) => vm.filtrarDia(marcado ? d : null),
+                          ),
+                      ],
+                    ),
+                    titulo('Horario'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final f in FranjaHoraria.values)
+                          ChoiceChip(
+                            label: Text(f.etiqueta),
+                            selected: vm.franja == f,
+                            onSelected: (marcado) => vm.filtrarFranja(marcado ? f : null),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Solo con cupos disponibles'),
+                      value: vm.soloConCupos,
+                      onChanged: vm.filtrarSoloConCupos,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Ver ${vm.resultados.length} resultados'),
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                      onPressed: vm.hayFiltros ? onLimpiar : null,
+                      child: const Text('Limpiar'),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Ver ${vm.resultados.length} resultados'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

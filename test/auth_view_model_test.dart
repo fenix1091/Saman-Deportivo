@@ -20,7 +20,8 @@ void main() {
       return vm.registrar(
         nacionalidad: 'V',
         cedula: '31.985.476',
-        nombre: 'Vincenzo Gallo',
+        nombre: '  vincenzo ',
+        apellido: 'gallo',
         correo: correo,
         carnet: carnet,
         clave: 'Saman2026',
@@ -35,6 +36,8 @@ void main() {
       expect(usuario!.cedula, 31985476);
       expect(usuario.nacionalidad, 'V');
       expect(usuario.cedulaTexto, 'V-31985476');
+      expect(usuario.nombre, 'Vincenzo');
+      expect(usuario.apellido, 'Gallo');
       expect((usuario as Estudiante).estaActivo(), isTrue);
     });
 
@@ -42,6 +45,11 @@ void main() {
       expect(await registrar(correo: 'estudiante@correo.unimet.edu.ve'), isFalse);
       expect(vm.error, ErrorAuth.correoYaRegistrado);
       expect(vm.error!.esCuentaExistente, isTrue);
+    });
+
+    test('el carnet es opcional y sirve el correo general de la UNIMET', () async {
+      expect(await registrar(correo: 'nuevo@unimet.edu.ve', carnet: ''), isTrue);
+      expect((vm.usuario as Estudiante).carnet, '');
     });
 
     test('rechaza un carnet ya registrado', () async {

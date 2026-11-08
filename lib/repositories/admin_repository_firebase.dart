@@ -20,12 +20,19 @@ abstract interface class AdminRepository {
     required String nacionalidad,
     required int cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String telefono,
     required String especialidad,
     required int aniosExperiencia,
   });
   Future<void> reenviarEnlace(String correo);
+
+  /// Todos los usuarios (estudiantes, entrenadores y administradores), ordenados por apellido.
+  Stream<List<Persona>> observarUsuarios();
+
+  /// Cambia campos del perfil de cualquier usuario: nombre, solvencia, estado, etc.
+  Future<void> actualizarUsuario(String uid, Map<String, dynamic> cambios);
 }
 
 class EntrenadorCreadoException implements Exception {
@@ -65,8 +72,9 @@ class AdminRepositoryFirebase implements AdminRepository {
       .map((snapshot) => snapshot.docs
           .map((doc) => Entrenador.desdeMapa(doc.id, doc.data()))
           .toList()
-        ..sort((a, b) =>
-            a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase())));
+        ..sort((a, b) => a.nombreCompleto
+            .toLowerCase()
+            .compareTo(b.nombreCompleto.toLowerCase())));
 
   @override
   Stream<List<Horario>> observarHorarios(String codigo) => _db
@@ -146,6 +154,7 @@ class AdminRepositoryFirebase implements AdminRepository {
     required String nacionalidad,
     required int cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String telefono,
     required String especialidad,
@@ -173,6 +182,7 @@ class AdminRepositoryFirebase implements AdminRepository {
         nacionalidad: nacionalidad,
         cedula: cedula,
         nombre: nombre.trim(),
+        apellido: apellido.trim(),
         correo: cuenta.email ?? correo.trim().toLowerCase(),
         telefono: telefono.trim(),
         especialidad: especialidad.trim(),
@@ -197,6 +207,19 @@ class AdminRepositoryFirebase implements AdminRepository {
       throw EntrenadorCreadoException(error.message ?? error.code);
     }
   }
+
+  @override
+  Stream<List<Persona>> observarUsuarios() =>
+      _db.collection('usuarios').snapshots().map((snapshot) => snapshot.docs
+          .map((doc) => Persona.desdeMapa(doc.id, doc.data()))
+          .toList()
+        ..sort((a, b) => '${a.apellido} ${a.nombre}'
+            .toLowerCase()
+            .compareTo('${b.apellido} ${b.nombre}'.toLowerCase())));
+
+  @override
+  Future<void> actualizarUsuario(String uid, Map<String, dynamic> cambios) =>
+      _db.collection('usuarios').doc(uid).update(cambios);
 
   @override
   Future<void> reenviarEnlace(String correo) =>

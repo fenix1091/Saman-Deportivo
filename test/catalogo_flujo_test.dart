@@ -23,7 +23,7 @@ void main() {
       pasarela: PasarelaFalsa(),
     ));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ver deportes sin iniciar sesión'));
+    await tester.tap(find.text('Explorar deportes'));
     await tester.pumpAndSettle();
     return deportes;
   }
@@ -80,5 +80,45 @@ void main() {
     await abrirCatalogo(tester, tamano: const Size(390, 844));
     expect(find.text('Fútbol'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  Future<void> abrirInicio(WidgetTester tester, Size tamano) async {
+    tester.view.physicalSize = tamano;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final deportes = DeporteRepositoryFalso.conDatosDePrueba();
+    await tester.pumpWidget(SamanDeportivoApp(
+      repositorio: AuthRepositoryFalso.conDatosDePrueba(),
+      deportes: deportes,
+      inscripciones: InscripcionRepositoryFalso(deportes),
+      pasarela: PasarelaFalsa(),
+    ));
+    await tester.pumpAndSettle();
+  }
+
+  for (final (nombre, tamano) in [('computadora', const Size(1280, 900)), ('teléfono', const Size(390, 844))]) {
+    testWidgets('la landing presenta la plataforma y las disciplinas abiertas en $nombre', (tester) async {
+      await abrirInicio(tester, tamano);
+      expect(find.text('Tu deporte en la UNIMET, a un toque'), findsOneWidget);
+      expect(find.text('Cómo funciona'), findsOneWidget);
+      expect(find.text('Disciplinas abiertas este trimestre'), findsOneWidget);
+      expect(find.text('Una plataforma, tres roles'), findsNothing);
+      await tester.scrollUntilVisible(find.text('Crear mi cuenta'), 300);
+      await tester.tap(find.text('Crear mi cuenta'));
+      await tester.pumpAndSettle();
+      expect(find.text('Crear cuenta'), findsWidgets);
+    });
+  }
+
+  testWidgets('los filtros se abren en una ventana centrada, no en una hoja inferior', (tester) async {
+    await abrirCatalogo(tester);
+    await tester.tap(find.byTooltip('Filtros'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    await tester.tap(find.byTooltip('Cerrar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing);
   });
 }

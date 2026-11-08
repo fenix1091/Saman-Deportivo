@@ -6,7 +6,8 @@ void main() {
     test('el registro solo acepta el correo institucional de estudiante', () {
       expect(Validadores.correoEstudiante('vgallo@correo.unimet.edu.ve'), isNull);
       expect(Validadores.correoEstudiante('vgallo@gmail.com'), isNotNull);
-      expect(Validadores.correoEstudiante('vgallo@unimet.edu.ve'), isNotNull);
+      expect(Validadores.correoEstudiante('vgallo@unimet.edu.ve'), isNull);
+      expect(Validadores.correoEstudiante('vgallo@unimet.com'), isNotNull);
       expect(Validadores.correoEstudiante('no-es-correo'), isNotNull);
     });
 
@@ -21,6 +22,7 @@ void main() {
 
     test('el carnet tiene 11 dígitos', () {
       expect(Validadores.carnet('20221110045'), isNull);
+      expect(Validadores.carnet(''), isNull, reason: 'el carnet es opcional');
       expect(Validadores.carnet('2022111004'), isNotNull);
       expect(Validadores.carnet('2022-111-0045'), isNotNull);
     });
@@ -32,9 +34,15 @@ void main() {
       expect(Validadores.clave('12345678'), isNotNull);
     });
 
-    test('el nombre pide nombre y apellido', () {
-      expect(Validadores.nombre('Vincenzo Gallo'), isNull);
-      expect(Validadores.nombre('Vincenzo'), isNotNull);
+    test('nombre y apellido van por separado, solo con letras', () {
+      expect(Validadores.nombre('Vincenzo'), isNull);
+      expect(Validadores.nombre('María José'), isNull);
+      expect(Validadores.apellido("D'Angelo"), isNull);
+      expect(Validadores.nombre(''), isNotNull);
+      expect(Validadores.apellido('Gallo-2'), isNotNull);
+      expect(Validadores.apellido('Gallo-Pérez'), isNotNull);
+      expect(Validadores.nombre('x' * 41), isNotNull);
+      expect(Validadores.normalizarNombre('  maría   JOSÉ '), 'María José');
     });
   });
 }

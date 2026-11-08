@@ -128,7 +128,7 @@ class _LoginViewState extends State<LoginView> {
                 TextButton(
                   onPressed: () => context.go('/registro'),
                   child:
-                      const Text('¿No tienes cuenta? Regístrate con tu carnet'),
+                      const Text('¿No tienes cuenta? Regístrate'),
                 ),
                 // Botón para acceder directamente al catálogo como visitante
                 TextButton.icon(

@@ -86,7 +86,7 @@ for (const d of DEPORTES) {
     cupoMaximo: d.cupoMaximo, cuposOcupados: 0, costoReserva: d.costoReserva,
     imagenUrl: '', activo: true, vecesBuscado: 0,
     entrenadorId: entrenadorDoc?.id ?? '',
-    ...(e && { entrenador: { nombre: e.nombre, especialidad: e.especialidad ?? '', aniosExperiencia: e.aniosExperiencia ?? 0 } }),
+    ...(e && { entrenador: { nombre: [e.nombre, e.apellido].filter(Boolean).join(' '), especialidad: e.especialidad ?? '', aniosExperiencia: e.aniosExperiencia ?? 0 } }),
   });
   d.horarios.forEach(([dia, horaInicio, horaFin, lugar], i) => {
     lote.set(doc(db, 'deportes', d.codigo, 'horarios', `h${i + 1}`), { dia, horaInicio, horaFin, lugar });

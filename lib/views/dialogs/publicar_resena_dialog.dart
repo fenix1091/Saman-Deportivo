@@ -99,7 +99,7 @@ class _PublicarResenaDialogState extends State<PublicarResenaDialog> {
       estudianteId: usuario.uid,
       calificacion: _calificacion,
       comentario: _comentarioController.text.trim(),
-      autor: usuario.nombre,
+      autor: usuario.nombreCompleto,
     );
 
     if (mounted) {

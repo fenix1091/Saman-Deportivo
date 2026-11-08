@@ -48,7 +48,7 @@ void main() {
 
   testWidgets('un visitante pulsa Inscribirme, inicia sesión, paga con PayPal y ve el comprobante', (tester) async {
     final deportes = await abrir(tester);
-    await tester.tap(find.text('Ver deportes sin iniciar sesión'));
+    await tester.tap(find.text('Explorar deportes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Fútbol'));
     await tester.pumpAndSettle();
@@ -91,7 +91,7 @@ void main() {
 
   testWidgets('sin cupos el botón aparece deshabilitado (CU-06, A2)', (tester) async {
     await abrir(tester);
-    await tester.tap(find.text('Ver deportes sin iniciar sesión'));
+    await tester.tap(find.text('Explorar deportes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Baloncesto'));
     await tester.pumpAndSettle();

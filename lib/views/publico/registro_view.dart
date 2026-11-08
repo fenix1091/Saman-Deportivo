@@ -19,6 +19,7 @@ class _RegistroViewState extends State<RegistroView> {
   final _formulario = GlobalKey<FormState>();
   final _cedula = TextEditingController();
   final _nombre = TextEditingController();
+  final _apellido = TextEditingController();
   final _correo = TextEditingController();
   final _carnet = TextEditingController();
   final _clave = TextEditingController();
@@ -34,7 +35,7 @@ class _RegistroViewState extends State<RegistroView> {
 
   @override
   void dispose() {
-    for (final c in [_cedula, _nombre, _correo, _carnet, _clave, _confirmacion]) {
+    for (final c in [_cedula, _nombre, _apellido, _correo, _carnet, _clave, _confirmacion]) {
       c.dispose();
     }
     super.dispose();
@@ -47,6 +48,7 @@ class _RegistroViewState extends State<RegistroView> {
       nacionalidad: _nacionalidad,
       cedula: _cedula.text,
       nombre: _nombre.text,
+      apellido: _apellido.text,
       correo: _correo.text,
       carnet: _carnet.text,
       clave: _clave.text,
@@ -73,9 +75,9 @@ class _RegistroViewState extends State<RegistroView> {
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Regístrate con tu carnet', style: textos.headlineMedium),
+                Text('Crea tu cuenta', style: textos.headlineMedium),
                 const SizedBox(height: 4),
-                Text('Solo para estudiantes de la UNIMET.', style: textos.bodyMedium),
+                Text('Solo necesitas tu correo de la UNIMET y tu cédula.', style: textos.bodyMedium),
                 const SizedBox(height: 24),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,18 +111,36 @@ class _RegistroViewState extends State<RegistroView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _nombre,
-                  decoration: const InputDecoration(labelText: 'Nombre y apellido'),
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  validator: Validadores.nombre,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _nombre,
+                        decoration: const InputDecoration(labelText: 'Nombre', hintText: 'María José'),
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: Validadores.nombre,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _apellido,
+                        decoration: const InputDecoration(labelText: 'Apellido', hintText: 'Pérez López'),
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: Validadores.apellido,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _correo,
                   decoration: const InputDecoration(
-                    labelText: 'Correo institucional',
+                    labelText: 'Correo de la UNIMET',
+                    helperText: 'Sirve @correo.unimet.edu.ve o @unimet.edu.ve.',
                     hintText: 'usuario${Validadores.dominioEstudiantes}',
                   ),
                   keyboardType: TextInputType.emailAddress,
@@ -131,7 +151,7 @@ class _RegistroViewState extends State<RegistroView> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _carnet,
-                  decoration: const InputDecoration(labelText: 'Carnet', hintText: '11 dígitos'),
+                  decoration: const InputDecoration(labelText: 'Carnet (opcional)', hintText: '11 dígitos'),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,

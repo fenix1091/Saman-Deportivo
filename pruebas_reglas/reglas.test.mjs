@@ -14,7 +14,8 @@ const perfilEstudiante = (correo, extra = {}) => ({
   rol: 'estudiante',
   nacionalidad: 'V',
   cedula: 31985476,
-  nombre: 'Vincenzo Gallo',
+  nombre: 'Vincenzo',
+  apellido: 'Gallo',
   correo,
   telefono: '',
   fotoUrl: '',
@@ -56,10 +57,10 @@ beforeEach(async () => {
   await entorno.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     const base = { telefono: '', fotoUrl: '' };
-    await setDoc(doc(db, 'usuarios/est1'), { ...base, rol: 'estudiante', nacionalidad: 'V', cedula: 1, nombre: 'Uno', correo: 'est1@correo.unimet.edu.ve', carnet: '1', estado: 'activo', solvente: false, carrera: '' });
-    await setDoc(doc(db, 'usuarios/est2'), { ...base, rol: 'estudiante', nacionalidad: 'V', cedula: 2, nombre: 'Dos', correo: 'est2@correo.unimet.edu.ve', carnet: '2', estado: 'activo', solvente: false, carrera: '' });
-    await setDoc(doc(db, 'usuarios/ent1'), { ...base, rol: 'entrenador', nacionalidad: 'V', cedula: 3, nombre: 'Tres', correo: 'ent1@unimet.edu.ve', especialidad: 'Fútbol', aniosExperiencia: 5 });
-    await setDoc(doc(db, 'usuarios/adm1'), { ...base, rol: 'administrador', nacionalidad: 'V', cedula: 4, nombre: 'Cuatro', correo: 'adm1@unimet.edu.ve', cargo: 'Coordinación' });
+    await setDoc(doc(db, 'usuarios/est1'), { ...base, rol: 'estudiante', nacionalidad: 'V', cedula: 1, nombre: 'Uno', apellido: 'Prueba', correo: 'est1@correo.unimet.edu.ve', carnet: '1', estado: 'activo', solvente: false, carrera: '' });
+    await setDoc(doc(db, 'usuarios/est2'), { ...base, rol: 'estudiante', nacionalidad: 'V', cedula: 2, nombre: 'Dos', apellido: 'Prueba', correo: 'est2@correo.unimet.edu.ve', carnet: '2', estado: 'activo', solvente: false, carrera: '' });
+    await setDoc(doc(db, 'usuarios/ent1'), { ...base, rol: 'entrenador', nacionalidad: 'V', cedula: 3, nombre: 'Tres', apellido: 'Prueba', correo: 'ent1@unimet.edu.ve', especialidad: 'Fútbol', aniosExperiencia: 5 });
+    await setDoc(doc(db, 'usuarios/adm1'), { ...base, rol: 'administrador', nacionalidad: 'V', cedula: 4, nombre: 'Cuatro', apellido: 'Prueba', correo: 'adm1@unimet.edu.ve', cargo: 'Coordinación' });
     await setDoc(doc(db, 'cedulas/V-1'), { uid: 'est1' });
     await setDoc(doc(db, 'carnets/1'), { uid: 'est1' });
     await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25 });
@@ -97,6 +98,11 @@ describe('Registro de estudiantes (RF-01)', () => {
     await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { carnet: '1' })));
   });
 
+  test('el registro exige el nombre y el apellido por separado', async () => {
+    const { apellido, ...sinApellido } = perfilEstudiante('nuevo@correo.unimet.edu.ve');
+    await assertFails(registrar(nuevo(), 'nuevo', sinApellido, 'V-31985476'));
+  });
+
   test('la cédula se guarda como número y con su letra (V o E)', async () => {
     await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { cedula: '31985476' }), 'V-31985476'));
     await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { nacionalidad: 'X' })));
@@ -121,16 +127,17 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
     await assertFails(getDocs(collection(comoEstudiante(), 'usuarios')));
   });
 
-  test('el dueño puede cambiar su nombre, su teléfono y su foto', async () => {
+  test('el dueño puede cambiar su nombre, su apellido, su teléfono y su foto', async () => {
     await assertSucceeds(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { telefono: '04141234567', fotoUrl: 'data:image/jpeg;base64,AAAA' }));
-    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { nombre: 'Uno Cambiado' }));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { nombre: 'Uno', apellido: 'Cambiado' }));
   });
 
-  test('el nombre no puede quedar vacío, ser muy largo ni dejar de ser texto', async () => {
+  test('nombre y apellido no pueden quedar vacíos, ser muy largos ni dejar de ser texto', async () => {
     const db = comoEstudiante();
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: '' }));
-    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: 'x'.repeat(81) }));
-    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: 12345 }));
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { apellido: '' }));
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: 'x'.repeat(41) }));
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { apellido: 12345 }));
   });
 
   test('el dueño no puede cambiarse el rol, la solvencia, la cédula ni el carnet', async () => {
@@ -168,7 +175,8 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
       rol: 'entrenador',
       nacionalidad: 'V',
       cedula: 55555555,
-      nombre: 'Nuevo Entrenador',
+      nombre: 'Nuevo',
+      apellido: 'Entrenador',
       correo: 'nuevo@unimet.edu.ve',
       telefono: '',
       fotoUrl: '',

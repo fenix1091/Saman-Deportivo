@@ -58,6 +58,7 @@ class _AdminRepositoryFalso implements AdminRepository {
     required String nacionalidad,
     required int cedula,
     required String nombre,
+    required String apellido,
     required String correo,
     required String telefono,
     required String especialidad,
@@ -66,6 +67,12 @@ class _AdminRepositoryFalso implements AdminRepository {
 
   @override
   Future<void> reenviarEnlace(String correo) async {}
+
+  @override
+  Stream<List<Persona>> observarUsuarios() => Stream.value(const []);
+
+  @override
+  Future<void> actualizarUsuario(String uid, Map<String, dynamic> cambios) async {}
 }
 
 void main() {

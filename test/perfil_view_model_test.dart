@@ -22,12 +22,14 @@ void main() {
       expect(usuario.telefono, '04141234567');
       expect(usuario.carnet, '20231110001');
       expect(usuario.cedula, 30111222);
-      expect(usuario.nombre, 'Estudiante Prueba');
+      expect(usuario.nombreCompleto, 'Estudiante Prueba');
     });
 
-    test('cambia el nombre y le quita los espacios de más', () async {
-      expect(await vm.guardar(nombre: '  Vincenzo   Gallo ', telefono: ''), isTrue);
-      expect(repositorio.usuarioActual!.nombre, 'Vincenzo Gallo');
+    test('cambia nombre y apellido por separado y los normaliza', () async {
+      expect(await vm.guardar(nombre: '  maría   josé ', apellido: 'PÉREZ lópez', telefono: ''), isTrue);
+      expect(repositorio.usuarioActual!.nombre, 'María José');
+      expect(repositorio.usuarioActual!.apellido, 'Pérez López');
+      expect(repositorio.usuarioActual!.nombreCompleto, 'María José Pérez López');
       expect((repositorio.usuarioActual as Estudiante).carnet, '20231110001');
     });
 

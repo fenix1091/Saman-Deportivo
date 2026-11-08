@@ -42,7 +42,7 @@ class EnConstruccionView extends StatelessWidget {
             children: [
               const Icon(Icons.construction, size: 56),
               const SizedBox(height: 16),
-              if (usuario != null) Text('Hola, ${usuario.nombre}', style: textos.titleLarge),
+              if (usuario != null) Text('Hola, ${usuario.nombreCompleto}', style: textos.titleLarge),
               const SizedBox(height: 8),
               Text('Este módulo se construye en el Hito 3.', style: textos.bodyLarge),
             ],

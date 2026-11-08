@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/validadores.dart';
 import '../models/persona.dart';
 import '../repositories/auth_repository.dart';
 
 /// Edición del perfil del usuario con la sesión abierta (CU-03, RF-03).
 ///
-/// El nombre, el teléfono y la foto son editables; cédula, correo y los datos del rol
+/// El nombre, el apellido, el teléfono y la foto son editables; cédula, correo y los datos del rol
 /// los muestra la vista en modo lectura.
 class PerfilViewModel extends ChangeNotifier {
   PerfilViewModel(this._repositorio);
@@ -43,8 +44,8 @@ class PerfilViewModel extends ChangeNotifier {
     return _error == null;
   }
 
-  /// Sube la foto si hay una nueva y guarda el nombre y el teléfono. Devuelve `true` si se guardó.
-  Future<bool> guardar({String? nombre, required String telefono}) async {
+  /// Sube la foto si hay una nueva y guarda nombre, apellido y teléfono. Devuelve `true` si se guardó.
+  Future<bool> guardar({String? nombre, String? apellido, required String telefono}) async {
     final actual = usuario;
     if (actual == null) return false;
     _guardando = true;
@@ -57,7 +58,8 @@ class PerfilViewModel extends ChangeNotifier {
       }
       await _repositorio.actualizarPerfil(
         actual.copiarPerfil(
-          nombre: nombre?.trim().replaceAll(RegExp(r'\s+'), ' '),
+          nombre: nombre == null ? null : Validadores.normalizarNombre(nombre),
+          apellido: apellido == null ? null : Validadores.normalizarNombre(apellido),
           telefono: telefono.replaceAll(RegExp(r'[\s-]'), ''),
           fotoUrl: fotoUrl,
         ),
