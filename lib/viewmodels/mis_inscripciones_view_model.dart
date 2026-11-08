@@ -19,7 +19,7 @@ class MisInscripcionesViewModel extends ChangeNotifier {
   bool get cargando => _cargando;
   String? get error => _error;
 
-  /// Obtiene solo las inscripciones activas (pendientePago o confirmada)
+  /// Inscripciones activas: pendientes de pago, en revisión o confirmadas.
   List<Inscripcion> get vigentes =>
       _inscripciones.where((i) => i.estaVigente()).toList();
 

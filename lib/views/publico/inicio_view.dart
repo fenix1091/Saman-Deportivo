@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../widgets/animaciones.dart';
 
 /// Naranja profundo: lleva texto blanco con 5,2:1 de contraste (sobre el naranja
 /// de la marca el blanco solo llega a 2,6:1). Se usa en botones, degradados y textos.
@@ -112,126 +113,6 @@ double _fluido(BuildContext context, double min, double max) {
   return (min + (max - min) * ((ancho - 360) / (1280 - 360))).clamp(min, max);
 }
 
-/// Muestra a su hijo con un fundido y un leve desplazamiento hacia arriba la
-/// primera vez que entra en pantalla. [orden] escalona varios elementos seguidos.
-/// Si el sistema pide reducir las animaciones, aparece de inmediato.
-class _Revelar extends StatefulWidget {
-  const _Revelar({required this.child, this.orden = 0});
-
-  final Widget child;
-  final int orden;
-
-  @override
-  State<_Revelar> createState() => _RevelarState();
-}
-
-class _RevelarState extends State<_Revelar> with SingleTickerProviderStateMixin {
-  static const _duracion = 550;
-  static const _escalon = 90;
-
-  late final AnimationController _control = AnimationController(
-    vsync: this,
-    duration: Duration(milliseconds: _duracion + widget.orden * _escalon),
-  );
-  late final Animation<double> _curva = CurvedAnimation(
-    parent: _control,
-    curve: Interval(
-      widget.orden * _escalon / (_duracion + widget.orden * _escalon),
-      1,
-      curve: Curves.easeOutCubic,
-    ),
-  );
-  ScrollPosition? _posicion;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.of(context).disableAnimations) {
-      _control.value = 1;
-      return;
-    }
-    _posicion?.removeListener(_revisar);
-    _posicion = Scrollable.maybeOf(context)?.position;
-    _posicion?.addListener(_revisar);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _revisar());
-  }
-
-  void _revisar() {
-    if (!mounted || _control.isAnimating || _control.isCompleted) return;
-    final caja = context.findRenderObject();
-    if (caja is! RenderBox || !caja.attached) return;
-    final arriba = caja.localToGlobal(Offset.zero).dy;
-    if (arriba < MediaQuery.sizeOf(context).height * 0.92) {
-      _posicion?.removeListener(_revisar);
-      _control.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _posicion?.removeListener(_revisar);
-    _control.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _curva,
-      child: widget.child,
-      builder: (_, hijo) => Opacity(
-        opacity: _curva.value,
-        child: Transform.translate(offset: Offset(0, 28 * (1 - _curva.value)), child: hijo),
-      ),
-    );
-  }
-}
-
-/// Tarjeta que se eleva un poco y gana sombra al pasar el ratón (micro-interacción).
-class _Elevable extends StatefulWidget {
-  const _Elevable({required this.child, this.radio = 20, this.alPulsar});
-
-  final Widget child;
-  final double radio;
-  final VoidCallback? alPulsar;
-
-  @override
-  State<_Elevable> createState() => _ElevableState();
-}
-
-class _ElevableState extends State<_Elevable> {
-  bool _encima = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = BorderRadius.circular(widget.radio);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _encima = true),
-      onExit: (_) => setState(() => _encima = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0, _encima ? -6 : 0, 0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: forma,
-          border: Border.all(color: _encima ? AppColors.naranja.withValues(alpha: 0.45) : const Color(0xFFE3E8EE)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: _encima ? 0.10 : 0.04),
-              blurRadius: _encima ? 28 : 12,
-              offset: Offset(0, _encima ? 14 : 4),
-            ),
-          ],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(borderRadius: forma, onTap: widget.alPulsar, child: widget.child),
-        ),
-      ),
-    );
-  }
-}
 
 /// Etiqueta pequeña en naranja que va encima de cada título de sección.
 class _Antetitulo extends StatelessWidget {
@@ -258,7 +139,7 @@ class _Encabezado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Revelar(
+    return Revelar(
       child: Column(
         children: [
           _Antetitulo(antetitulo),
@@ -303,7 +184,7 @@ class _Rejilla extends StatelessWidget {
           children: [
             for (final (i, hijo) in children.indexed) ...[
               if (i > 0) const SizedBox(height: 16),
-              _Revelar(orden: i, child: hijo),
+              Revelar(orden: i, child: hijo),
             ],
           ],
         );
@@ -314,7 +195,7 @@ class _Rejilla extends StatelessWidget {
           children: [
             for (final (i, hijo) in children.indexed) ...[
               if (i > 0) const SizedBox(width: 20),
-              Expanded(child: _Revelar(orden: i, child: hijo)),
+              Expanded(child: Revelar(orden: i, child: hijo)),
             ],
           ],
         ),
@@ -446,7 +327,7 @@ class _Portada extends StatelessWidget {
     final mensaje = Column(
       crossAxisAlignment: alineacion,
       children: [
-        _Revelar(
+        Revelar(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
@@ -470,7 +351,7 @@ class _Portada extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        _Revelar(
+        Revelar(
           orden: 1,
           child: Text.rich(
             const TextSpan(children: [
@@ -489,7 +370,7 @@ class _Portada extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        _Revelar(
+        Revelar(
           orden: 2,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
@@ -506,7 +387,7 @@ class _Portada extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 30),
-        _Revelar(
+        Revelar(
           orden: 3,
           child: Wrap(
             spacing: 12,
@@ -537,7 +418,7 @@ class _Portada extends StatelessWidget {
         ),
         if (deportes.isNotEmpty) ...[
           const SizedBox(height: 40),
-          _Revelar(
+          Revelar(
             orden: 4,
             child: Wrap(
               spacing: 36,
@@ -554,7 +435,7 @@ class _Portada extends StatelessWidget {
     );
 
     final barra = 68 + MediaQuery.paddingOf(context).top;
-    Widget logo({required double ancho}) => _Revelar(
+    Widget logo({required double ancho}) => Revelar(
           orden: 1,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: ancho),
@@ -728,7 +609,7 @@ class _Paso extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
-    return _Elevable(
+    return Elevable(
       child: Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
@@ -788,11 +669,11 @@ class _Disciplinas extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: [
                 for (final (i, d) in visibles.indexed)
-                  _Revelar(orden: i % 3, child: _FichaDeporte(deporte: d)),
+                  Revelar(orden: i % 3, child: _FichaDeporte(deporte: d)),
               ],
             ),
             const SizedBox(height: 36),
-            _Revelar(
+            Revelar(
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _naranjaProfundo,
@@ -832,7 +713,7 @@ class _FichaDeporte extends StatelessWidget {
             : _naranjaProfundo;
     return SizedBox(
       width: 260,
-      child: _Elevable(
+      child: Elevable(
         radio: 18,
         alPulsar: () => context.go('/catalogo/${Uri.encodeComponent(deporte.codigo)}'),
         child: Padding(
@@ -893,7 +774,7 @@ class _Llamado extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 88),
       child: _Centrado(
-        child: _Revelar(
+        child: Revelar(
           child: Container(
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(

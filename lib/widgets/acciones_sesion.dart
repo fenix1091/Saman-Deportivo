@@ -25,12 +25,18 @@ class AccionesSesion extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (auth.usuario!.rol == Rol.estudiante)
+        if (auth.usuario!.rol == Rol.estudiante) ...[
+          IconButton(
+            tooltip: 'Mi panel',
+            icon: const Icon(Icons.space_dashboard_outlined),
+            onPressed: () => context.go('/estudiante'),
+          ),
           IconButton(
             tooltip: 'Mis inscripciones',
             icon: const Icon(Icons.assignment_outlined),
             onPressed: () => context.push('/mis-inscripciones'),
           ),
+        ],
         IconButton(
           tooltip: 'Mi perfil',
           icon: const Icon(Icons.account_circle_outlined),

@@ -9,6 +9,9 @@ import '../../models/deporte.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
 import '../../viewmodels/auth_view_model.dart';
+import 'inscritos_dialog.dart';
+import 'reservas_tab.dart';
+import 'resumen_tab.dart';
 import 'usuarios_tab.dart';
 
 class AdminDashboardView extends StatelessWidget {
@@ -19,7 +22,7 @@ class AdminDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Administración deportiva'),
@@ -36,10 +39,14 @@ class AdminDashboardView extends StatelessWidget {
             ),
           ],
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.center,
             tabs: [
+              Tab(icon: Icon(Icons.insights_outlined), text: 'Resumen'),
               Tab(
                   icon: Icon(Icons.event_available_outlined),
                   text: 'Clases y horarios'),
+              Tab(icon: Icon(Icons.fact_check_outlined), text: 'Reservas'),
               Tab(icon: Icon(Icons.groups_outlined), text: 'Entrenadores'),
               Tab(icon: Icon(Icons.manage_accounts_outlined), text: 'Usuarios'),
             ],
@@ -47,7 +54,9 @@ class AdminDashboardView extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
+            ResumenTab(repositorio: repositorio),
             _ClasesTab(repositorio: repositorio),
+            ReservasTab(repositorio: repositorio),
             _EntrenadoresTab(repositorio: repositorio),
             UsuariosTab(repositorio: repositorio),
           ],
@@ -182,6 +191,20 @@ class _TarjetaDeporte extends StatelessWidget {
                         deporte: deporte, repositorio: repositorio),
                   ),
                   icon: const Icon(Icons.schedule),
+                ),
+                IconButton(
+                  tooltip: 'Inscritos',
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => InscritosDialog(
+                        deporte: deporte, repositorio: repositorio),
+                  ),
+                  icon: const Icon(Icons.groups_2_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Eliminar clase',
+                  onPressed: () => _eliminarDeporte(context, repositorio, deporte),
+                  icon: const Icon(Icons.delete_outline),
                 ),
               ],
             ),
@@ -376,6 +399,10 @@ class _DeporteDialog extends StatefulWidget {
 
 class _DeporteDialogState extends State<_DeporteDialog> {
   final _formKey = GlobalKey<FormState>();
+  late final _codigo = TextEditingController(text: widget.deporte?.codigo);
+  late final _costo = TextEditingController(
+      text: widget.deporte == null ? '0' : widget.deporte!.costoReserva.toStringAsFixed(2));
+  late final _duracion = TextEditingController(text: widget.deporte?.duracion);
   late final _nombre = TextEditingController(text: widget.deporte?.nombre);
   late final _categoria =
       TextEditingController(text: widget.deporte?.categoria);
@@ -386,6 +413,9 @@ class _DeporteDialogState extends State<_DeporteDialog> {
 
   @override
   void dispose() {
+    _codigo.dispose();
+    _costo.dispose();
+    _duracion.dispose();
     _nombre.dispose();
     _categoria.dispose();
     _descripcion.dispose();
@@ -403,6 +433,23 @@ class _DeporteDialogState extends State<_DeporteDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              TextFormField(
+                controller: _codigo,
+                enabled: widget.deporte == null,
+                decoration: const InputDecoration(
+                    labelText: 'Código único *', hintText: 'Ej. BAS-01'),
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
+                  LengthLimitingTextInputFormatter(12),
+                ],
+                validator: (value) {
+                  final v = (value ?? '').trim();
+                  if (v.isEmpty) return 'Escribe un código, por ejemplo BAS-01.';
+                  if (v.length < 3) return 'El código debe tener al menos 3 caracteres.';
+                  return null;
+                },
+              ),
               TextFormField(
                 controller: _nombre,
                 decoration: const InputDecoration(labelText: 'Nombre *'),
@@ -434,6 +481,25 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                 },
                 autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
+              TextFormField(
+                controller: _costo,
+                decoration: const InputDecoration(
+                    labelText: 'Costo de la reserva (USD) *',
+                    helperText: '0 para una disciplina gratuita'),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  final costo = double.tryParse((value ?? '').replaceAll(',', '.'));
+                  if (costo == null || costo < 0) return 'Ingresa un monto válido.';
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _duracion,
+                decoration: const InputDecoration(
+                    labelText: 'Duración',
+                    hintText: 'Ej. Trimestre 2627-1 · 12 semanas'),
+              ),
             ],
           ),
         ),
@@ -450,13 +516,14 @@ class _DeporteDialogState extends State<_DeporteDialog> {
             Navigator.pop(
               context,
               Deporte(
-                codigo: anterior?.codigo ?? '',
+                codigo: anterior?.codigo ?? _codigo.text.trim().toUpperCase(),
                 nombre: _nombre.text.trim(),
                 categoria: _categoria.text.trim(),
                 descripcion: _descripcion.text.trim(),
                 cupoMaximo: cupos,
                 cuposOcupados: anterior?.cuposOcupados ?? 0,
-                costoReserva: anterior?.costoReserva ?? 0,
+                costoReserva: double.parse(_costo.text.replaceAll(',', '.')),
+                duracion: _duracion.text.trim(),
                 imagenUrl: anterior?.imagenUrl ?? '',
                 entrenadorId: anterior?.entrenadorId ?? '',
                 activo: anterior?.activo ?? true,
@@ -479,11 +546,55 @@ Future<void> _editarDeporte(BuildContext context, AdminRepository repositorio,
   );
   if (resultado == null || !context.mounted) return;
   try {
-    await repositorio.guardarDeporte(resultado);
+    await repositorio.guardarDeporte(resultado, nueva: deporte == null);
+  } on CodigoRepetidoException {
+    if (context.mounted) {
+      _mensaje(context,
+          'Ya existe una disciplina con el código ${resultado.codigo}. Usa otro código.');
+    }
   } on FirebaseException catch (error) {
     if (context.mounted)
       _mensaje(context,
           'No se pudo guardar la clase: ${error.message ?? error.code}');
+  }
+}
+
+/// Elimina una disciplina por completo, con confirmación. Si tiene inscripciones
+/// vigentes el repositorio lo impide y aquí se explica el motivo y la alternativa.
+Future<void> _eliminarDeporte(
+    BuildContext context, AdminRepository repositorio, Deporte deporte) async {
+  final confirmado = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text('Eliminar ${deporte.nombre}'),
+      content: const Text(
+          'Se borrarán la disciplina y sus horarios de forma definitiva. Solo es '
+          'posible si no tiene inscripciones vigentes; si las tiene, puedes darla '
+          'de baja con el interruptor "Activa" para conservar el historial.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancelar')),
+        FilledButton(
+          style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(c).colorScheme.error),
+          onPressed: () => Navigator.pop(c, true),
+          child: const Text('Eliminar definitivamente'),
+        ),
+      ],
+    ),
+  );
+  if (confirmado != true || !context.mounted) return;
+  try {
+    await repositorio.eliminarDeporte(deporte.codigo);
+    if (context.mounted) _mensaje(context, '${deporte.nombre} fue eliminada.');
+  } on OperacionNoPermitidaException catch (e) {
+    if (context.mounted) _mensaje(context, e.mensaje);
+  } on FirebaseException catch (error) {
+    if (context.mounted) {
+      _mensaje(context,
+          'No se pudo eliminar la clase: ${error.message ?? error.code}');
+    }
   }
 }
 

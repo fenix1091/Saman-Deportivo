@@ -145,14 +145,22 @@ void main() {
       pasarela = PasarelaFalsa();
     });
 
-    test('paga con PayPal, confirma la inscripción, ocupa el cupo y guarda la trazabilidad', () async {
+    test('paga con PayPal, la reserva queda en revisión, ocupa el cupo y guarda la trazabilidad', () async {
       final vm = crear();
       await esperar();
       expect(vm.puedePagar, isTrue);
       expect(await vm.inscribirYPagar(), isTrue);
       await esperar();
-      expect(vm.confirmada, isTrue);
+      expect(vm.enRevision, isTrue);
+      expect(vm.confirmada, isFalse, reason: 'la confirma el administrador tras validar el pago');
+      expect(vm.pagada, isTrue);
+      expect(vm.puedePagar, isFalse);
       expect(deportes.leer('FUT-01')!.cuposOcupados, 21);
+      final guardada = inscripciones.guardadas['FUT-01_est-1']!;
+      expect(guardada.nombreDeporte, 'Fútbol');
+      expect(guardada.horarios, contains('Martes 16:00 - 18:00 · Cancha 1'));
+      expect(guardada.monto, 5);
+      expect(guardada.cupoMaximo, 25);
       final pago = inscripciones.pagos.single;
       expect(pago.estado, EstadoPago.completado);
       expect(pago.monto, 5);
@@ -203,13 +211,33 @@ void main() {
       expect(deportes.leer('TEN-01')!.cuposOcupados, 8, reason: 'nunca supera el cupo máximo (RNF-05)');
     });
 
-    test('una disciplina gratuita se confirma sin pasar por PayPal', () async {
+    test('una disciplina gratuita se reserva sin pasar por PayPal', () async {
       final vm = crear(codigo: 'TEN-01');
       await esperar();
       expect(vm.monto, 0);
       expect(await vm.inscribirYPagar(), isTrue);
       expect(pasarela.cobros, 0);
       expect(inscripciones.pagos.single.referenciaExterna, 'GRATUITA');
+    });
+
+    test('el administrador confirma la reserva en revisión, o la rechaza liberando el cupo', () async {
+      final vm = crear();
+      await esperar();
+      await vm.inscribirYPagar();
+      await inscripciones.confirmarReserva('FUT-01_est-1');
+      await esperar();
+      expect(vm.confirmada, isTrue);
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 21);
+
+      final vm2 = crear(estudiante: const Estudiante(
+          uid: 'est-2', cedula: 2, nombre: 'Dos', correo: 'dos@correo.unimet.edu.ve', carnet: '2', solvente: true));
+      await esperar();
+      await vm2.inscribirYPagar();
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 22);
+      await inscripciones.rechazarReserva('FUT-01_est-2', 'Pago no validado');
+      expect(inscripciones.guardadas['FUT-01_est-2']!.estado, EstadoInscripcion.rechazada);
+      expect(inscripciones.guardadas['FUT-01_est-2']!.motivo, 'Pago no validado');
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 21, reason: 'el rechazo libera el cupo');
     });
   });
 }

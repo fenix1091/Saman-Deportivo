@@ -30,7 +30,7 @@ void main() {
     });
 
     test('con sesión, el login lleva a la pantalla del rol o al destino pendiente', () {
-      expect(redirigir(estudiante, Uri.parse('/login')), '/catalogo');
+      expect(redirigir(estudiante, Uri.parse('/login')), '/estudiante');
       expect(redirigir(entrenador, Uri.parse('/login?destino=/entrenador/mis-deportes')), '/entrenador/mis-deportes');
     });
 
@@ -41,8 +41,8 @@ void main() {
     });
 
     test('un rol no puede entrar en la sección de otro', () {
-      expect(redirigir(estudiante, Uri.parse('/admin/dashboard')), '/catalogo');
-      expect(redirigir(estudiante, Uri.parse('/entrenador/mis-deportes')), '/catalogo');
+      expect(redirigir(estudiante, Uri.parse('/admin/dashboard')), '/estudiante');
+      expect(redirigir(estudiante, Uri.parse('/entrenador/mis-deportes')), '/estudiante');
       expect(redirigir(entrenador, Uri.parse('/entrenador/mis-deportes')), isNull);
     });
   });

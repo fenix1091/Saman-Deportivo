@@ -61,13 +61,16 @@ void main() {
     expect(find.text('Requisitos'), findsOneWidget);
     expect(find.byIcon(Icons.cancel), findsNothing);
 
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pagar \$5.00 con PayPal'));
     await tester.pumpAndSettle();
     expect(find.text('PayPal (sandbox)'), findsOneWidget);
     await tester.tap(find.text('Aprobar pago'));
     await tester.pumpAndSettle();
 
-    expect(find.text('¡Inscripción confirmada!'), findsOneWidget);
+    expect(find.text('Pago recibido, reserva en revisión'), findsOneWidget);
+    expect(find.text('En revisión'), findsOneWidget);
     expect(find.text('PRUEBA-1'), findsOneWidget);
     expect(deportes.leer('FUT-01')!.cuposOcupados, 21);
   });
@@ -77,12 +80,17 @@ void main() {
     await tester.tap(find.text('Iniciar sesión'));
     await tester.pumpAndSettle();
     await entrar(tester, 'estudiante@correo.unimet.edu.ve', 'Estudiante123');
+    // Entra a su panel; desde ahí abre el catálogo.
+    await tester.tap(find.text('Explorar deportes'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Fútbol'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Inscribirme'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('No apareces como solvente'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
     final boton = tester.widget<ButtonStyleButton>(
       find.ancestor(of: find.text('Pagar \$5.00 con PayPal'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
     );

@@ -251,7 +251,7 @@ describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', (
     entorno.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), ruta), datos));
 
   /** Hace lo mismo que InscripcionRepositoryFirebase.confirmarPago, en un lote. */
-  function confirmar(db, { cupos = 21, monto = 5, estadoPago = 'completado', estadoInscripcion = 'confirmada' } = {}) {
+  function confirmar(db, { cupos = 21, monto = 5, estadoPago = 'completado', estadoInscripcion = 'enRevision' } = {}) {
     const pagoId = `${ID}_${Date.now()}`;
     const lote = writeBatch(db);
     lote.set(doc(db, 'pagos', pagoId), {
@@ -259,8 +259,8 @@ describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', (
       fecha: serverTimestamp(), estado: estadoPago,
     });
     if (cupos !== null) lote.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: cupos });
-    lote.update(doc(db, 'inscripciones', ID), estadoInscripcion === 'confirmada'
-      ? { estado: 'confirmada', pagoId }
+    lote.update(doc(db, 'inscripciones', ID), estadoInscripcion === 'enRevision' || estadoInscripcion === 'confirmada'
+      ? { estado: estadoInscripcion, pagoId }
       : { estado: estadoInscripcion, motivo: 'Sin cupo' });
     return lote.commit();
   }
@@ -300,9 +300,24 @@ describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', (
     await assertSucceeds(getDoc(doc(comoEntrenador(), 'inscripciones', ID)));
   });
 
-  test('el pago completado confirma la inscripción y ocupa un cupo, todo junto (CU-07, paso 6)', async () => {
+  test('el pago completado deja la reserva en revisión y ocupa un cupo, todo junto (CU-07, paso 6)', async () => {
     await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
     await assertSucceeds(confirmar(comoEstudiante()));
+  });
+
+  test('el estudiante no puede confirmarse a sí mismo: pagar no salta la revisión', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
+    await assertFails(confirmar(comoEstudiante(), { estadoInscripcion: 'confirmada' }));
+  });
+
+  test('la reserva guarda la copia de los datos del deporte, sin sesiones inventadas', async () => {
+    const completa = {
+      ...reserva(), nombreDeporte: 'Fútbol', horarios: 'Martes 16:00 - 18:00 · Cancha 1', monto: 5,
+      descripcion: 'Selección', duracion: 'Trimestre 2627-1', cupoMaximo: 25, sesiones: 0, sesionesAsistidas: 0,
+    };
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), completa));
+    await preparar(`inscripciones/${ID}`, { ...completa, estado: 'cancelada', fechaInscripcion: Timestamp.now() });
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones', ID), { ...completa, sesionesAsistidas: 3 }));
   });
 
   test('no se puede confirmar sin pagar, sin ocupar el cupo, ni pagando otro monto', async () => {
@@ -332,11 +347,53 @@ describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', (
   });
 });
 
+describe('Revisión de reservas por el administrador (Hito 3, punto 4)', () => {
+  const ID = 'FUT-01_est1';
+  const sembrar = (estado, pagoId = '') => entorno.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 21, costoReserva: 5, activo: true, entrenadorId: 'ent1' });
+    await setDoc(doc(db, 'inscripciones', ID), { estudianteId: 'est1', deporteCodigo: 'FUT-01', estado, motivo: '', pagoId, fechaInscripcion: Timestamp.now() });
+    if (pagoId) await setDoc(doc(db, 'pagos', pagoId), { inscripcionId: ID, monto: 5, moneda: 'USD', metodo: 'PayPal', referenciaExterna: 'X', fecha: Timestamp.now(), estado: 'completado' });
+  });
+
+  test('el administrador confirma una reserva en revisión; el estudiante y el entrenador no', async () => {
+    await sembrar('enRevision');
+    await assertFails(updateDoc(doc(comoEstudiante(), 'inscripciones', ID), { estado: 'confirmada' }));
+    await assertFails(updateDoc(doc(comoEntrenador(), 'inscripciones', ID), { estado: 'confirmada' }));
+    await assertSucceeds(updateDoc(doc(comoAdmin(), 'inscripciones', ID), { estado: 'confirmada', motivo: '' }));
+  });
+
+  test('el administrador rechaza liberando el cupo y reembolsando el pago', async () => {
+    await sembrar('enRevision', `${ID}_1`);
+    const db = comoAdmin();
+    await assertSucceeds(runTransaction(db, async (t) => {
+      t.update(doc(db, 'pagos', `${ID}_1`), { estado: 'reembolsado' });
+      t.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: 20 });
+      t.update(doc(db, 'inscripciones', ID), { estado: 'rechazada', motivo: 'Pago no validado' });
+    }));
+  });
+
+  test('el estudiante puede cancelar su reserva en revisión y recupera el cupo', async () => {
+    await sembrar('enRevision');
+    const db = comoEstudiante();
+    await assertSucceeds(runTransaction(db, async (t) => {
+      t.update(doc(db, 'inscripciones', ID), { estado: 'cancelada' });
+      t.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: 20 });
+    }));
+  });
+
+  test('una reserva en revisión no sirve todavía para reseñar', async () => {
+    await sembrar('enRevision');
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID),
+      { estudianteId: 'est1', autor: 'Uno', deporteCodigo: 'FUT-01', calificacion: 5, comentario: 'Bien', fecha: new Date() }));
+  });
+});
+
 describe('Consultar y cancelar inscripciones, reseñas (RF-10 a RF-13)', () => {
-  const sembrar = (estado) => entorno.withSecurityRulesDisabled(async (ctx) => {
+  const sembrar = (estado, extra = { sesiones: 2, sesionesAsistidas: 1 }) => entorno.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 3 });
-    await setDoc(doc(db, 'inscripciones/FUT-01_est1'), { estudianteId: 'est1', deporteCodigo: 'FUT-01', estado, motivo: '' });
+    await setDoc(doc(db, 'inscripciones/FUT-01_est1'), { estudianteId: 'est1', deporteCodigo: 'FUT-01', estado, motivo: '', ...extra });
   });
   const cancelar = (db) => runTransaction(db, async (t) => {
     t.update(doc(db, 'inscripciones/FUT-01_est1'), { estado: 'cancelada' });
@@ -375,5 +432,107 @@ describe('Consultar y cancelar inscripciones, reseñas (RF-10 a RF-13)', () => {
     await assertFails(setDoc(doc(comoEstudiante(), 'resenas/FUT-01_est1'), { ...resena, calificacion: 6 }));
     await assertFails(setDoc(doc(comoOtroEstudiante(), 'resenas/FUT-01_est2'), { ...resena, estudianteId: 'est2' }));
     await assertFails(setDoc(doc(comoOtroEstudiante(), 'resenas/FUT-01_est1'), resena));
+  });
+
+  test('sin haber asistido a ningún entrenamiento no se puede reseñar (reservó pero no cursó)', async () => {
+    await sembrar('confirmada', { sesiones: 0, sesionesAsistidas: 0 });
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas/FUT-01_est1'), resena));
+    await sembrar('confirmada', { sesiones: 3, sesionesAsistidas: 0 });
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas/FUT-01_est1'), resena));
+  });
+});
+
+describe('Gestión del administrador: eliminar e inscribir (Hito 3, puntos 6 a 8)', () => {
+  beforeEach(() => entorno.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 3, activo: true, entrenadorId: 'ent1' });
+    await setDoc(doc(db, 'deportes/FUT-01/horarios/h1'), { dia: 'martes', horaInicio: '16:00', horaFin: '18:00', lugar: 'Cancha' });
+    await setDoc(doc(db, 'inscripciones/FUT-01_est2'), { estudianteId: 'est2', deporteCodigo: 'FUT-01', estado: 'confirmada', motivo: '' });
+  }));
+
+  test('solo el administrador elimina una disciplina con sus horarios', async () => {
+    await assertFails(deleteDoc(doc(comoEntrenador(), 'deportes/FUT-01')));
+    await assertFails(deleteDoc(doc(comoEstudiante(), 'deportes/FUT-01/horarios/h1')));
+    const db = comoAdmin();
+    const lote = writeBatch(db);
+    lote.delete(doc(db, 'deportes/FUT-01/horarios/h1'));
+    lote.delete(doc(db, 'deportes/FUT-01'));
+    await assertSucceeds(lote.commit());
+  });
+
+  test('el administrador inscribe y retira estudiantes directamente; el estudiante no se confirma solo', async () => {
+    const db = comoAdmin();
+    await assertSucceeds(runTransaction(db, async (t) => {
+      t.set(doc(db, 'inscripciones/FUT-01_est1'), {
+        estudianteId: 'est1', deporteCodigo: 'FUT-01', fechaInscripcion: serverTimestamp(), estado: 'confirmada',
+        motivo: 'Inscrito por la Coordinación de Deportes.', pagoId: '', monto: 0, sesiones: 0, sesionesAsistidas: 0,
+      });
+      t.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: 4 });
+    }));
+    await assertFails(setDoc(doc(comoEstudiante(), 'inscripciones/FUT-01_est1'),
+      { estudianteId: 'est1', deporteCodigo: 'FUT-01', fechaInscripcion: serverTimestamp(), estado: 'confirmada', motivo: '', pagoId: '' }));
+    await assertSucceeds(runTransaction(db, async (t) => {
+      t.update(doc(db, 'inscripciones/FUT-01_est2'), { estado: 'cancelada', motivo: 'Retirado por la Coordinación de Deportes.' });
+      t.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: 3 });
+    }));
+  });
+
+  test('solo el administrador elimina un perfil y sus índices', async () => {
+    await assertFails(deleteDoc(doc(comoEstudiante(), 'usuarios/est1')));
+    await assertFails(deleteDoc(doc(comoEstudiante(), 'cedulas/V-1')));
+    const db = comoAdmin();
+    const lote = writeBatch(db);
+    lote.delete(doc(db, 'cedulas/V-1'));
+    lote.delete(doc(db, 'carnets/1'));
+    lote.delete(doc(db, 'usuarios/est1'));
+    await assertSucceeds(lote.commit());
+  });
+});
+
+describe('Asistencia del entrenador (RF-14 a RF-16)', () => {
+  const ID = 'FUT-01_est1_2026-11-08';
+  const asistencia = (extra = {}) => ({
+    inscripcionId: 'FUT-01_est1', estudianteId: 'est1', deporteCodigo: 'FUT-01',
+    fecha: Timestamp.fromDate(new Date(2026, 10, 8)), estado: 'presente', observacion: '', ...extra,
+  });
+
+  beforeEach(() => entorno.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 3, activo: true, entrenadorId: 'ent1' });
+    await setDoc(doc(db, 'deportes/BAS-01'), { nombre: 'Baloncesto', cupoMaximo: 15, cuposOcupados: 1, activo: true, entrenadorId: 'otro' });
+    await setDoc(doc(db, 'inscripciones/FUT-01_est1'), { estudianteId: 'est1', deporteCodigo: 'FUT-01', estado: 'confirmada', motivo: '', sesiones: 0, sesionesAsistidas: 0 });
+    await setDoc(doc(db, 'inscripciones/FUT-01_est2'), { estudianteId: 'est2', deporteCodigo: 'FUT-01', estado: 'enRevision', motivo: '', sesiones: 0, sesionesAsistidas: 0 });
+    await setDoc(doc(db, 'inscripciones/BAS-01_est1'), { estudianteId: 'est1', deporteCodigo: 'BAS-01', estado: 'confirmada', motivo: '' });
+  }));
+
+  test('el entrenador asignado registra la asistencia de sus inscritos confirmados y actualiza los contadores', async () => {
+    const db = comoEntrenador();
+    await assertSucceeds(runTransaction(db, async (t) => {
+      t.set(doc(db, 'asistencias', ID), asistencia());
+      t.update(doc(db, 'inscripciones/FUT-01_est1'), { sesiones: 1, sesionesAsistidas: 1 });
+    }));
+    await assertSucceeds(setDoc(doc(db, 'asistencias', ID), asistencia({ estado: 'ausente' })));
+  });
+
+  test('no registra en una disciplina ajena, ni a quien no está confirmado, ni con datos inválidos', async () => {
+    const db = comoEntrenador();
+    await assertFails(setDoc(doc(db, 'asistencias/BAS-01_est1_2026-11-08'),
+      asistencia({ inscripcionId: 'BAS-01_est1', deporteCodigo: 'BAS-01' })));
+    await assertFails(setDoc(doc(db, 'asistencias/FUT-01_est2_2026-11-08'),
+      asistencia({ inscripcionId: 'FUT-01_est2', estudianteId: 'est2' })));
+    await assertFails(setDoc(doc(db, 'asistencias', ID), asistencia({ estado: 'tarde' })));
+    await assertFails(setDoc(doc(db, 'asistencias/FUT-01_est1_hoy'), asistencia()));
+    await assertFails(updateDoc(doc(db, 'inscripciones/FUT-01_est1'), { sesiones: 1, sesionesAsistidas: 2 }));
+    await assertFails(updateDoc(doc(db, 'inscripciones/FUT-01_est1'), { estado: 'cancelada' }));
+  });
+
+  test('el estudiante y el administrador no escriben asistencias desde la app del estudiante; el estudiante lee la suya', async () => {
+    await entorno.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'asistencias', ID), asistencia()));
+    await assertFails(setDoc(doc(comoEstudiante(), 'asistencias/FUT-01_est1_2026-11-09'), asistencia()));
+    await assertSucceeds(getDoc(doc(comoEstudiante(), 'asistencias', ID)));
+    await assertFails(getDoc(doc(comoOtroEstudiante(), 'asistencias', ID)));
+    await assertSucceeds(getDoc(doc(comoEntrenador(), 'asistencias', ID)));
+    await assertSucceeds(getDoc(doc(comoAdmin(), 'asistencias', ID)));
+    await assertFails(getDoc(doc(sinSesion(), 'asistencias', ID)));
   });
 });

@@ -85,7 +85,7 @@ class AuthViewModel extends ChangeNotifier {
 
   /// Pantalla inicial de cada rol después de iniciar sesión.
   static String rutaInicio(Rol rol) => switch (rol) {
-        Rol.estudiante => '/catalogo',
+        Rol.estudiante => '/estudiante',
         Rol.entrenador => '/entrenador/mis-deportes',
         Rol.administrador => '/admin/dashboard',
       };

@@ -61,7 +61,7 @@ void main() {
   group('Inicio de sesión (CU-02)', () {
     test('reconoce el rol de cada usuario y su pantalla de inicio', () async {
       const casos = {
-        'estudiante@correo.unimet.edu.ve': ('Estudiante123', Rol.estudiante, '/catalogo'),
+        'estudiante@correo.unimet.edu.ve': ('Estudiante123', Rol.estudiante, '/estudiante'),
         'entrenador@unimet.edu.ve': ('Entrenador123', Rol.entrenador, '/entrenador/mis-deportes'),
         'admin@unimet.edu.ve': ('Admin1234', Rol.administrador, '/admin/dashboard'),
       };

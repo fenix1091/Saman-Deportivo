@@ -108,13 +108,30 @@ void main() {
       expect(base.seSolapaCon(otroDia), isFalse);
     });
 
-    test('solo las inscripciones pendientes de pago o confirmadas ocupan cupo', () {
+    test('las inscripciones pendientes, en revisión o confirmadas están vigentes; solo las dos últimas ocupan cupo', () {
       Inscripcion con(EstadoInscripcion e) =>
           Inscripcion(id: 'i', estudianteId: 'a', deporteCodigo: 'X', fechaInscripcion: fecha, estado: e);
       expect(con(EstadoInscripcion.pendientePago).estaVigente(), isTrue);
+      expect(con(EstadoInscripcion.enRevision).estaVigente(), isTrue);
       expect(con(EstadoInscripcion.confirmada).estaVigente(), isTrue);
       expect(con(EstadoInscripcion.cancelada).estaVigente(), isFalse);
       expect(con(EstadoInscripcion.expirada).estaVigente(), isFalse);
+      expect(con(EstadoInscripcion.pendientePago).ocupaCupo, isFalse);
+      expect(con(EstadoInscripcion.enRevision).ocupaCupo, isTrue);
+      expect(con(EstadoInscripcion.confirmada).ocupaCupo, isTrue);
+    });
+
+    test('la reserva guarda una copia de los datos del deporte y calcula la asistencia', () {
+      final r = Inscripcion.desdeMapa('FUT-01_a', {
+        'estudianteId': 'a', 'deporteCodigo': 'FUT-01', 'estado': 'confirmada',
+        'nombreDeporte': 'Fútbol', 'horarios': 'Martes 16:00 - 18:00', 'monto': 5, 'duracion': 'Trimestre 2627-1',
+        'cupoMaximo': 25, 'sesiones': 4, 'sesionesAsistidas': 3,
+      });
+      expect(r.nombreDeporte, 'Fútbol');
+      expect(r.monto, 5);
+      expect(r.porcentajeAsistencia, 75);
+      expect(Inscripcion.desdeMapa(r.id, r.aMapa()).duracion, 'Trimestre 2627-1');
+      expect(r.copiarCon(estado: EstadoInscripcion.cancelada).horarios, r.horarios);
     });
   });
 }

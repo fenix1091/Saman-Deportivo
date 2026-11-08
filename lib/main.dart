@@ -8,6 +8,7 @@ import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'repositories/admin_repository_firebase.dart';
 import 'repositories/asistencia_repository.dart';
+import 'repositories/asistencia_repository_firebase.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/auth_repository_firebase.dart';
 import 'repositories/deporte_repository.dart';
@@ -58,9 +59,7 @@ class SamanDeportivoApp extends StatefulWidget {
 
 class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
   late final AuthViewModel _auth = AuthViewModel(widget.repositorio);
-  late final GoRouter _router = crearRouter(_auth,
-      adminRepository: widget.adminRepository,
-      asistenciaRepository: widget.asistenciaRepository);
+  late final GoRouter _router = crearRouter(_auth, adminRepository: widget.adminRepository);
 
   @override
   void dispose() {
@@ -77,6 +76,7 @@ class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
         Provider<DeporteRepository>(create: (_) => widget.deportes ?? DeporteRepositoryFirebase()),
         Provider<InscripcionRepository>(create: (_) => widget.inscripciones ?? InscripcionRepositoryFirebase()),
         Provider<PasarelaPago>(create: (_) => widget.pasarela ?? PasarelaPayPalSimulada()),
+        Provider<AsistenciaRepository>(create: (_) => widget.asistenciaRepository ?? AsistenciaRepositoryFirebase()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _auth),
         ChangeNotifierProvider(
             create: (context) => MisInscripcionesViewModel(context.read<InscripcionRepository>())),

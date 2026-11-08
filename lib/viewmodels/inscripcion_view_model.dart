@@ -80,7 +80,12 @@ class InscripcionViewModel extends ChangeNotifier {
     return null;
   }
 
+  /// La reserva ya fue pagada: está en revisión del administrador o confirmada.
+  bool get pagada => inscripcion?.ocupaCupo ?? false;
+
   bool get confirmada => inscripcion?.estado == EstadoInscripcion.confirmada;
+
+  bool get enRevision => inscripcion?.estado == EstadoInscripcion.enRevision;
 
   /// Reserva pendiente de pago que aún está dentro del plazo (RN-05).
   Inscripcion? get reservaPendiente {
@@ -110,12 +115,13 @@ class InscripcionViewModel extends ChangeNotifier {
     );
   }
 
-  bool get puedePagar => !_procesando && !confirmada && (validacion?.aprobada ?? false);
+  bool get puedePagar => !_procesando && !pagada && (validacion?.aprobada ?? false);
 
   double get monto => _deporte?.costoReserva ?? 0;
 
-  /// Reserva el cupo, cobra con PayPal y confirma la inscripción. Devuelve `true`
-  /// si quedó CONFIRMADA. Si el pago se cancela, la reserva sigue pendiente (A4).
+  /// Reserva el cupo, cobra con PayPal y deja la inscripción EN REVISIÓN con su
+  /// pago. Devuelve `true` si el pago se registró. Si el pago se cancela, la
+  /// reserva sigue pendiente (A4).
   Future<bool> inscribirYPagar() async {
     final d = _deporte;
     if (d == null || !puedePagar) {
@@ -131,7 +137,7 @@ class InscripcionViewModel extends ChangeNotifier {
       if (reserva == null) {
         final vencida = inscripcion;
         if (vencida != null && vencida.expiro(_reloj())) await _inscripciones.expirar(vencida);
-        reserva = await _inscripciones.reservar(estudiante, d);
+        reserva = await _inscripciones.reservar(estudiante, d, horarios: _horarios);
       }
       final referencia = monto == 0
           ? 'GRATUITA'

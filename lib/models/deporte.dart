@@ -64,6 +64,7 @@ class Deporte {
     required this.cupoMaximo,
     this.cuposOcupados = 0,
     this.costoReserva = 0,
+    this.duracion = '',
     this.imagenUrl = '',
     this.entrenadorId = '',
     this.entrenador,
@@ -79,6 +80,9 @@ class Deporte {
   final int cupoMaximo;
   final int cuposOcupados;
   final double costoReserva;
+
+  /// Duración de la actividad que se reserva, por ejemplo "Trimestre 2627-1 · 12 semanas".
+  final String duracion;
   final String imagenUrl;
 
   /// uid del entrenador asignado; vacío si aún no tiene.
@@ -98,6 +102,7 @@ class Deporte {
         'cupoMaximo': cupoMaximo,
         'cuposOcupados': cuposOcupados,
         'costoReserva': costoReserva,
+        'duracion': duracion,
         'imagenUrl': imagenUrl,
         'entrenadorId': entrenadorId,
         if (entrenador != null) 'entrenador': entrenador!.aMapa(),
@@ -113,6 +118,7 @@ class Deporte {
         cupoMaximo: (mapa['cupoMaximo'] as num).toInt(),
         cuposOcupados: (mapa['cuposOcupados'] as num?)?.toInt() ?? 0,
         costoReserva: (mapa['costoReserva'] as num?)?.toDouble() ?? 0,
+        duracion: mapa['duracion'] as String? ?? '',
         imagenUrl: mapa['imagenUrl'] as String? ?? '',
         entrenadorId: mapa['entrenadorId'] as String? ?? '',
         entrenador: mapa['entrenador'] is Map

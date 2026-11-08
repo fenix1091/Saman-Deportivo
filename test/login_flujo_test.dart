@@ -3,29 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:saman_deportivo/main.dart';
 import 'package:saman_deportivo/models/deporte.dart';
+import 'package:saman_deportivo/models/inscripcion.dart';
 import 'package:saman_deportivo/models/persona.dart';
 import 'package:saman_deportivo/repositories/admin_repository_firebase.dart';
-import 'package:saman_deportivo/repositories/asistencia_repository.dart';
+import 'falsos/asistencia_repository_falso.dart';
 import 'falsos/auth_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
-
-class _AsistenciaRepositoryFalso implements AsistenciaRepository {
-  @override
-  Stream<List<Map<String, dynamic>>> obtenerEstudiantesInscritos(
-          String deporteId) =>
-      Stream.value(const []);
-
-  @override
-  Future<void> registrarAsistencia({
-    required String deporteId,
-    required DateTime fecha,
-    required Map<String, bool> asistenciaMap,
-  }) async {}
-
-  @override
-  Stream<Map<String, double>> obtenerPorcentajesAsistencia(String deporteId) =>
-      Stream.value(const {});
-}
 
 class _AdminRepositoryFalso implements AdminRepository {
   @override
@@ -38,7 +21,7 @@ class _AdminRepositoryFalso implements AdminRepository {
   Future<void> eliminarHorario(String codigo, String horarioId) async {}
 
   @override
-  Future<void> guardarDeporte(Deporte deporte) async {}
+  Future<void> guardarDeporte(Deporte deporte, {bool nueva = false}) async {}
 
   @override
   Future<void> guardarHorario(String codigo, Horario horario) async {}
@@ -69,6 +52,27 @@ class _AdminRepositoryFalso implements AdminRepository {
   Future<void> reenviarEnlace(String correo) async {}
 
   @override
+  Stream<List<Inscripcion>> observarInscripciones() => Stream.value(const []);
+
+  @override
+  Future<void> confirmarReserva(String id) async {}
+
+  @override
+  Future<void> rechazarReserva(String id, String motivo) async {}
+
+  @override
+  Future<void> eliminarDeporte(String codigo) async {}
+
+  @override
+  Future<void> inscribirEstudiante(String codigo, String estudianteUid) async {}
+
+  @override
+  Future<void> retirarEstudiante(String inscripcionId) async {}
+
+  @override
+  Future<void> eliminarUsuario(String uid) async {}
+
+  @override
   Stream<List<Persona>> observarUsuarios() => Stream.value(const []);
 
   @override
@@ -83,13 +87,14 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
+    final deportes = DeporteRepositoryFalso.conDatosDePrueba();
     await tester.pumpWidget(
       SamanDeportivoApp(
         repositorio:
             AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero),
-        deportes: DeporteRepositoryFalso.conDatosDePrueba(),
+        deportes: deportes,
         adminRepository: _AdminRepositoryFalso(),
-        asistenciaRepository: _AsistenciaRepositoryFalso(),
+        asistenciaRepository: AsistenciaRepositoryFalso(deportes),
       ),
     );
     await tester.pumpAndSettle();

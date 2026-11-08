@@ -7,12 +7,17 @@ import '../models/persona.dart';
 import '../models/resena.dart';
 import 'inscripcion_repository.dart';
 
+/// Texto con los días, horas y lugares de una disciplina, uno por línea.
+String describirHorarios(List<Horario> horarios) =>
+    [for (final h in horarios) h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}'].join('\n');
+
 /// [InscripcionRepository] sobre Cloud Firestore.
 ///
 /// La inscripción vive en `inscripciones/{codigo}_{uid}` y cada pago en
 /// `pagos/{idInscripcion}_{milisegundos}`. firestore.rules comprueba en el servidor
 /// que el estudiante esté activo y solvente, que haya cupo y que el cupo solo suba
-/// de uno en uno junto con un pago completado (RNF-05).
+/// de uno en uno junto con un pago completado (RNF-05). La reserva pagada queda en
+/// revisión hasta que el administrador la confirma (ver AdminRepository).
 class InscripcionRepositoryFirebase implements InscripcionRepository {
   InscripcionRepositoryFirebase({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
@@ -30,7 +35,7 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
   }
 
   @override
-  Future<Inscripcion> reservar(Estudiante estudiante, Deporte deporte) async {
+  Future<Inscripcion> reservar(Estudiante estudiante, Deporte deporte, {List<Horario> horarios = const []}) async {
     final id = Inscripcion.idPara(deporte.codigo, estudiante.uid);
     try {
       await _inscripciones.doc(id).set({
@@ -40,6 +45,14 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
         'estado': EstadoInscripcion.pendientePago.name,
         'motivo': '',
         'pagoId': '',
+        'nombreDeporte': deporte.nombre,
+        'horarios': describirHorarios(horarios),
+        'monto': deporte.costoReserva,
+        'descripcion': deporte.descripcion,
+        'duracion': deporte.duracion,
+        'cupoMaximo': deporte.cupoMaximo,
+        'sesiones': 0,
+        'sesionesAsistidas': 0,
       });
       final guardada = await _inscripciones.doc(id).get();
       return Inscripcion.desdeMapa(id, guardada.data()!);
@@ -76,7 +89,7 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
         tx.set(refPago, pago);
         if (hayCupo) {
           tx.update(refDeporte, {'cuposOcupados': deporte.cuposOcupados + 1});
-          tx.update(refInscripcion, {'estado': EstadoInscripcion.confirmada.name, 'pagoId': pagoId});
+          tx.update(refInscripcion, {'estado': EstadoInscripcion.enRevision.name, 'pagoId': pagoId});
         } else {
           tx.update(refInscripcion, {
             'estado': EstadoInscripcion.rechazada.name,
@@ -119,13 +132,15 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
       await _db.runTransaction((tx) async {
         final inscripcion = await tx.get(refInscripcion);
         final deporte = await tx.get(refDeporte);
-        final estado = inscripcion.data()?['estado'];
-        if (estado != EstadoInscripcion.pendientePago.name && estado != EstadoInscripcion.confirmada.name) {
+        final datos = inscripcion.data();
+        if (datos == null) throw const InscripcionException(ErrorInscripcion.noVigente);
+        final actual = Inscripcion.desdeMapa(inscripcionId, datos);
+        if (!actual.estaVigente()) {
           throw const InscripcionException(ErrorInscripcion.noVigente);
         }
         tx.update(refInscripcion, {'estado': EstadoInscripcion.cancelada.name});
         final ocupados = (deporte.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
-        if (estado == EstadoInscripcion.confirmada.name && ocupados > 0) {
+        if (actual.ocupaCupo && ocupados > 0) {
           tx.update(refDeporte, {'cuposOcupados': ocupados - 1});
         }
       });

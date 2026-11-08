@@ -6,6 +6,7 @@ import 'package:saman_deportivo/models/pago.dart';
 import 'package:saman_deportivo/models/persona.dart';
 import 'package:saman_deportivo/models/resena.dart';
 import 'package:saman_deportivo/repositories/inscripcion_repository.dart';
+import 'package:saman_deportivo/repositories/inscripcion_repository_firebase.dart' show describirHorarios;
 import 'package:saman_deportivo/repositories/pasarela_pago.dart';
 
 import 'deporte_repository_falso.dart';
@@ -24,6 +25,21 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
   final resenas = <String, Resena>{};
   final _cambios = StreamController<void>.broadcast();
 
+  /// Lo que haría el administrador desde la pestaña Reservas.
+  Future<void> confirmarReserva(String id) async {
+    final actual = guardadas[id]!;
+    if (actual.estado != EstadoInscripcion.enRevision) throw const InscripcionException(ErrorInscripcion.noVigente);
+    agregar(actual.copiarCon(estado: EstadoInscripcion.confirmada));
+  }
+
+  Future<void> rechazarReserva(String id, String motivo) async {
+    final actual = guardadas[id]!;
+    if (actual.estado != EstadoInscripcion.enRevision) throw const InscripcionException(ErrorInscripcion.noVigente);
+    agregar(actual.copiarCon(estado: EstadoInscripcion.rechazada, motivo: motivo));
+    final deporte = deportes.leer(actual.deporteCodigo)!;
+    deportes.cambiarCupos(deporte.codigo, deporte.cuposOcupados - 1);
+  }
+
   /// Agrega una inscripción ya existente (por ejemplo, en otra disciplina).
   void agregar(Inscripcion inscripcion) {
     guardadas[inscripcion.id] = inscripcion;
@@ -38,7 +54,7 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
   }
 
   @override
-  Future<Inscripcion> reservar(Estudiante estudiante, Deporte deporte) async {
+  Future<Inscripcion> reservar(Estudiante estudiante, Deporte deporte, {List<Horario> horarios = const []}) async {
     final id = Inscripcion.idPara(deporte.codigo, estudiante.uid);
     final previa = guardadas[id];
     if (previa != null && previa.estaVigente(_reloj())) {
@@ -49,6 +65,12 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
       estudianteId: estudiante.uid,
       deporteCodigo: deporte.codigo,
       fechaInscripcion: _reloj(),
+      nombreDeporte: deporte.nombre,
+      horarios: describirHorarios(horarios),
+      monto: deporte.costoReserva,
+      descripcion: deporte.descripcion,
+      duracion: deporte.duracion,
+      cupoMaximo: deporte.cupoMaximo,
     );
     agregar(nueva);
     return nueva;
@@ -73,7 +95,7 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
     pagos.add(pago);
     agregar(Inscripcion.desdeMapa(inscripcion.id, {
       ...actual.aMapa(),
-      'estado': (hayCupo ? EstadoInscripcion.confirmada : EstadoInscripcion.rechazada).name,
+      'estado': (hayCupo ? EstadoInscripcion.enRevision : EstadoInscripcion.rechazada).name,
       if (hayCupo) 'pagoId': pago.id,
     }));
     if (!hayCupo) throw const InscripcionException(ErrorInscripcion.cupoAgotado);
@@ -89,12 +111,11 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
   @override
   Future<void> cancelar(String inscripcionId, String deporteCodigo) async {
     final actual = guardadas[inscripcionId];
-    final estado = actual?.estado;
-    if (estado != EstadoInscripcion.pendientePago && estado != EstadoInscripcion.confirmada) {
+    if (actual == null || !actual.estaVigente(_reloj())) {
       throw const InscripcionException(ErrorInscripcion.noVigente);
     }
-    agregar(Inscripcion.desdeMapa(inscripcionId, {...actual!.aMapa(), 'estado': EstadoInscripcion.cancelada.name}));
-    if (estado == EstadoInscripcion.confirmada) {
+    agregar(actual.copiarCon(estado: EstadoInscripcion.cancelada));
+    if (actual.ocupaCupo) {
       final deporte = deportes.leer(deporteCodigo)!;
       deportes.cambiarCupos(deporteCodigo, deporte.cuposOcupados - 1);
     }

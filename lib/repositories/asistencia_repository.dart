@@ -1,81 +1,65 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/asistencia.dart';
+import '../models/deporte.dart';
 
-class AsistenciaRepository {
-  AsistenciaRepository({FirebaseFirestore? db})
-      : _db = db ?? FirebaseFirestore.instance;
+/// Un estudiante de la nómina de una disciplina (RF-14): datos del perfil que ve
+/// el entrenador más el avance de asistencia guardado en su inscripción.
+class EstudianteInscrito {
+  const EstudianteInscrito({
+    required this.uid,
+    required this.inscripcionId,
+    required this.nombreCompleto,
+    this.cedulaTexto = '',
+    this.carnet = '',
+    this.sesiones = 0,
+    this.sesionesAsistidas = 0,
+  });
 
-  final FirebaseFirestore _db;
+  final String uid;
+  final String inscripcionId;
+  final String nombreCompleto;
+  final String cedulaTexto;
+  final String carnet;
+  final int sesiones;
+  final int sesionesAsistidas;
+}
 
-  /// RF-14: Obtener estudiantes inscritos en una disciplina
-  Stream<List<Map<String, dynamic>>> obtenerEstudiantesInscritos(
-      String deporteId) {
-    return _db
-        .collection('usuarios')
-        .where('rol', isEqualTo: 'estudiante')
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
-  }
+/// Contrato del módulo del entrenador (CU-13, CU-14, CU-15; RF-14 a RF-16).
+///
+/// Los ViewModels solo conocen esta interfaz (patrón Repositorio). La app usa
+/// [AsistenciaRepositoryFirebase]; las pruebas usan un repositorio falso en memoria.
+abstract class AsistenciaRepository {
+  /// Disciplinas asignadas al entrenador, en tiempo real.
+  Stream<List<Deporte>> deportesDe(String entrenadorId);
 
-  /// RF-15: Registrar asistencia por lote
+  /// Nómina de una disciplina: solo los estudiantes con inscripción CONFIRMADA (RF-14).
+  Stream<List<EstudianteInscrito>> nomina(String codigo);
+
+  /// Todas las asistencias registradas en la disciplina, en tiempo real (RF-16).
+  Stream<List<Asistencia>> asistenciasDe(String codigo);
+
+  /// Guarda la asistencia de una fecha (RF-15): un documento por estudiante en
+  /// `asistencias/{codigo}_{uid}_{aaaa-mm-dd}`. Si la fecha ya se había registrado,
+  /// actualiza los estados en vez de duplicarlos, y mantiene al día los contadores
+  /// `sesiones` y `sesionesAsistidas` de cada inscripción.
   Future<void> registrarAsistencia({
-    required String deporteId,
+    required String codigo,
     required DateTime fecha,
-    required Map<String, bool> asistenciaMap,
-  }) async {
-    final fechaIso =
-        "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
-    final batch = _db.batch();
+    required Map<String, bool> presentes,
+  });
+}
 
-    asistenciaMap.forEach((estudianteUid, presente) {
-      final docRef = _db
-          .collection('asistencias')
-          .doc('${deporteId}_${estudianteUid}_$fechaIso');
+/// Id del documento de asistencia de un estudiante en una fecha.
+String idAsistencia(String codigo, String uid, DateTime fecha) => '${codigo}_${uid}_${claveFecha(fecha)}';
 
-      batch.set(
-        docRef,
-        {
-          'deporteId': deporteId,
-          'estudianteUid': estudianteUid,
-          'fecha': Timestamp.fromDate(fecha),
-          'presente': presente,
-        },
-        SetOptions(merge: true),
-      );
-    });
+/// Fecha como "aaaa-mm-dd", sin hora.
+String claveFecha(DateTime f) => '${f.year}-${f.month.toString().padLeft(2, '0')}-${f.day.toString().padLeft(2, '0')}';
 
-    await batch.commit();
-  }
+/// Error al leer o guardar la asistencia.
+class AsistenciaException implements Exception {
+  const AsistenciaException(this.mensaje);
 
-  /// RF-16: Obtener porcentajes de asistencia por alumno
-  Stream<Map<String, double>> obtenerPorcentajesAsistencia(String deporteId) {
-    return _db
-        .collection('asistencias')
-        .where('deporteId', isEqualTo: deporteId)
-        .snapshots()
-        .map((snapshot) {
-      final Map<String, int> totalSesiones = {};
-      final Map<String, int> totalAsistidas = {};
+  final String mensaje;
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final uid = data['estudianteUid'] as String;
-        final presente = data['presente'] as bool? ?? false;
-
-        totalSesiones[uid] = (totalSesiones[uid] ?? 0) + 1;
-        if (presente) {
-          totalAsistidas[uid] = (totalAsistidas[uid] ?? 0) + 1;
-        }
-      }
-
-      final Map<String, double> porcentajes = {};
-      totalSesiones.forEach((uid, total) {
-        final asistidas = totalAsistidas[uid] ?? 0;
-        porcentajes[uid] =
-            double.parse(((asistidas / total) * 100).toStringAsFixed(1));
-      });
-
-      return porcentajes;
-    });
-  }
+  @override
+  String toString() => 'AsistenciaException($mensaje)';
 }

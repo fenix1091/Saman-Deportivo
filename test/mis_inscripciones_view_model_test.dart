@@ -54,6 +54,12 @@ void main() {
       expect(deportes.leer('FUT-01')!.cuposOcupados, 19);
     });
 
+    test('cancelar una reserva en revisión libera el cupo que tenía apartado', () async {
+      inscripciones.agregar(inscripcion('FUT-01', EstadoInscripcion.enRevision));
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isTrue);
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 19);
+    });
+
     test('cancelar una reserva pendiente de pago no libera cupo (RN-06)', () async {
       inscripciones.agregar(inscripcion('FUT-01', EstadoInscripcion.pendientePago));
       expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isTrue);

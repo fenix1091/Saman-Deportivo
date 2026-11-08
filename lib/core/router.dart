@@ -9,6 +9,7 @@ import '../repositories/auth_repository.dart';
 import '../repositories/deporte_repository.dart';
 import '../repositories/inscripcion_repository.dart';
 import '../repositories/pasarela_pago.dart';
+import '../viewmodels/asistencia_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/catalogo_view_model.dart';
 import '../viewmodels/detalle_deporte_view_model.dart';
@@ -16,7 +17,8 @@ import '../viewmodels/inscripcion_view_model.dart';
 import '../viewmodels/perfil_view_model.dart';
 import '../views/admin/admin_dashboard_view.dart';
 import '../views/comun/perfil_view.dart';
-import '../views/entrenador/mis_deportes_screen.dart';
+import '../views/entrenador/asistencia_view.dart';
+import '../views/entrenador/mis_disciplinas_view.dart';
 import '../views/estudiante/estudiante_dashboard_view.dart';
 import '../views/estudiante/inscripcion_view.dart';
 import '../views/mis_inscripciones_view.dart';
@@ -37,9 +39,7 @@ bool _esPublica(String ruta) => _rutasPublicas.contains(ruta) || ruta.startsWith
 ///
 /// El guardia de autenticación manda al login a quien abre una ruta protegida sin
 /// sesión, y a su pantalla de inicio a quien intenta entrar en la sección de otro rol.
-GoRouter crearRouter(AuthViewModel auth,
-    {AdminRepository? adminRepository,
-    AsistenciaRepository? asistenciaRepository}) {
+GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
   return GoRouter(
     refreshListenable: auth,
     redirect: (context, state) => redirigir(auth.usuario, state.uri, listo: auth.listo),
@@ -100,13 +100,14 @@ GoRouter crearRouter(AuthViewModel auth,
       GoRoute(
           path: '/mis-inscripciones',
           builder: (_, __) => const MisInscripcionesView()),
+      GoRoute(path: '/entrenador/mis-deportes', builder: (_, __) => const MisDisciplinasView()),
       GoRoute(
-        path: '/entrenador/mis-deportes',
-        builder: (_, state) {
-          final deporteId = state.extra as String? ?? 'futbol';
-          return MisDeportesScreen(
-              deporteId: deporteId, repositorio: asistenciaRepository);
-        },
+        path: '/entrenador/asistencia/:codigo',
+        builder: (context, state) => ChangeNotifierProvider(
+          key: ValueKey(state.pathParameters['codigo']),
+          create: (_) => AsistenciaViewModel(context.read<AsistenciaRepository>(), state.pathParameters['codigo']!),
+          child: const AsistenciaView(),
+        ),
       ),
       GoRoute(
         path: '/admin/dashboard',

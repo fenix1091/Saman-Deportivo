@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../core/validacion_inscripcion.dart';
 import '../../models/deporte.dart';
+import '../../models/inscripcion.dart';
 import '../../models/pago.dart';
+import '../../models/persona.dart';
 import '../../viewmodels/inscripcion_view_model.dart';
 import '../../widgets/acciones_sesion.dart';
 import '../../widgets/barra_cupos.dart';
@@ -68,10 +70,10 @@ class InscripcionView extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 640),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              children: vm.confirmada
-                  ? [_Comprobante(deporte: deporte, pago: vm.pago)]
+              children: vm.pagada
+                  ? [_Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)]
                   : [
-                      _Resumen(deporte: deporte, horarios: vm.horarios, dinero: _dinero),
+                      _Resumen(deporte: deporte, horarios: vm.horarios, estudiante: vm.estudiante, dinero: _dinero),
                       _Requisitos(resultado: vm.validacion),
                       if (vm.reservaPendiente != null) ...[
                         const SizedBox(height: 16),
@@ -108,42 +110,64 @@ class InscripcionView extends StatelessWidget {
 
 String _hora(DateTime f) => '${f.hour.toString().padLeft(2, '0')}:${f.minute.toString().padLeft(2, '0')}';
 
+/// Resumen de la reserva (CU-07, paso 3): qué se reserva, cuándo, para cuántas
+/// personas, quién reserva, cuánto cuesta, qué incluye y cuánto dura.
 class _Resumen extends StatelessWidget {
-  const _Resumen({required this.deporte, required this.horarios, required this.dinero});
+  const _Resumen({required this.deporte, required this.horarios, required this.estudiante, required this.dinero});
 
   final Deporte deporte;
   final List<Horario> horarios;
+  final Estudiante estudiante;
   final String Function(double) dinero;
 
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
+    Widget dato(IconData icono, String etiqueta, String valor) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icono, size: 18, color: AppColors.naranja),
+              const SizedBox(width: 8),
+              SizedBox(width: 96, child: Text(etiqueta, style: textos.bodySmall?.copyWith(color: AppColors.gris))),
+              Expanded(child: Text(valor)),
+            ],
+          ),
+        );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('Resumen de la reserva', style: textos.labelLarge?.copyWith(color: AppColors.naranja)),
             Text(deporte.nombre, style: textos.titleLarge),
             Text(deporte.codigo, style: textos.bodySmall?.copyWith(color: AppColors.gris)),
             const SizedBox(height: 12),
-            for (final h in horarios)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.schedule, size: 18, color: AppColors.naranja),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}')),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
+            dato(
+              Icons.schedule,
+              'Días y horas',
+              horarios.isEmpty
+                  ? 'Por definir'
+                  : [for (final h in horarios) h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}'].join('\n'),
+            ),
+            dato(Icons.groups_outlined, 'Personas', '${deporte.cuposOcupados} inscritos de ${deporte.cupoMaximo} cupos'),
+            dato(Icons.person_outline, 'Reserva', '${estudiante.nombreCompleto} · ${estudiante.cedulaTexto}'),
+            dato(Icons.payments_outlined, 'Monto', deporte.costoReserva == 0 ? 'Gratuita' : dinero(deporte.costoReserva)),
+            if (deporte.descripcion.isNotEmpty) dato(Icons.notes_outlined, 'Descripción', deporte.descripcion),
+            dato(Icons.calendar_month_outlined, 'Duración', deporte.duracion.isEmpty ? 'Todo el período académico' : deporte.duracion),
+            const SizedBox(height: 4),
             BarraCupos(deporte: deporte),
             const SizedBox(height: 12),
             Text(
               deporte.costoReserva == 0 ? 'Reserva gratuita' : 'Reserva del cupo: ${dinero(deporte.costoReserva)}',
               style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Después del pago, la reserva queda en revisión hasta que la Coordinación de Deportes valide el pago.',
+              style: textos.bodySmall?.copyWith(color: AppColors.gris),
             ),
           ],
         ),
@@ -206,17 +230,19 @@ class _Requisitos extends StatelessWidget {
   }
 }
 
-/// Comprobante de la inscripción confirmada (CU-07, paso 7).
+/// Comprobante de la reserva pagada (CU-07, paso 7): en revisión o ya confirmada.
 class _Comprobante extends StatelessWidget {
-  const _Comprobante({required this.deporte, required this.pago});
+  const _Comprobante({required this.deporte, required this.inscripcion, required this.pago});
 
   final Deporte deporte;
+  final Inscripcion inscripcion;
   final Pago? pago;
 
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final p = pago;
+    final confirmada = inscripcion.estado == EstadoInscripcion.confirmada;
     Widget fila(String etiqueta, String valor) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
@@ -231,13 +257,25 @@ class _Comprobante extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Icon(Icons.verified, size: 56, color: AppColors.verdeHoja),
+            Icon(confirmada ? Icons.verified : Icons.hourglass_top,
+                size: 56, color: confirmada ? AppColors.verdeHoja : AppColors.naranja),
             const SizedBox(height: 8),
-            Text('¡Inscripción confirmada!', style: textos.titleLarge),
+            Text(confirmada ? '¡Inscripción confirmada!' : 'Pago recibido, reserva en revisión', style: textos.titleLarge,
+                textAlign: TextAlign.center),
             const SizedBox(height: 4),
-            Text('Ya tienes tu cupo en ${deporte.nombre}.', textAlign: TextAlign.center),
+            Text(
+              confirmada
+                  ? 'Ya tienes tu cupo en ${deporte.nombre}.'
+                  : 'Tu cupo en ${deporte.nombre} queda apartado mientras la Coordinación de Deportes valida el pago. '
+                      'Verás el cambio de estado en Mis inscripciones.',
+              textAlign: TextAlign.center,
+            ),
             const Divider(height: 32),
+            fila('Estado', inscripcion.estado.etiqueta),
             fila('Disciplina', '${deporte.nombre} (${deporte.codigo})'),
+            if (inscripcion.horarios.isNotEmpty) fila('Días y horas', inscripcion.horarios),
+            fila('Personas', '${deporte.cuposOcupados} de ${deporte.cupoMaximo} cupos'),
+            if (inscripcion.duracion.isNotEmpty) fila('Duración', inscripcion.duracion),
             if (p != null) ...[
               fila('Monto', p.monto == 0 ? 'Gratuita' : '\$${p.monto.toStringAsFixed(2)} ${p.moneda}'),
               fila('Método', p.metodo),

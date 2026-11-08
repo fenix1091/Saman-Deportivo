@@ -141,20 +141,20 @@ service cloud.firestore {
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vecesBuscado'])
         && request.resource.data.vecesBuscado == resource.data.get('vecesBuscado', 0) + 1;
       // RF-08 y RNF-05: el estudiante solo suma 1 cupo, sin pasar del máximo, y solo en la
-      // misma transacción que confirma su inscripción pagada (RN-02, RN-06).
+      // misma transacción en la que su reserva pagada pasa a revisión (RN-02, RN-06).
       allow update: if autenticado()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
         && request.resource.data.cuposOcupados == resource.data.get('cuposOcupados', 0) + 1
         && request.resource.data.cuposOcupados <= resource.data.cupoMaximo
         && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'pendientePago'
-        && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'confirmada';
-      // CU-10: al cancelar una inscripción confirmada se libera su cupo, solo en la
-      // misma transacción en la que pasa a cancelada. Una reserva pendiente de pago
-      // no ocupaba cupo (RN-06), así que al cancelarla no se libera ninguno.
+        && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'enRevision';
+      // CU-10: al cancelar una inscripción que ocupaba cupo (en revisión o confirmada) se
+      // libera, solo en la misma transacción en la que pasa a cancelada. Una reserva
+      // pendiente de pago no ocupaba cupo (RN-06), así que al cancelarla no se libera ninguno.
       allow update: if autenticado()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
         && request.resource.data.cuposOcupados == resource.data.get('cuposOcupados', 0) - 1
-        && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'confirmada'
+        && get(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado in ['enRevision', 'confirmada']
         && getAfter(rutaInscripcion(codigo + '_' + request.auth.uid)).data.estado == 'cancelada';
       match /horarios/{id} {
         allow read: if true;
@@ -177,7 +177,11 @@ service cloud.firestore {
         let deporte = get(rutaDeporte(datos.deporteCodigo)).data;
         return esEstudianteHabilitado()
           && id == datos.deporteCodigo + '_' + request.auth.uid
-          && datos.keys().hasOnly(['estudianteId', 'deporteCodigo', 'fechaInscripcion', 'estado', 'motivo', 'pagoId'])
+          && datos.keys().hasOnly(['estudianteId', 'deporteCodigo', 'fechaInscripcion', 'estado', 'motivo', 'pagoId',
+                                   'nombreDeporte', 'horarios', 'monto', 'descripcion', 'duracion', 'cupoMaximo',
+                                   'sesiones', 'sesionesAsistidas'])
+          && datos.get('sesiones', 0) == 0
+          && datos.get('sesionesAsistidas', 0) == 0
           && datos.estudianteId == request.auth.uid
           && datos.estado == 'pendientePago'
           && datos.fechaInscripcion == request.time
@@ -195,12 +199,13 @@ service cloud.firestore {
         && (resource.data.estado in ['cancelada', 'rechazada', 'expirada']
           || (resource.data.estado == 'pendientePago' && vencida(resource.data)));
 
-      // CU-07, paso 6: se confirma con un pago completado y ocupando un cupo, todo junto.
+      // CU-07, paso 6: con el pago completado la reserva pasa a revisión ocupando un cupo,
+      // todo junto. La confirma o la rechaza después el administrador (Hito 3).
       allow update: if esDueno()
         && resource.data.estado == 'pendientePago'
         && !vencida(resource.data)
         && cambia(['estado', 'pagoId'])
-        && request.resource.data.estado == 'confirmada'
+        && request.resource.data.estado == 'enRevision'
         && getAfter(rutaPago(request.resource.data.pagoId)).data.inscripcionId == id
         && getAfter(rutaPago(request.resource.data.pagoId)).data.estado == 'completado'
         && getAfter(rutaDeporte(resource.data.deporteCodigo)).data.cuposOcupados
@@ -223,9 +228,21 @@ service cloud.firestore {
 
       // CU-10: el estudiante cancela su inscripción vigente.
       allow update: if esDueno()
-        && resource.data.estado in ['pendientePago', 'confirmada']
+        && resource.data.estado in ['pendientePago', 'enRevision', 'confirmada']
         && cambia(['estado'])
         && request.resource.data.estado == 'cancelada';
+
+      // RF-15: al guardar la asistencia, el entrenador asignado lleva la cuenta de las
+      // sesiones y las asistidas en la inscripción (sirven para la reseña estricta).
+      allow update: if esEntrenador()
+        && get(rutaDeporte(resource.data.deporteCodigo)).data.get('entrenadorId', '') == request.auth.uid
+        && resource.data.estado == 'confirmada'
+        && cambia(['sesiones', 'sesionesAsistidas'])
+        && request.resource.data.sesiones is int
+        && request.resource.data.sesionesAsistidas is int
+        && request.resource.data.sesiones >= 0
+        && request.resource.data.sesionesAsistidas >= 0
+        && request.resource.data.sesionesAsistidas <= request.resource.data.sesiones;
 
       allow write: if esAdmin();
     }
@@ -248,18 +265,39 @@ service cloud.firestore {
         && request.resource.data.referenciaExterna.size() > 0
         && request.resource.data.monto == get(rutaDeporte(inscripcionDelPago().split('_')[0])).data.costoReserva
         && ((request.resource.data.estado == 'completado'
-            && getAfter(rutaInscripcion(inscripcionDelPago())).data.estado == 'confirmada'
+            && getAfter(rutaInscripcion(inscripcionDelPago())).data.estado == 'enRevision'
             && getAfter(rutaInscripcion(inscripcionDelPago())).data.pagoId == id)
           || (request.resource.data.estado == 'reembolsado'
             && getAfter(rutaInscripcion(inscripcionDelPago())).data.estado == 'rechazada'));
       allow update, delete: if esAdmin();
     }
 
-    // Asistencias y reseñas se abren cuando se programen sus módulos (RF-13, RF-15).
+    // ---------- Asistencia (RF-14, RF-15, RF-16) ----------
+    // El id es {codigo}_{uid}_{aaaa-mm-dd}: un documento por estudiante y sesión.
+    // Solo el entrenador asignado a la disciplina registra la asistencia, y solo de
+    // estudiantes con inscripción confirmada. La leen él, el administrador y el propio estudiante.
     match /asistencias/{id} {
-      allow read, write: if esAdmin();
+      function entrenaEse(codigo) {
+        return esEntrenador() && get(rutaDeporte(codigo)).data.get('entrenadorId', '') == request.auth.uid;
+      }
+      function asistenciaValida() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['inscripcionId', 'estudianteId', 'deporteCodigo', 'fecha', 'estado', 'observacion'])
+          && d.estado in ['presente', 'ausente']
+          && d.inscripcionId == d.deporteCodigo + '_' + d.estudianteId
+          && id.matches(d.deporteCodigo + '_' + d.estudianteId + '_[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          && d.fecha is timestamp
+          && d.get('observacion', '') is string
+          && get(rutaInscripcion(d.inscripcionId)).data.estado == 'confirmada';
+      }
+      allow read: if esAdmin()
+        || (autenticado() && resource.data.estudianteId == request.auth.uid)
+        || entrenaEse(resource.data.deporteCodigo);
+      allow create, update: if entrenaEse(request.resource.data.deporteCodigo) && asistenciaValida();
+      allow write: if esAdmin();
     }
-    // Reseñas (CU-12): una por estudiante y deporte, solo si está inscrito.
+    // Reseñas (CU-12): una por estudiante y deporte, solo si está inscrito y ya cursó
+    // (asistió al menos a un entrenamiento registrado por el entrenador).
     match /resenas/{id} {
       allow read: if true;
       allow create, update: if autenticado()
@@ -273,7 +311,8 @@ service cloud.firestore {
         && request.resource.data.calificacion <= 5
         && request.resource.data.comentario is string
         && request.resource.data.comentario.size() <= 500
-        && get(rutaInscripcion(id)).data.estado == 'confirmada';
+        && get(rutaInscripcion(id)).data.estado == 'confirmada'
+        && get(rutaInscripcion(id)).data.get('sesionesAsistidas', 0) > 0;
       allow delete: if esAdmin();
     }
   }

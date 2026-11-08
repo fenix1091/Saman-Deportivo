@@ -63,11 +63,44 @@ class _UsuariosTabState extends State<UsuariosTab> {
     }
   }
 
+  Future<void> _eliminar(Persona usuario) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Eliminar a ${usuario.nombreCompleto}'),
+        content: const Text(
+            'Se borrará su perfil y quedará sin acceso a la plataforma. Un estudiante solo se puede eliminar si no '
+            'tiene inscripciones vigentes, y un entrenador si no tiene disciplinas asignadas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(c).colorScheme.error),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Eliminar usuario'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    try {
+      await widget.repositorio.eliminarUsuario(usuario.uid);
+      if (mounted) _mensaje(context, '${usuario.nombreCompleto} fue eliminado.');
+    } on OperacionNoPermitidaException catch (e) {
+      if (mounted) _mensaje(context, e.mensaje);
+    } on FirebaseException catch (error) {
+      if (mounted) _mensaje(context, 'No se pudo eliminar: ${error.message ?? error.code}');
+    }
+  }
+
   Future<void> _editar(Persona usuario) async {
     final cambios = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => _EditarUsuarioDialog(usuario: usuario),
     );
+    if (cambios != null && cambios['__eliminar'] == true) {
+      await _eliminar(usuario);
+      return;
+    }
     if (cambios == null || cambios.isEmpty || !mounted) return;
     try {
       await widget.repositorio.actualizarUsuario(usuario.uid, cambios);
@@ -378,6 +411,14 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
         ),
       ),
       actions: [
+        if (widget.usuario is! Administrador)
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
+            onPressed: () => Navigator.pop(context, {'__eliminar': true}),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('Eliminar usuario'),
+          ),
+        const Spacer(),
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(110, 44)),
@@ -385,6 +426,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
           child: const Text('Guardar'),
         ),
       ],
+      actionsAlignment: MainAxisAlignment.start,
     );
   }
 }

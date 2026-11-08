@@ -87,6 +87,8 @@ class DeporteRepositoryFalso implements DeporteRepository {
 
   Deporte? leer(String codigo) => _deportes[codigo];
 
+  List<Deporte> get todos => _deportes.values.toList();
+
   /// Cambia los cupos ocupados como lo haría otro estudiante al inscribirse.
   void cambiarCupos(String codigo, int ocupados) {
     final d = _deportes[codigo]!;

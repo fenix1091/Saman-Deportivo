@@ -12,14 +12,16 @@ abstract class InscripcionRepository {
   /// Inscripciones del estudiante, en tiempo real.
   Stream<List<Inscripcion>> inscripcionesDe(String estudianteId);
 
-  /// Crea la reserva en PENDIENTE_PAGO (CU-07, paso 4). No ocupa cupo: el cupo
-  /// solo se ocupa al confirmar el pago (RN-06). Si había una reserva vencida o
-  /// una inscripción cancelada en el mismo deporte, la reemplaza.
-  Future<Inscripcion> reservar(Estudiante estudiante, Deporte deporte);
+  /// Crea la reserva en PENDIENTE_PAGO (CU-07, paso 4) con una copia de los datos
+  /// del deporte y sus [horarios]. No ocupa cupo: el cupo se ocupa al recibir el
+  /// pago (RN-06). Si había una reserva vencida o una inscripción cancelada en el
+  /// mismo deporte, la reemplaza.
+  Future<Inscripcion> reservar(Estudiante estudiante, Deporte deporte, {List<Horario> horarios = const []});
 
-  /// Registra el pago aprobado y confirma la inscripción en una sola transacción
-  /// (CU-07, paso 6): vuelve a leer el cupo, suma uno a `cuposOcupados`, pasa la
-  /// inscripción a CONFIRMADA y guarda el [Pago] con su referencia.
+  /// Registra el pago aprobado y pasa la reserva a EN REVISIÓN en una sola
+  /// transacción (CU-07, paso 6): vuelve a leer el cupo, suma uno a `cuposOcupados`
+  /// (el cupo queda apartado mientras el administrador valida el pago) y guarda el
+  /// [Pago] con su referencia. El administrador la confirma o la rechaza después.
   ///
   /// Si el cupo se agotó mientras se pagaba, marca la inscripción como RECHAZADA,
   /// registra el pago como reembolsado y lanza [ErrorInscripcion.cupoAgotado] (A5).
@@ -28,8 +30,9 @@ abstract class InscripcionRepository {
   /// Marca como EXPIRADA una reserva cuyo plazo de pago pasó (RN-05).
   Future<void> expirar(Inscripcion inscripcion);
 
-  /// Cancela una inscripción vigente (CU-10). Si estaba confirmada libera su cupo
-  /// en la misma transacción; una reserva pendiente de pago no ocupaba cupo (RN-06).
+  /// Cancela una inscripción vigente (CU-10). Si ocupaba cupo (en revisión o
+  /// confirmada) lo libera en la misma transacción; una reserva pendiente de pago
+  /// no ocupaba cupo (RN-06).
   Future<void> cancelar(String inscripcionId, String deporteCodigo);
 
   /// Publica o actualiza la reseña del estudiante sobre un deporte (CU-12).
