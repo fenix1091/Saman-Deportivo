@@ -17,7 +17,8 @@ abstract interface class AdminRepository {
   Future<void> guardarHorario(String codigo, Horario horario);
   Future<void> eliminarHorario(String codigo, String horarioId);
   Future<void> registrarEntrenador({
-    required String cedula,
+    required String nacionalidad,
+    required int cedula,
     required String nombre,
     required String correo,
     required String telefono,
@@ -142,14 +143,15 @@ class AdminRepositoryFirebase implements AdminRepository {
 
   @override
   Future<void> registrarEntrenador({
-    required String cedula,
+    required String nacionalidad,
+    required int cedula,
     required String nombre,
     required String correo,
     required String telefono,
     required String especialidad,
     required int aniosExperiencia,
   }) async {
-    final cedulaRef = _db.collection('cedulas').doc(cedula);
+    final cedulaRef = _db.collection('cedulas').doc('$nacionalidad-$cedula');
     if ((await cedulaRef.get()).exists) {
       throw StateError('Ya existe una cuenta con esa cédula.');
     }
@@ -168,6 +170,7 @@ class AdminRepositoryFirebase implements AdminRepository {
       cuenta = credencial.user!;
       final entrenador = Entrenador(
         uid: cuenta.uid,
+        nacionalidad: nacionalidad,
         cedula: cedula,
         nombre: nombre.trim(),
         correo: cuenta.email ?? correo.trim().toLowerCase(),

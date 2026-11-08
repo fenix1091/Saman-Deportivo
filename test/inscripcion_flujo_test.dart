@@ -20,7 +20,7 @@ void main() {
       ..agregarCuenta(
         const Estudiante(
           uid: 'est-solvente',
-          cedula: 'V-30999888',
+          cedula: 30999888,
           nombre: 'Estudiante Solvente',
           correo: 'solvente@correo.unimet.edu.ve',
           carnet: '20231110002',

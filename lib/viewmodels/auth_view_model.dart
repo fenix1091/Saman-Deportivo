@@ -52,6 +52,7 @@ class AuthViewModel extends ChangeNotifier {
 
   /// Registra un estudiante (CU-01). Devuelve `true` si la cuenta se creó.
   Future<bool> registrar({
+    required String nacionalidad,
     required String cedula,
     required String nombre,
     required String correo,
@@ -59,7 +60,8 @@ class AuthViewModel extends ChangeNotifier {
     required String clave,
   }) {
     return _ejecutar(() => _repositorio.registrarEstudiante(
-          cedula: Validadores.normalizarCedula(cedula),
+          nacionalidad: nacionalidad,
+          cedula: Validadores.numeroCedula(cedula),
           nombre: nombre,
           correo: correo,
           carnet: carnet.trim(),

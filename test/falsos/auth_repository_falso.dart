@@ -18,7 +18,7 @@ class AuthRepositoryFalso implements AuthRepository {
     repo._agregar(
       const Estudiante(
         uid: 'est-demo',
-        cedula: 'V-30111222',
+        cedula: 30111222,
         nombre: 'Estudiante Prueba',
         correo: 'estudiante@correo.unimet.edu.ve',
         carnet: '20231110001',
@@ -29,7 +29,7 @@ class AuthRepositoryFalso implements AuthRepository {
     repo._agregar(
       const Entrenador(
         uid: 'ent-demo',
-        cedula: 'V-20333444',
+        cedula: 20333444,
         nombre: 'Entrenador Prueba',
         correo: 'entrenador@unimet.edu.ve',
         especialidad: 'Fútbol',
@@ -40,7 +40,7 @@ class AuthRepositoryFalso implements AuthRepository {
     repo._agregar(
       const Administrador(
         uid: 'adm-demo',
-        cedula: 'V-15555666',
+        cedula: 15555666,
         nombre: 'Administrador Prueba',
         correo: 'admin@unimet.edu.ve',
         cargo: 'Coordinación de Deportes',
@@ -92,7 +92,8 @@ class AuthRepositoryFalso implements AuthRepository {
 
   @override
   Future<Estudiante> registrarEstudiante({
-    required String cedula,
+    required String nacionalidad,
+    required int cedula,
     required String nombre,
     required String correo,
     required String carnet,
@@ -100,7 +101,7 @@ class AuthRepositoryFalso implements AuthRepository {
   }) async {
     await Future<void>.delayed(latencia);
     if (_buscarPorCorreo(correo) != null) throw const AuthException(ErrorAuth.correoYaRegistrado);
-    if (_usuarios.values.any((u) => u.cedula == cedula)) {
+    if (_usuarios.values.any((u) => u.nacionalidad == nacionalidad && u.cedula == cedula)) {
       throw const AuthException(ErrorAuth.cedulaYaRegistrada);
     }
     if (_usuarios.values.any((u) => u is Estudiante && u.carnet == carnet)) {
@@ -108,6 +109,7 @@ class AuthRepositoryFalso implements AuthRepository {
     }
     final estudiante = Estudiante(
       uid: 'local-${_siguienteId++}',
+      nacionalidad: nacionalidad,
       cedula: cedula,
       nombre: nombre.trim(),
       correo: correo.trim().toLowerCase(),

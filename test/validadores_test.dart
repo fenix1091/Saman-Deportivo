@@ -10,11 +10,13 @@ void main() {
       expect(Validadores.correoEstudiante('no-es-correo'), isNotNull);
     });
 
-    test('la cédula acepta puntos y minúsculas y se normaliza', () {
-      expect(Validadores.cedula('V-31.985.476'), isNull);
-      expect(Validadores.cedula('e 12345678'), isNull);
-      expect(Validadores.cedula('31985476'), isNotNull);
-      expect(Validadores.normalizarCedula('v31.985.476'), 'V-31985476');
+    test('la cédula es solo el número (acepta puntos) y se guarda como entero', () {
+      expect(Validadores.cedula('31985476'), isNull);
+      expect(Validadores.cedula('31.985.476'), isNull);
+      expect(Validadores.cedula('V-31985476'), isNotNull);
+      expect(Validadores.cedula('12345'), isNotNull);
+      expect(Validadores.cedula(''), isNotNull);
+      expect(Validadores.numeroCedula('31.985.476'), 31985476);
     });
 
     test('el carnet tiene 11 dígitos', () {

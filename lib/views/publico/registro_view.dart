@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -22,6 +23,7 @@ class _RegistroViewState extends State<RegistroView> {
   final _carnet = TextEditingController();
   final _clave = TextEditingController();
   final _confirmacion = TextEditingController();
+  String _nacionalidad = 'V';
   bool _verClave = false;
 
   @override
@@ -42,6 +44,7 @@ class _RegistroViewState extends State<RegistroView> {
     if (!_formulario.currentState!.validate()) return;
     final vm = context.read<AuthViewModel>();
     final ok = await vm.registrar(
+      nacionalidad: _nacionalidad,
       cedula: _cedula.text,
       nombre: _nombre.text,
       correo: _correo.text,
@@ -64,19 +67,46 @@ class _RegistroViewState extends State<RegistroView> {
       body: FormularioCentrado(
         child: Form(
           key: _formulario,
-          child: AutofillGroup(
-            child: Column(
+          // Sin AutofillGroup ni autofillHints: en Flutter web el gestor de contraseñas
+          // del navegador (la sugerencia de clave segura) se queda con el foco del campo
+          // y deja de aceptar teclas, incluido borrar, hasta recargar la página.
+          child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Regístrate con tu carnet', style: textos.headlineMedium),
                 const SizedBox(height: 4),
                 Text('Solo para estudiantes de la UNIMET.', style: textos.bodyMedium),
                 const SizedBox(height: 24),
-                TextFormField(
-                  controller: _cedula,
-                  decoration: const InputDecoration(labelText: 'Cédula', hintText: 'V-31985476'),
-                  textInputAction: TextInputAction.next,
-                  validator: Validadores.cedula,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 88,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _nacionalidad,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: [
+                          for (final letra in Validadores.nacionalidades)
+                            DropdownMenuItem(value: letra, child: Text(letra)),
+                        ],
+                        onChanged: (letra) => setState(() => _nacionalidad = letra ?? 'V'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _cedula,
+                        decoration: const InputDecoration(labelText: 'Cédula', hintText: '31985476'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(9),
+                        ],
+                        textInputAction: TextInputAction.next,
+                        validator: Validadores.cedula,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -84,7 +114,6 @@ class _RegistroViewState extends State<RegistroView> {
                   decoration: const InputDecoration(labelText: 'Nombre y apellido'),
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.name],
                   validator: Validadores.nombre,
                 ),
                 const SizedBox(height: 12),
@@ -96,7 +125,7 @@ class _RegistroViewState extends State<RegistroView> {
                   ),
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.email],
+                  autocorrect: false,
                   validator: Validadores.correoEstudiante,
                 ),
                 const SizedBox(height: 12),
@@ -104,6 +133,10 @@ class _RegistroViewState extends State<RegistroView> {
                   controller: _carnet,
                   decoration: const InputDecoration(labelText: 'Carnet', hintText: '11 dígitos'),
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11),
+                  ],
                   textInputAction: TextInputAction.next,
                   validator: Validadores.carnet,
                 ),
@@ -120,8 +153,9 @@ class _RegistroViewState extends State<RegistroView> {
                     ),
                   ),
                   obscureText: !_verClave,
+                  autocorrect: false,
+                  enableSuggestions: false,
                   textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.newPassword],
                   validator: Validadores.clave,
                 ),
                 const SizedBox(height: 12),
@@ -129,6 +163,8 @@ class _RegistroViewState extends State<RegistroView> {
                   controller: _confirmacion,
                   decoration: const InputDecoration(labelText: 'Confirmar contraseña'),
                   obscureText: !_verClave,
+                  autocorrect: false,
+                  enableSuggestions: false,
                   onFieldSubmitted: (_) => _crearCuenta(),
                   validator: (v) => Validadores.confirmarClave(v, _clave.text),
                 ),
@@ -160,7 +196,6 @@ class _RegistroViewState extends State<RegistroView> {
                   child: const Text('¿Ya tienes cuenta? Inicia sesión'),
                 ),
               ],
-            ),
           ),
         ),
       ),

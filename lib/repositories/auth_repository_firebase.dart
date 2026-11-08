@@ -79,7 +79,8 @@ class AuthRepositoryFirebase implements AuthRepository {
 
   @override
   Future<Estudiante> registrarEstudiante({
-    required String cedula,
+    required String nacionalidad,
+    required int cedula,
     required String nombre,
     required String correo,
     required String carnet,
@@ -90,8 +91,9 @@ class AuthRepositoryFirebase implements AuthRepository {
       final credencial =
           await _auth.createUserWithEmailAndPassword(email: correo.trim().toLowerCase(), password: clave);
       final user = credencial.user!;
+      final indiceCedula = _db.collection('cedulas').doc('$nacionalidad-$cedula');
       try {
-        if ((await _db.collection('cedulas').doc(cedula).get()).exists) {
+        if ((await indiceCedula.get()).exists) {
           throw const AuthException(ErrorAuth.cedulaYaRegistrada);
         }
         if ((await _db.collection('carnets').doc(carnet).get()).exists) {
@@ -99,6 +101,7 @@ class AuthRepositoryFirebase implements AuthRepository {
         }
         final estudiante = Estudiante(
           uid: user.uid,
+          nacionalidad: nacionalidad,
           cedula: cedula,
           nombre: nombre.trim(),
           correo: user.email ?? correo.trim().toLowerCase(),
@@ -106,7 +109,7 @@ class AuthRepositoryFirebase implements AuthRepository {
         );
         final lote = _db.batch()
           ..set(_usuarios.doc(user.uid), {...estudiante.aMapa(), 'creadoEn': FieldValue.serverTimestamp()})
-          ..set(_db.collection('cedulas').doc(cedula), {'uid': user.uid})
+          ..set(indiceCedula, {'uid': user.uid})
           ..set(_db.collection('carnets').doc(carnet), {'uid': user.uid});
         await lote.commit();
         unawaited(user.sendEmailVerification().catchError((_) {}));
@@ -160,7 +163,11 @@ class AuthRepositoryFirebase implements AuthRepository {
   @override
   Future<Persona> actualizarPerfil(Persona usuario) async {
     try {
-      await _usuarios.doc(usuario.uid).update({'telefono': usuario.telefono, 'fotoUrl': usuario.fotoUrl});
+      await _usuarios.doc(usuario.uid).update({
+        'nombre': usuario.nombre,
+        'telefono': usuario.telefono,
+        'fotoUrl': usuario.fotoUrl,
+      });
       _publicar(usuario);
       return usuario;
     } on FirebaseException catch (e) {

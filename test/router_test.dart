@@ -5,14 +5,14 @@ import 'package:saman_deportivo/models/persona.dart';
 void main() {
   const estudiante = Estudiante(
     uid: 'e1',
-    cedula: 'V-30111222',
+    cedula: 30111222,
     nombre: 'Estudiante Prueba',
     correo: 'estudiante@correo.unimet.edu.ve',
     carnet: '20231110001',
   );
   const entrenador = Entrenador(
     uid: 't1',
-    cedula: 'V-20333444',
+    cedula: 20333444,
     nombre: 'Entrenador Prueba',
     correo: 'entrenador@unimet.edu.ve',
     especialidad: 'Fútbol',

@@ -14,7 +14,7 @@ Future<void> esperar() => Future<void>.delayed(Duration.zero);
 
 const solvente = Estudiante(
   uid: 'est-1',
-  cedula: 'V-30111222',
+  cedula: 30111222,
   nombre: 'Estudiante Solvente',
   correo: 'solvente@correo.unimet.edu.ve',
   carnet: '20231110001',
@@ -46,7 +46,7 @@ void main() {
     });
 
     test('un estudiante no solvente o inactivo no puede inscribirse y sabe por qué', () {
-      const noSolvente = Estudiante(uid: 'e', cedula: 'V-1', nombre: 'N', correo: 'n@x.com', carnet: '1');
+      const noSolvente = Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1');
       final r = validar(estudiante: noSolvente);
       expect(r.aprobada, isFalse);
       expect(r.cumple(Requisito.solvente), isFalse);
@@ -54,7 +54,7 @@ void main() {
 
       const inactivo = Estudiante(
         uid: 'e',
-        cedula: 'V-1',
+        cedula: 1,
         nombre: 'N',
         correo: 'n@x.com',
         carnet: '1',
@@ -65,7 +65,7 @@ void main() {
     });
 
     test('muestra todos los requisitos que fallan a la vez, no solo el primero', () {
-      const noSolvente = Estudiante(uid: 'e', cedula: 'V-1', nombre: 'N', correo: 'n@x.com', carnet: '1');
+      const noSolvente = Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1');
       const lleno = Deporte(codigo: 'FUT-01', nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 25, entrenadorId: 't1');
       final r = validar(estudiante: noSolvente, deporte: lleno);
       expect(r.incumplimientos.map((i) => i.requisito), [Requisito.solvente, Requisito.hayCupo]);
@@ -162,7 +162,7 @@ void main() {
     });
 
     test('un estudiante no solvente no llega a reservar ni a pagar', () async {
-      const noSolvente = Estudiante(uid: 'e', cedula: 'V-1', nombre: 'N', correo: 'n@x.com', carnet: '1');
+      const noSolvente = Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1');
       final vm = crear(estudiante: noSolvente);
       await esperar();
       expect(vm.puedePagar, isFalse);

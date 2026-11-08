@@ -21,7 +21,14 @@ void main() {
       final usuario = repositorio.usuarioActual as Estudiante;
       expect(usuario.telefono, '04141234567');
       expect(usuario.carnet, '20231110001');
-      expect(usuario.cedula, 'V-30111222');
+      expect(usuario.cedula, 30111222);
+      expect(usuario.nombre, 'Estudiante Prueba');
+    });
+
+    test('cambia el nombre y le quita los espacios de más', () async {
+      expect(await vm.guardar(nombre: '  Vincenzo   Gallo ', telefono: ''), isTrue);
+      expect(repositorio.usuarioActual!.nombre, 'Vincenzo Gallo');
+      expect((repositorio.usuarioActual as Estudiante).carnet, '20231110001');
     });
 
     test('sube la foto nueva al guardar', () async {
@@ -47,15 +54,15 @@ void main() {
   test('cada rol se guarda y se lee igual desde Firestore', () {
     final usuarios = <Persona>[
       const Estudiante(
-          uid: 'a', cedula: 'V-1', nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1', solvente: false),
+          uid: 'a', cedula: 1, nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1', solvente: false),
       const Entrenador(
           uid: 'b',
-          cedula: 'V-2',
+          cedula: 2,
           nombre: 'C D',
           correo: 'b@unimet.edu.ve',
           especialidad: 'Tenis',
           aniosExperiencia: 3),
-      const Administrador(uid: 'c', cedula: 'V-3', nombre: 'E F', correo: 'c@unimet.edu.ve', cargo: 'Coordinador'),
+      const Administrador(uid: 'c', cedula: 3, nombre: 'E F', correo: 'c@unimet.edu.ve', cargo: 'Coordinador'),
     ];
     for (final u in usuarios) {
       final copia = Persona.desdeMapa(u.uid, u.aMapa());

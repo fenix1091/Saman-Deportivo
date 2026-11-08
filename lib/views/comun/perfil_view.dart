@@ -20,17 +20,20 @@ class PerfilView extends StatefulWidget {
 
 class _PerfilViewState extends State<PerfilView> {
   final _formulario = GlobalKey<FormState>();
+  late final TextEditingController _nombre;
   late final TextEditingController _telefono;
 
   @override
   void initState() {
     super.initState();
-    _telefono = TextEditingController(
-        text: context.read<PerfilViewModel>().usuario?.telefono ?? '');
+    final usuario = context.read<PerfilViewModel>().usuario;
+    _nombre = TextEditingController(text: usuario?.nombre ?? '');
+    _telefono = TextEditingController(text: usuario?.telefono ?? '');
   }
 
   @override
   void dispose() {
+    _nombre.dispose();
     _telefono.dispose();
     super.dispose();
   }
@@ -50,7 +53,7 @@ class _PerfilViewState extends State<PerfilView> {
   Future<void> _guardar() async {
     if (!_formulario.currentState!.validate()) return;
     final ok =
-        await context.read<PerfilViewModel>().guardar(telefono: _telefono.text);
+        await context.read<PerfilViewModel>().guardar(nombre: _nombre.text, telefono: _telefono.text);
     if (ok && mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
@@ -110,10 +113,18 @@ class _PerfilViewState extends State<PerfilView> {
               Text(_nombreRol(usuario.rol),
                   style: textos.bodyMedium, textAlign: TextAlign.center),
               const SizedBox(height: 24),
-              _Dato(etiqueta: 'Cédula', valor: usuario.cedula),
+              _Dato(etiqueta: 'Cédula', valor: usuario.cedulaTexto),
               _Dato(etiqueta: 'Correo', valor: usuario.correo),
               ..._datosDelRol(usuario),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _nombre,
+                decoration: const InputDecoration(labelText: 'Nombre y apellido'),
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                validator: Validadores.nombre,
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _telefono,
                 decoration: const InputDecoration(

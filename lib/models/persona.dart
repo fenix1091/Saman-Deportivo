@@ -15,6 +15,7 @@ enum EstadoEstudiante { activo, inactivo }
 abstract class Persona {
   const Persona({
     required this.uid,
+    this.nacionalidad = 'V',
     required this.cedula,
     required this.nombre,
     required this.correo,
@@ -23,7 +24,13 @@ abstract class Persona {
   });
 
   final String uid;
-  final String cedula;
+
+  /// Letra de la cédula: `V` (venezolano) o `E` (extranjero).
+  final String nacionalidad;
+
+  /// Número de cédula. Se guarda como número para que el administrador pueda
+  /// ordenar y filtrar por rangos (por ejemplo, `cedula >= 30000000`).
+  final int cedula;
   final String nombre;
   final String correo;
   final String telefono;
@@ -31,12 +38,16 @@ abstract class Persona {
 
   Rol get rol;
 
+  /// Cédula con su letra, como se muestra y como se usa en el índice `cedulas/{V-31985476}`.
+  String get cedulaTexto => '$nacionalidad-$cedula';
+
   /// Devuelve una copia con los datos editables del perfil cambiados.
-  Persona copiarPerfil({String? telefono, String? fotoUrl});
+  Persona copiarPerfil({String? nombre, String? telefono, String? fotoUrl});
 
   /// Convierte el usuario al documento que se guarda en Firestore.
   Map<String, dynamic> aMapa() => {
         'rol': rol.name,
+        'nacionalidad': nacionalidad,
         'cedula': cedula,
         'nombre': nombre,
         'correo': correo,
@@ -55,10 +66,27 @@ abstract class Persona {
   }
 }
 
+/// Lee la cédula de un documento. Acepta el formato actual (número) y el de las
+/// cuentas creadas antes del cambio, que la guardaban como texto ("V-31985476").
+int leerCedula(Object? valor) => switch (valor) {
+      num n => n.toInt(),
+      String s => int.tryParse(s.replaceAll(RegExp(r'\D'), '')) ?? 0,
+      _ => 0,
+    };
+
+/// Lee la letra de la cédula: del campo `nacionalidad` o, en documentos viejos, del texto de la cédula.
+String leerNacionalidad(Map<String, dynamic> mapa) {
+  final letra = mapa['nacionalidad'];
+  if (letra is String && letra.isNotEmpty) return letra;
+  final cedula = mapa['cedula'];
+  return cedula is String && cedula.toUpperCase().startsWith('E') ? 'E' : 'V';
+}
+
 /// Estudiante de la UNIMET que se inscribe en las disciplinas.
 class Estudiante extends Persona {
   const Estudiante({
     required super.uid,
+    super.nacionalidad,
     required super.cedula,
     required super.nombre,
     required super.correo,
@@ -84,10 +112,11 @@ class Estudiante extends Persona {
   bool estaActivo() => estado == EstadoEstudiante.activo;
 
   @override
-  Estudiante copiarPerfil({String? telefono, String? fotoUrl}) => Estudiante(
+  Estudiante copiarPerfil({String? nombre, String? telefono, String? fotoUrl}) => Estudiante(
         uid: uid,
+        nacionalidad: nacionalidad,
         cedula: cedula,
-        nombre: nombre,
+        nombre: nombre ?? this.nombre,
         correo: correo,
         telefono: telefono ?? this.telefono,
         fotoUrl: fotoUrl ?? this.fotoUrl,
@@ -108,7 +137,8 @@ class Estudiante extends Persona {
 
   factory Estudiante.desdeMapa(String uid, Map<String, dynamic> mapa) => Estudiante(
         uid: uid,
-        cedula: mapa['cedula'] as String,
+        nacionalidad: leerNacionalidad(mapa),
+        cedula: leerCedula(mapa['cedula']),
         nombre: mapa['nombre'] as String,
         correo: mapa['correo'] as String,
         telefono: mapa['telefono'] as String? ?? '',
@@ -124,6 +154,7 @@ class Estudiante extends Persona {
 class Entrenador extends Persona {
   const Entrenador({
     required super.uid,
+    super.nacionalidad,
     required super.cedula,
     required super.nombre,
     required super.correo,
@@ -140,10 +171,11 @@ class Entrenador extends Persona {
   Rol get rol => Rol.entrenador;
 
   @override
-  Entrenador copiarPerfil({String? telefono, String? fotoUrl}) => Entrenador(
+  Entrenador copiarPerfil({String? nombre, String? telefono, String? fotoUrl}) => Entrenador(
         uid: uid,
+        nacionalidad: nacionalidad,
         cedula: cedula,
-        nombre: nombre,
+        nombre: nombre ?? this.nombre,
         correo: correo,
         telefono: telefono ?? this.telefono,
         fotoUrl: fotoUrl ?? this.fotoUrl,
@@ -160,7 +192,8 @@ class Entrenador extends Persona {
 
   factory Entrenador.desdeMapa(String uid, Map<String, dynamic> mapa) => Entrenador(
         uid: uid,
-        cedula: mapa['cedula'] as String,
+        nacionalidad: leerNacionalidad(mapa),
+        cedula: leerCedula(mapa['cedula']),
         nombre: mapa['nombre'] as String,
         correo: mapa['correo'] as String,
         telefono: mapa['telefono'] as String? ?? '',
@@ -174,6 +207,7 @@ class Entrenador extends Persona {
 class Administrador extends Persona {
   const Administrador({
     required super.uid,
+    super.nacionalidad,
     required super.cedula,
     required super.nombre,
     required super.correo,
@@ -188,10 +222,11 @@ class Administrador extends Persona {
   Rol get rol => Rol.administrador;
 
   @override
-  Administrador copiarPerfil({String? telefono, String? fotoUrl}) => Administrador(
+  Administrador copiarPerfil({String? nombre, String? telefono, String? fotoUrl}) => Administrador(
         uid: uid,
+        nacionalidad: nacionalidad,
         cedula: cedula,
-        nombre: nombre,
+        nombre: nombre ?? this.nombre,
         correo: correo,
         telefono: telefono ?? this.telefono,
         fotoUrl: fotoUrl ?? this.fotoUrl,
@@ -203,7 +238,8 @@ class Administrador extends Persona {
 
   factory Administrador.desdeMapa(String uid, Map<String, dynamic> mapa) => Administrador(
         uid: uid,
-        cedula: mapa['cedula'] as String,
+        nacionalidad: leerNacionalidad(mapa),
+        cedula: leerCedula(mapa['cedula']),
         nombre: mapa['nombre'] as String,
         correo: mapa['correo'] as String,
         telefono: mapa['telefono'] as String? ?? '',

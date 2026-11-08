@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -727,6 +728,7 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
   final _telefono = TextEditingController();
   final _especialidad = TextEditingController();
   final _experiencia = TextEditingController(text: '0');
+  String _nacionalidad = 'V';
 
   @override
   void dispose() {
@@ -758,10 +760,37 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                   textCapitalization: TextCapitalization.words,
                   validator: Validadores.nombre,
                 ),
-                TextFormField(
-                  controller: _cedula,
-                  decoration: const InputDecoration(labelText: 'Cédula *'),
-                  validator: Validadores.cedula,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _nacionalidad,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: [
+                          for (final letra in Validadores.nacionalidades)
+                            DropdownMenuItem(value: letra, child: Text(letra)),
+                        ],
+                        onChanged: (letra) =>
+                            setState(() => _nacionalidad = letra ?? 'V'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _cedula,
+                        decoration:
+                            const InputDecoration(labelText: 'Cédula *'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(9),
+                        ],
+                        validator: Validadores.cedula,
+                      ),
+                    ),
+                  ],
                 ),
                 TextFormField(
                   controller: _correo,
@@ -812,7 +841,8 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
             Navigator.pop(
               context,
               _DatosEntrenador(
-                cedula: Validadores.normalizarCedula(_cedula.text),
+                nacionalidad: _nacionalidad,
+                cedula: Validadores.numeroCedula(_cedula.text),
                 nombre: _nombre.text.trim(),
                 correo: _correo.text.trim().toLowerCase(),
                 telefono: _telefono.text.trim(),
@@ -830,6 +860,7 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
 
 class _DatosEntrenador {
   const _DatosEntrenador({
+    required this.nacionalidad,
     required this.cedula,
     required this.nombre,
     required this.correo,
@@ -838,7 +869,8 @@ class _DatosEntrenador {
     required this.aniosExperiencia,
   });
 
-  final String cedula;
+  final String nacionalidad;
+  final int cedula;
   final String nombre;
   final String correo;
   final String telefono;
@@ -855,6 +887,7 @@ Future<void> _crearEntrenador(
   if (datos == null || !context.mounted) return;
   try {
     await repositorio.registrarEntrenador(
+      nacionalidad: datos.nacionalidad,
       cedula: datos.cedula,
       nombre: datos.nombre,
       correo: datos.correo,

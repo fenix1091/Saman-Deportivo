@@ -42,6 +42,18 @@ service cloud.firestore {
       return /databases/$(database)/documents/pagos/$(id);
     }
     // RN-05: una reserva pendiente de pago vence a los 15 minutos.
+    // La cédula se guarda como número (para ordenar y filtrar por rangos) y la letra aparte.
+    function cedulaValida(datos) {
+      return datos.cedula is int
+        && datos.cedula > 0
+        && datos.cedula < 1000000000
+        && datos.nacionalidad in ['V', 'E'];
+    }
+    // Id del índice de unicidad: "V-31985476".
+    function claveCedula(datos) {
+      return datos.nacionalidad + '-' + string(datos.cedula);
+    }
+
     function vencida(inscripcion) {
       return request.time > inscripcion.fechaInscripcion + duration.value(15, 'm');
     }
@@ -54,20 +66,21 @@ service cloud.firestore {
       // El registro público solo admite estudiantes; el administrador puede crear entrenadores.
       allow create: if (autenticado()
           && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
-                                                    'carnet', 'estado', 'solvente', 'carrera', 'creadoEn'])
+          && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'correo', 'telefono',
+                                                    'fotoUrl', 'carnet', 'estado', 'solvente', 'carrera', 'creadoEn'])
           && request.resource.data.rol == 'estudiante'
+          && cedulaValida(request.resource.data)
           && request.resource.data.estado == 'activo'
           && request.resource.data.solvente == false
           && request.resource.data.correo == request.auth.token.email
           && request.resource.data.creadoEn == request.time)
         || (esAdmin()
-          && request.resource.data.keys().hasOnly(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
-                                                    'especialidad', 'aniosExperiencia'])
-          && request.resource.data.keys().hasAll(['rol', 'cedula', 'nombre', 'correo', 'telefono', 'fotoUrl',
-                                                   'especialidad', 'aniosExperiencia'])
+          && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'correo', 'telefono',
+                                                    'fotoUrl', 'especialidad', 'aniosExperiencia'])
+          && request.resource.data.keys().hasAll(['rol', 'nacionalidad', 'cedula', 'nombre', 'correo', 'telefono',
+                                                   'fotoUrl', 'especialidad', 'aniosExperiencia'])
           && request.resource.data.rol == 'entrenador'
-          && request.resource.data.cedula is string
+          && cedulaValida(request.resource.data)
           && request.resource.data.nombre is string
           && request.resource.data.correo is string
           && request.resource.data.telefono is string
@@ -76,11 +89,14 @@ service cloud.firestore {
           && request.resource.data.aniosExperiencia is int
           && request.resource.data.aniosExperiencia >= 0);
 
-      // Perfil: el dueño solo cambia teléfono y foto; el administrador, todo.
+      // Perfil: el dueño solo cambia nombre, teléfono y foto; el administrador, todo.
       allow update: if esAdmin()
         || (autenticado()
           && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['telefono', 'fotoUrl'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'telefono', 'fotoUrl'])
+          && request.resource.data.nombre is string
+          && request.resource.data.nombre.size() >= 3
+          && request.resource.data.nombre.size() <= 80
           && request.resource.data.telefono is string
           && request.resource.data.telefono.size() <= 20
           && request.resource.data.fotoUrl is string
@@ -96,10 +112,10 @@ service cloud.firestore {
       allow get: if autenticado();
       allow create: if (autenticado()
           && request.resource.data.uid == request.auth.uid
-          && getAfter(rutaUsuario(request.auth.uid)).data.cedula == cedula)
+          && claveCedula(getAfter(rutaUsuario(request.auth.uid)).data) == cedula)
         || (esAdmin()
           && getAfter(rutaUsuario(request.resource.data.uid)).data.rol == 'entrenador'
-          && getAfter(rutaUsuario(request.resource.data.uid)).data.cedula == cedula);
+          && claveCedula(getAfter(rutaUsuario(request.resource.data.uid)).data) == cedula);
       allow delete: if esAdmin();
     }
     match /carnets/{carnet} {

@@ -18,7 +18,8 @@ void main() {
   group('Registro (CU-01)', () {
     Future<bool> registrar({String correo = 'nuevo@correo.unimet.edu.ve', String carnet = '20241110099'}) {
       return vm.registrar(
-        cedula: 'v-31.985.476',
+        nacionalidad: 'V',
+        cedula: '31.985.476',
         nombre: 'Vincenzo Gallo',
         correo: correo,
         carnet: carnet,
@@ -31,7 +32,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       final usuario = vm.usuario;
       expect(usuario, isA<Estudiante>());
-      expect(usuario!.cedula, 'V-31985476');
+      expect(usuario!.cedula, 31985476);
+      expect(usuario.nacionalidad, 'V');
+      expect(usuario.cedulaTexto, 'V-31985476');
       expect((usuario as Estudiante).estaActivo(), isTrue);
     });
 

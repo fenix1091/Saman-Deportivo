@@ -12,7 +12,8 @@ let entorno;
 
 const perfilEstudiante = (correo, extra = {}) => ({
   rol: 'estudiante',
-  cedula: 'V-31985476',
+  nacionalidad: 'V',
+  cedula: 31985476,
   nombre: 'Vincenzo Gallo',
   correo,
   telefono: '',
@@ -26,7 +27,7 @@ const perfilEstudiante = (correo, extra = {}) => ({
 });
 
 /** Escribe el perfil y sus índices en un lote, igual que AuthRepositoryFirebase. */
-function registrar(db, uid, perfil, cedula = perfil.cedula, carnet = perfil.carnet) {
+function registrar(db, uid, perfil, cedula = `${perfil.nacionalidad}-${perfil.cedula}`, carnet = perfil.carnet) {
   const lote = writeBatch(db);
   lote.set(doc(db, 'usuarios', uid), perfil);
   lote.set(doc(db, 'cedulas', cedula), { uid });
@@ -55,10 +56,10 @@ beforeEach(async () => {
   await entorno.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     const base = { telefono: '', fotoUrl: '' };
-    await setDoc(doc(db, 'usuarios/est1'), { ...base, rol: 'estudiante', cedula: 'V-1', nombre: 'Uno', correo: 'est1@correo.unimet.edu.ve', carnet: '1', estado: 'activo', solvente: false, carrera: '' });
-    await setDoc(doc(db, 'usuarios/est2'), { ...base, rol: 'estudiante', cedula: 'V-2', nombre: 'Dos', correo: 'est2@correo.unimet.edu.ve', carnet: '2', estado: 'activo', solvente: false, carrera: '' });
-    await setDoc(doc(db, 'usuarios/ent1'), { ...base, rol: 'entrenador', cedula: 'V-3', nombre: 'Tres', correo: 'ent1@unimet.edu.ve', especialidad: 'Fútbol', aniosExperiencia: 5 });
-    await setDoc(doc(db, 'usuarios/adm1'), { ...base, rol: 'administrador', cedula: 'V-4', nombre: 'Cuatro', correo: 'adm1@unimet.edu.ve', cargo: 'Coordinación' });
+    await setDoc(doc(db, 'usuarios/est1'), { ...base, rol: 'estudiante', nacionalidad: 'V', cedula: 1, nombre: 'Uno', correo: 'est1@correo.unimet.edu.ve', carnet: '1', estado: 'activo', solvente: false, carrera: '' });
+    await setDoc(doc(db, 'usuarios/est2'), { ...base, rol: 'estudiante', nacionalidad: 'V', cedula: 2, nombre: 'Dos', correo: 'est2@correo.unimet.edu.ve', carnet: '2', estado: 'activo', solvente: false, carrera: '' });
+    await setDoc(doc(db, 'usuarios/ent1'), { ...base, rol: 'entrenador', nacionalidad: 'V', cedula: 3, nombre: 'Tres', correo: 'ent1@unimet.edu.ve', especialidad: 'Fútbol', aniosExperiencia: 5 });
+    await setDoc(doc(db, 'usuarios/adm1'), { ...base, rol: 'administrador', nacionalidad: 'V', cedula: 4, nombre: 'Cuatro', correo: 'adm1@unimet.edu.ve', cargo: 'Coordinación' });
     await setDoc(doc(db, 'cedulas/V-1'), { uid: 'est1' });
     await setDoc(doc(db, 'carnets/1'), { uid: 'est1' });
     await setDoc(doc(db, 'deportes/FUT-01'), { nombre: 'Fútbol', cupoMaximo: 25 });
@@ -92,8 +93,15 @@ describe('Registro de estudiantes (RF-01)', () => {
   });
 
   test('una cédula o un carnet ya registrados hacen fallar el registro', async () => {
-    await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { cedula: 'V-1' })));
+    await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { cedula: 1 })));
     await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { carnet: '1' })));
+  });
+
+  test('la cédula se guarda como número y con su letra (V o E)', async () => {
+    await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { cedula: '31985476' }), 'V-31985476'));
+    await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { nacionalidad: 'X' })));
+    await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { cedula: -5 })));
+    await assertSucceeds(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { nacionalidad: 'E' })));
   });
 
   test('no puede reservar una cédula que no es la de su perfil', async () => {
@@ -113,15 +121,23 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
     await assertFails(getDocs(collection(comoEstudiante(), 'usuarios')));
   });
 
-  test('el dueño puede cambiar su teléfono y su foto', async () => {
+  test('el dueño puede cambiar su nombre, su teléfono y su foto', async () => {
     await assertSucceeds(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { telefono: '04141234567', fotoUrl: 'data:image/jpeg;base64,AAAA' }));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { nombre: 'Uno Cambiado' }));
+  });
+
+  test('el nombre no puede quedar vacío, ser muy largo ni dejar de ser texto', async () => {
+    const db = comoEstudiante();
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: '' }));
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: 'x'.repeat(81) }));
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: 12345 }));
   });
 
   test('el dueño no puede cambiarse el rol, la solvencia, la cédula ni el carnet', async () => {
     const db = comoEstudiante();
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { rol: 'administrador' }));
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { solvente: true }));
-    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { cedula: 'V-5' }));
+    await assertFails(updateDoc(doc(db, 'usuarios/est1'), { cedula: 5 }));
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { carnet: '5' }));
   });
 
@@ -138,6 +154,9 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
 
   test('el administrador consulta y edita cualquier perfil (por ejemplo, la solvencia)', async () => {
     await assertSucceeds(getDocs(collection(comoAdmin(), 'usuarios')));
+    // Con la cédula numérica se puede filtrar por rangos.
+    const rango = await assertSucceeds(getDocs(query(collection(comoAdmin(), 'usuarios'), where('cedula', '>=', 2), where('cedula', '<=', 3))));
+    if (rango.size !== 2) throw new Error(`se esperaban 2 usuarios en el rango y llegaron ${rango.size}`);
     await assertSucceeds(updateDoc(doc(comoAdmin(), 'usuarios/est1'), { solvente: true }));
   });
 
@@ -147,7 +166,8 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
   test('el administrador crea entrenadores y su índice de cédula, pero otros roles no', async () => {
     const entrenador = {
       rol: 'entrenador',
-      cedula: 'V-55555555',
+      nacionalidad: 'V',
+      cedula: 55555555,
       nombre: 'Nuevo Entrenador',
       correo: 'nuevo@unimet.edu.ve',
       telefono: '',
@@ -158,7 +178,7 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
     const crear = (db, uid) => {
       const lote = writeBatch(db);
       lote.set(doc(db, 'usuarios', uid), entrenador);
-      lote.set(doc(db, 'cedulas', entrenador.cedula), { uid });
+      lote.set(doc(db, 'cedulas', `V-${entrenador.cedula}`), { uid });
       return lote.commit();
     };
     await assertSucceeds(crear(comoAdmin(), 'ent2'));
@@ -167,7 +187,7 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
     await assertFails(setDoc(doc(comoAdmin(), 'usuarios', 'admin-extra'), {
       ...entrenador,
       rol: 'administrador',
-      cedula: 'V-66666666',
+      cedula: 66666666,
     }));
   });
 });

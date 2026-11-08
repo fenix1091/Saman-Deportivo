@@ -19,9 +19,9 @@ void main() {
   group('Estructura base: cada modelo se guarda y se lee igual desde Firestore', () {
     test('Persona y sus roles', () {
       final usuarios = <Persona>[
-        const Estudiante(uid: 'a', cedula: 'V-1', nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1'),
-        const Entrenador(uid: 'b', cedula: 'V-2', nombre: 'C D', correo: 'b@unimet.edu.ve', especialidad: 'Tenis'),
-        const Administrador(uid: 'c', cedula: 'V-3', nombre: 'E F', correo: 'c@unimet.edu.ve', cargo: 'Coordinador'),
+        const Estudiante(uid: 'a', cedula: 1, nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1'),
+        const Entrenador(uid: 'b', cedula: 2, nombre: 'C D', correo: 'b@unimet.edu.ve', especialidad: 'Tenis'),
+        const Administrador(uid: 'c', cedula: 3, nombre: 'E F', correo: 'c@unimet.edu.ve', cargo: 'Coordinador'),
       ];
       for (final u in usuarios) {
         final copia = Persona.desdeMapa(u.uid, u.aMapa());
@@ -30,8 +30,25 @@ void main() {
       }
     });
 
+    test('la cédula se guarda como número y también se leen las cuentas viejas con texto', () {
+      const e = Estudiante(uid: 'a', nacionalidad: 'E', cedula: 84123456, nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1');
+      expect(e.aMapa()['cedula'], isA<int>());
+      expect(e.aMapa()['nacionalidad'], 'E');
+      expect(e.cedulaTexto, 'E-84123456');
+
+      final vieja = Persona.desdeMapa('v', {
+        'rol': 'estudiante',
+        'cedula': 'V-31985476',
+        'nombre': 'Vincenzo Gallo',
+        'correo': 'v@correo.unimet.edu.ve',
+        'carnet': '20221110045',
+      });
+      expect(vieja.cedula, 31985476);
+      expect(vieja.nacionalidad, 'V');
+    });
+
     test('un estudiante nuevo empieza activo y no solvente', () {
-      const e = Estudiante(uid: 'a', cedula: 'V-1', nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1');
+      const e = Estudiante(uid: 'a', cedula: 1, nombre: 'A B', correo: 'a@correo.unimet.edu.ve', carnet: '1');
       expect(e.estaActivo(), isTrue);
       expect(e.solvente, isFalse);
     });

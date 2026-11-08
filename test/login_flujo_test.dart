@@ -55,7 +55,8 @@ class _AdminRepositoryFalso implements AdminRepository {
 
   @override
   Future<void> registrarEntrenador({
-    required String cedula,
+    required String nacionalidad,
+    required int cedula,
     required String nombre,
     required String correo,
     required String telefono,

@@ -8,7 +8,7 @@ class Validadores {
   static const dominioEstudiantes = '@correo.unimet.edu.ve';
 
   static final _correo = RegExp(r'^[\w.+-]+@[\w-]+(\.[\w-]+)+$');
-  static final _cedula = RegExp(r'^[VE]-?\d{6,9}$');
+  static final _cedula = RegExp(r'^\d{6,9}$');
   static final _carnet = RegExp(r'^\d{11}$');
   static final _telefono = RegExp(r'^04(12|14|16|22|24|26)\d{7}$');
 
@@ -33,22 +33,19 @@ class Validadores {
     return null;
   }
 
-  /// Cédula venezolana o de extranjero: V-12345678 o E-12345678.
+  /// Letras de cédula admitidas: venezolano o extranjero.
+  static const nacionalidades = ['V', 'E'];
+
+  /// Número de cédula, solo dígitos (la letra se elige aparte): 31985476.
   static String? cedula(String? valor) {
-    final v = normalizarCedula(valor ?? '');
+    final v = (valor ?? '').replaceAll(RegExp(r'[\s.]'), '');
     if (v.isEmpty) return 'Ingresa tu cédula.';
-    if (!_cedula.hasMatch(v)) return 'Escribe la cédula con su letra, por ejemplo V-31985476.';
+    if (!_cedula.hasMatch(v)) return 'Escribe solo los números de la cédula, por ejemplo 31985476.';
     return null;
   }
 
-  /// Quita puntos y espacios y pone la letra en mayúscula: "v 31.985.476" → "V-31985476".
-  static String normalizarCedula(String valor) {
-    final limpio = valor.toUpperCase().replaceAll(RegExp(r'[\s.]'), '');
-    if (limpio.length > 1 && !limpio.contains('-') && RegExp(r'^[VE]\d').hasMatch(limpio)) {
-      return '${limpio[0]}-${limpio.substring(1)}';
-    }
-    return limpio;
-  }
+  /// Convierte el texto del campo en el número que se guarda: "31.985.476" → 31985476.
+  static int numeroCedula(String valor) => int.parse(valor.replaceAll(RegExp(r'[\s.]'), ''));
 
   /// Carnet UNIMET: 11 dígitos.
   static String? carnet(String? valor) {
