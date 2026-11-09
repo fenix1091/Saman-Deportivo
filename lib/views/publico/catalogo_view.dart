@@ -207,6 +207,7 @@ class _TarjetaDeporte extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             PortadaDeporte(
+              heroe: 'portada-${deporte.codigo}',
               deporte: deporte,
               alto: 116,
               radio: BorderRadius.zero,

@@ -70,7 +70,8 @@ class PortadaDeporte extends StatelessWidget {
       required this.deporte,
       this.alto = 120,
       this.radio = const BorderRadius.vertical(top: Radius.circular(16)),
-      this.hijo});
+      this.hijo,
+      this.heroe});
 
   final Deporte deporte;
   final double alto;
@@ -78,6 +79,9 @@ class PortadaDeporte extends StatelessWidget {
 
   /// Contenido superpuesto, por ejemplo una etiqueta de cupos.
   final Widget? hijo;
+
+  /// Si se indica, la portada "viaja" entre dos pantallas que usen la misma etiqueta.
+  final String? heroe;
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +111,7 @@ class PortadaDeporte extends StatelessWidget {
         ],
       ),
     );
-    return ClipRRect(
+    final portada = ClipRRect(
       borderRadius: radio,
       child: SizedBox(
         height: alto,
@@ -139,5 +143,7 @@ class PortadaDeporte extends StatelessWidget {
         ),
       ),
     );
+    if (heroe == null) return portada;
+    return Hero(tag: heroe!, child: Material(type: MaterialType.transparency, child: portada));
   }
 }

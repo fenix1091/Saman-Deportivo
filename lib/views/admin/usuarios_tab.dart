@@ -361,19 +361,21 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('${u.cedulaTexto} · ${u.correo}', style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _nombre,
                   decoration: const InputDecoration(labelText: 'Nombre'),
                   textCapitalization: TextCapitalization.words,
                   validator: Validadores.nombre,
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _apellido,
                   decoration: const InputDecoration(labelText: 'Apellido'),
                   textCapitalization: TextCapitalization.words,
                   validator: Validadores.apellido,
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _telefono,
                   decoration: const InputDecoration(labelText: 'Teléfono', hintText: '0414-1234567'),
@@ -381,6 +383,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                   validator: Validadores.telefono,
                 ),
                 if (u is Estudiante) ...[
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _carrera,
                     decoration: const InputDecoration(labelText: 'Carrera'),
@@ -400,11 +403,13 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                     onChanged: (v) => setState(() => _activo = v),
                   ),
                 ],
-                if (u is Entrenador)
+                if (u is Entrenador) ...[
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _especialidad,
                     decoration: const InputDecoration(labelText: 'Especialidad'),
                   ),
+                ],
                 if (u is! Administrador) ...[
                   const Divider(height: 32),
                   Align(

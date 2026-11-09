@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/validadores.dart';
 import '../../viewmodels/accion_correo_view_model.dart';
 import '../../widgets/formulario_centrado.dart';
+import '../../widgets/marco_acceso.dart';
 
 /// Pantalla a la que llegan los enlaces de los correos: crear una contraseña
 /// nueva o confirmar el correo, con la marca de Samán Deportivo.
@@ -36,25 +37,20 @@ class _AccionCorreoViewState extends State<AccionCorreoView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AccionCorreoViewModel>();
-    return Scaffold(
-      body: SafeArea(
-        child: FormularioCentrado(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Image.asset('design/marca/logo_horizontal.png', height: 72, semanticLabel: 'Samán Deportivo'),
-              ),
-              const SizedBox(height: 28),
-              ...switch (vm.estado) {
-                EstadoAccion.comprobando => _comprobando(context),
-                EstadoAccion.pidiendoClave => _formularioClave(context, vm),
-                EstadoAccion.listo => _listo(context, vm),
-                EstadoAccion.invalido => _invalido(context, vm),
-              },
-            ],
-          ),
-        ),
+    return MarcoAcceso(
+      lema: 'Tu cuenta, siempre a salvo',
+      detalle: 'Los enlaces que te enviamos por correo solo sirven una vez y vencen pronto.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 12),
+          ...switch (vm.estado) {
+            EstadoAccion.comprobando => _comprobando(context),
+            EstadoAccion.pidiendoClave => _formularioClave(context, vm),
+            EstadoAccion.listo => _listo(context, vm),
+            EstadoAccion.invalido => _invalido(context, vm),
+          },
+        ],
       ),
     );
   }

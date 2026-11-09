@@ -392,21 +392,25 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                   return null;
                 },
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _nombre,
                 decoration: const InputDecoration(labelText: 'Nombre *'),
                 validator: (value) => Validadores.requerido(value, 'el nombre'),
                 textCapitalization: TextCapitalization.words,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _categoria,
                 decoration: const InputDecoration(labelText: 'Categoría'),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _descripcion,
                 decoration: const InputDecoration(labelText: 'Descripción'),
                 maxLines: 2,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _cupos,
                 decoration: const InputDecoration(labelText: 'Cupo máximo *'),
@@ -421,6 +425,7 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                 },
                 autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _costo,
                 decoration: const InputDecoration(
@@ -432,10 +437,12 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                   return null;
                 },
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _duracion,
                 decoration: const InputDecoration(labelText: 'Duración', hintText: 'Ej. Trimestre 2627-1 · 12 semanas'),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _imagen,
                 decoration: const InputDecoration(
@@ -659,6 +666,7 @@ class _HorarioDialogState extends State<_HorarioDialog> {
                     child: _SelectorHora(label: 'Hasta', hora: _fin, onChange: (hora) => setState(() => _fin = hora))),
               ],
             ),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _lugar,
               decoration: const InputDecoration(labelText: 'Lugar *'),
@@ -785,6 +793,7 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                   textCapitalization: TextCapitalization.words,
                   validator: Validadores.nombre,
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _apellido,
                   decoration: const InputDecoration(labelText: 'Apellido *'),
@@ -821,22 +830,26 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _correo,
                   decoration: const InputDecoration(labelText: 'Correo electrónico *'),
                   keyboardType: TextInputType.emailAddress,
                   validator: Validadores.correo,
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _telefono,
                   decoration: const InputDecoration(labelText: 'Teléfono'),
                   validator: Validadores.telefono,
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _especialidad,
                   decoration: const InputDecoration(labelText: 'Especialidad *'),
                   validator: (value) => Validadores.requerido(value, 'la especialidad'),
                 ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _experiencia,
                   decoration: const InputDecoration(labelText: 'Años de experiencia'),

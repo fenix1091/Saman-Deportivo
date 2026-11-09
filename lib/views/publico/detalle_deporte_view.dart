@@ -111,7 +111,8 @@ class _Encabezado extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PortadaDeporte(deporte: deporte, alto: 220, radio: BorderRadius.circular(22)),
+        PortadaDeporte(
+            heroe: 'portada-${deporte.codigo}', deporte: deporte, alto: 220, radio: BorderRadius.circular(22)),
         const SizedBox(height: 18),
         Text(deporte.nombre, style: textos.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
