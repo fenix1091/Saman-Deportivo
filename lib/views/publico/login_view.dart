@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/validadores.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../widgets/campo_correo.dart';
 import '../../widgets/formulario_centrado.dart';
 import '../../widgets/marco_acceso.dart';
 
@@ -61,12 +62,9 @@ class _LoginViewState extends State<LoginView> {
               const SizedBox(height: 6),
               Text('Entra con tu correo de la UNIMET.', style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 24),
-              TextFormField(
+              CampoCorreo(
                 controller: _correo,
-                decoration: const InputDecoration(labelText: 'Correo'),
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.email],
+                accion: TextInputAction.next,
                 validator: Validadores.correo,
               ),
               const SizedBox(height: 12),

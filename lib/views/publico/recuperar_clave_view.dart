@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/validadores.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../widgets/campo_correo.dart';
 import '../../widgets/formulario_centrado.dart';
 import '../../widgets/marco_acceso.dart';
 
@@ -72,12 +73,9 @@ class _RecuperarClaveViewState extends State<RecuperarClaveView> {
                   Text('Escribe el correo de tu cuenta y te enviaremos un enlace para restablecer la contraseña.',
                       style: textos.bodyLarge),
                   const SizedBox(height: 16),
-                  TextFormField(
+                  CampoCorreo(
                     controller: _correo,
-                    decoration: const InputDecoration(labelText: 'Correo'),
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    onFieldSubmitted: (_) => _enviar(),
+                    alEnviar: _enviar,
                     validator: Validadores.correo,
                   ),
                   if (vm.error != null) ...[

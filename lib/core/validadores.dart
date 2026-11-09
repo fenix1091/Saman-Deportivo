@@ -10,6 +10,21 @@ class Validadores {
   /// Correos de la UNIMET que pueden registrarse: el de estudiante y el general.
   static const dominiosUnimet = [dominioEstudiantes, '@unimet.edu.ve'];
 
+  /// Propuestas para terminar un correo a medio escribir con los dominios de la UNIMET:
+  /// "vgallo" da "vgallo@correo.unimet.edu.ve" y "vgallo@unimet.edu.ve"; "vgallo@u" solo la segunda.
+  static List<String> sugerenciasCorreo(String texto) {
+    final t = texto.trim().toLowerCase();
+    if (t.isEmpty || t.contains(' ')) return const [];
+    final arroba = t.indexOf('@');
+    final usuario = arroba < 0 ? t : t.substring(0, arroba);
+    final escrito = arroba < 0 ? '' : t.substring(arroba);
+    if (usuario.isEmpty || !RegExp(r'^[\w.+-]+$').hasMatch(usuario)) return const [];
+    return [
+      for (final dominio in dominiosUnimet)
+        if (dominio.startsWith(escrito) && dominio != escrito) '$usuario$dominio',
+    ];
+  }
+
   static final _correo = RegExp(r'^[\w.+-]+@[\w-]+(\.[\w-]+)+$');
   static final _cedula = RegExp(r'^\d{6,9}$');
   static final _carnet = RegExp(r'^\d{11}$');

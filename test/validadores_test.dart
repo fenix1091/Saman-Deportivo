@@ -2,6 +2,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:saman_deportivo/core/validadores.dart';
 
 void main() {
+  group('sugerenciasCorreo', () {
+    test('con solo el usuario propone los dos dominios de la UNIMET', () {
+      expect(Validadores.sugerenciasCorreo('vgallo'), ['vgallo@correo.unimet.edu.ve', 'vgallo@unimet.edu.ve']);
+      expect(Validadores.sugerenciasCorreo(' VGallo '), ['vgallo@correo.unimet.edu.ve', 'vgallo@unimet.edu.ve']);
+    });
+
+    test('al empezar el dominio deja solo los que coinciden', () {
+      expect(Validadores.sugerenciasCorreo('vgallo@'), ['vgallo@correo.unimet.edu.ve', 'vgallo@unimet.edu.ve']);
+      expect(Validadores.sugerenciasCorreo('vgallo@u'), ['vgallo@unimet.edu.ve']);
+      expect(Validadores.sugerenciasCorreo('vgallo@corr'), ['vgallo@correo.unimet.edu.ve']);
+    });
+
+    test('no propone nada si está vacío, completo, con otro dominio o mal escrito', () {
+      expect(Validadores.sugerenciasCorreo(''), isEmpty);
+      expect(Validadores.sugerenciasCorreo('vgallo@unimet.edu.ve'), isEmpty);
+      expect(Validadores.sugerenciasCorreo('vgallo@gmail.com'), isEmpty);
+      expect(Validadores.sugerenciasCorreo('@unimet'), isEmpty);
+      expect(Validadores.sugerenciasCorreo('v gallo'), isEmpty);
+    });
+  });
+
   group('Validadores', () {
     test('el registro solo acepta el correo institucional de estudiante', () {
       expect(Validadores.correoEstudiante('vgallo@correo.unimet.edu.ve'), isNull);

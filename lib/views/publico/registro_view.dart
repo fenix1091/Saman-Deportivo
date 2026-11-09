@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/validadores.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../widgets/campo_correo.dart';
 import '../../widgets/casilla_robot.dart';
 import '../../widgets/formulario_centrado.dart';
 import '../../widgets/marco_acceso.dart';
@@ -141,16 +142,14 @@ class _RegistroViewState extends State<RegistroView> {
               ],
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            CampoCorreo(
               controller: _correo,
-              decoration: const InputDecoration(
-                labelText: 'Correo de la UNIMET',
-                helperText: 'Sirve @correo.unimet.edu.ve o @unimet.edu.ve.',
-                hintText: 'usuario${Validadores.dominioEstudiantes}',
-              ),
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              autocorrect: false,
+              etiqueta: 'Correo de la UNIMET',
+              ayuda: 'Escribe tu usuario y elige cómo termina: @correo.unimet.edu.ve o @unimet.edu.ve.',
+              sugerencia: 'usuario${Validadores.dominioEstudiantes}',
+              accion: TextInputAction.next,
+              // Sin autocompletado del navegador: en el registro congela los campos (ver más arriba).
+              autocompletarNavegador: false,
               validator: Validadores.correoEstudiante,
             ),
             const SizedBox(height: 12),
