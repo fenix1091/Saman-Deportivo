@@ -141,18 +141,38 @@ class PanelConMenu extends StatelessWidget {
   static const anchoEscritorio = 1024.0;
   static const anchoTableta = 720.0;
 
+  /// Flecha para volver: la que pida la pantalla, o la del historial, o al inicio del rol.
+  Widget? _atras(BuildContext context, String inicio, String rutaActual) {
+    if (leading != null) return leading;
+    if (Navigator.of(context).canPop()) return const BackButton();
+    if (rutaActual != inicio) {
+      return IconButton(
+        tooltip: 'Volver al inicio',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => context.go(inicio),
+      );
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuario = context.watch<AuthViewModel>().usuario;
+    final rutaActual = GoRouterState.of(context).uri.path;
     if (usuario == null) {
       return Scaffold(
-        appBar: AppBar(title: titulo, leading: leading, bottom: bottom, actions: const [AccionesSesion()]),
+        appBar: AppBar(
+            title: titulo,
+            leading: _atras(context, '/', rutaActual),
+            bottom: bottom,
+            actions: const [AccionesSesion()]),
         body: body,
         bottomNavigationBar: bottomNavigationBar,
       );
     }
     final destinos = destinosDe(usuario.rol);
-    final rutaActual = GoRouterState.of(context).uri.path;
+    final inicio = AuthViewModel.rutaInicio(usuario.rol);
+    final atras = _atras(context, inicio, rutaActual);
     final ancho = MediaQuery.sizeOf(context).width;
 
     if (ancho < anchoTableta) {
@@ -161,7 +181,7 @@ class PanelConMenu extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(
             title: titulo,
-            leading: leading,
+            leading: atras,
             bottom: bottom,
             actions: [...acciones, const CampanaNotificaciones(), const AccionesSesion()]),
         body: body,
@@ -193,15 +213,10 @@ class PanelConMenu extends StatelessWidget {
           _BarraLateral(usuario: usuario, destinos: destinos, rutaActual: rutaActual, extendida: extendido),
           Expanded(
             child: Scaffold(
-              appBar: AppBar(
-                  title: titulo,
-                  leading: leading,
-                  automaticallyImplyLeading: leading != null,
-                  bottom: bottom,
-                  actions: [
-                    ...acciones,
-                    const Padding(padding: EdgeInsets.only(right: 8), child: CampanaNotificaciones())
-                  ]),
+              appBar: AppBar(title: titulo, leading: atras, automaticallyImplyLeading: false, bottom: bottom, actions: [
+                ...acciones,
+                const Padding(padding: EdgeInsets.only(right: 8), child: CampanaNotificaciones())
+              ]),
               body: body,
               bottomNavigationBar: bottomNavigationBar,
             ),

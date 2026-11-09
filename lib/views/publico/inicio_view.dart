@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/apariencia_deporte.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../repositories/deporte_repository.dart';
@@ -113,7 +114,6 @@ double _fluido(BuildContext context, double min, double max) {
   final ancho = MediaQuery.sizeOf(context).width;
   return (min + (max - min) * ((ancho - 360) / (1280 - 360))).clamp(min, max);
 }
-
 
 /// Etiqueta pequeña en naranja que va encima de cada título de sección.
 class _Antetitulo extends StatelessWidget {
@@ -603,7 +603,8 @@ class _ComoFunciona extends StatelessWidget {
                 numero: '02',
                 icono: Icons.how_to_reg_outlined,
                 titulo: 'Inscríbete',
-                texto: 'Regístrate con tu correo UNIMET. El sistema valida tu solvencia y aparta tu cupo al pagar la reserva.',
+                texto:
+                    'Regístrate con tu correo UNIMET. El sistema valida tu solvencia y aparta tu cupo al pagar la reserva.',
               ),
               _Paso(
                 numero: '03',
@@ -689,8 +690,7 @@ class _Disciplinas extends StatelessWidget {
               runSpacing: 18,
               alignment: WrapAlignment.center,
               children: [
-                for (final (i, d) in visibles.indexed)
-                  Revelar(orden: i % 3, child: _FichaDeporte(deporte: d)),
+                for (final (i, d) in visibles.indexed) Revelar(orden: i % 3, child: _FichaDeporte(deporte: d)),
               ],
             ),
             const SizedBox(height: 36),
@@ -737,48 +737,54 @@ class _FichaDeporte extends StatelessWidget {
       child: Elevable(
         radio: 18,
         alPulsar: () => context.go('/catalogo/${Uri.encodeComponent(deporte.codigo)}'),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PortadaDeporte(deporte: deporte, alto: 120, radio: const BorderRadius.vertical(top: Radius.circular(18))),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      deporte.nombre,
-                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.texto),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          deporte.nombre,
+                          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.texto),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_outward_rounded, size: 18, color: AppColors.gris),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    deporte.categoria.isEmpty ? 'Disciplina' : deporte.categoria,
+                    style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: proporcion.clamp(0, 1),
+                      minHeight: 6,
+                      backgroundColor: const Color(0xFFFDE3CC),
+                      color: color,
                     ),
                   ),
-                  const Icon(Icons.arrow_outward_rounded, size: 18, color: AppColors.gris),
+                  const SizedBox(height: 8),
+                  Text(
+                    libres > 0 ? '$libres cupos disponibles' : 'Cupos agotados',
+                    style: textos.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                deporte.categoria.isEmpty ? 'Disciplina' : deporte.categoria,
-                style: textos.bodySmall?.copyWith(color: AppColors.gris),
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: proporcion.clamp(0, 1),
-                  minHeight: 6,
-                  backgroundColor: const Color(0xFFFDE3CC),
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                libres > 0 ? '$libres cupos disponibles' : 'Cupos agotados',
-                style: textos.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
