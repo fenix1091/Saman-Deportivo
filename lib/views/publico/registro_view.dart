@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/validadores.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../widgets/casilla_robot.dart';
 import '../../widgets/formulario_centrado.dart';
 
 /// Pantalla de registro de estudiantes (CU-01, RF-01).
@@ -26,6 +27,8 @@ class _RegistroViewState extends State<RegistroView> {
   final _confirmacion = TextEditingController();
   String _nacionalidad = 'V';
   bool _verClave = false;
+  bool _humano = false;
+  bool _faltaCasilla = false;
 
   @override
   void initState() {
@@ -42,7 +45,9 @@ class _RegistroViewState extends State<RegistroView> {
   }
 
   Future<void> _crearCuenta() async {
-    if (!_formulario.currentState!.validate()) return;
+    final valido = _formulario.currentState!.validate();
+    setState(() => _faltaCasilla = !_humano);
+    if (!valido || !_humano) return;
     final vm = context.read<AuthViewModel>();
     final ok = await vm.registrar(
       nacionalidad: _nacionalidad,
@@ -188,6 +193,19 @@ class _RegistroViewState extends State<RegistroView> {
                   onFieldSubmitted: (_) => _crearCuenta(),
                   validator: (v) => Validadores.confirmarClave(v, _clave.text),
                 ),
+                const SizedBox(height: 16),
+                CasillaRobot(
+                  alCambiar: (marcada) => setState(() {
+                    _humano = marcada;
+                    if (marcada) _faltaCasilla = false;
+                  }),
+                ),
+                if (_faltaCasilla)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Text('Marca la casilla "No soy un robot".',
+                        style: textos.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error)),
+                  ),
                 if (vm.error != null) ...[
                   const SizedBox(height: 16),
                   MensajeError(
