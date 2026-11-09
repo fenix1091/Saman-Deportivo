@@ -87,7 +87,7 @@ class AuthViewModel extends ChangeNotifier {
   static String rutaInicio(Rol rol) => switch (rol) {
         Rol.estudiante => '/estudiante',
         Rol.entrenador => '/entrenador/mis-deportes',
-        Rol.administrador => '/admin/dashboard',
+        Rol.administrador => '/admin/resumen',
       };
 
   Future<bool> _ejecutar(Future<Object?> Function() accion) async {

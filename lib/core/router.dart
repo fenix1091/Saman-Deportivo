@@ -111,8 +111,14 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
       ),
       GoRoute(
         path: '/admin/dashboard',
-        builder: (_, __) => AdminDashboardView(
-            repositorio: adminRepository ?? AdminRepositoryFirebase()),
+        builder: (_, __) => AdminDashboardView(repositorio: adminRepository ?? AdminRepositoryFirebase()),
+      ),
+      GoRoute(
+        path: '/admin/:seccion',
+        builder: (_, state) => AdminDashboardView(
+          repositorio: adminRepository ?? AdminRepositoryFirebase(),
+          seccion: AdminDashboardView.seccionDesde(state.pathParameters['seccion']),
+        ),
       ),
     ],
   );

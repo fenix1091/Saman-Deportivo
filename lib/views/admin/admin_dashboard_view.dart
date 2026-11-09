@@ -1,67 +1,48 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../../core/validadores.dart';
 import '../../models/deporte.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
-import '../../viewmodels/auth_view_model.dart';
 import 'inscritos_dialog.dart';
 import 'reservas_tab.dart';
 import 'resumen_tab.dart';
 import 'usuarios_tab.dart';
+import '../../widgets/panel_con_menu.dart';
+
+/// Secciones del panel de administración; cada una tiene su ruta (/admin/{seccion})
+/// y aparece en el menú lateral.
+enum SeccionAdmin { resumen, clases, reservas, entrenadores, usuarios }
 
 class AdminDashboardView extends StatelessWidget {
-  const AdminDashboardView({super.key, required this.repositorio});
+  const AdminDashboardView({super.key, required this.repositorio, this.seccion = SeccionAdmin.resumen});
 
   final AdminRepository repositorio;
+  final SeccionAdmin seccion;
+
+  static SeccionAdmin seccionDesde(String? nombre) =>
+      SeccionAdmin.values.firstWhere((s) => s.name == nombre, orElse: () => SeccionAdmin.resumen);
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 5,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Administración deportiva'),
-          actions: [
-            IconButton(
-              tooltip: 'Mi perfil',
-              icon: const Icon(Icons.account_circle_outlined),
-              onPressed: () => context.push('/perfil'),
-            ),
-            IconButton(
-              tooltip: 'Cerrar sesión',
-              icon: const Icon(Icons.logout),
-              onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
-            ),
-          ],
-          bottom: const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.center,
-            tabs: [
-              Tab(icon: Icon(Icons.insights_outlined), text: 'Resumen'),
-              Tab(
-                  icon: Icon(Icons.event_available_outlined),
-                  text: 'Clases y horarios'),
-              Tab(icon: Icon(Icons.fact_check_outlined), text: 'Reservas'),
-              Tab(icon: Icon(Icons.groups_outlined), text: 'Entrenadores'),
-              Tab(icon: Icon(Icons.manage_accounts_outlined), text: 'Usuarios'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            ResumenTab(repositorio: repositorio),
-            _ClasesTab(repositorio: repositorio),
-            ReservasTab(repositorio: repositorio),
-            _EntrenadoresTab(repositorio: repositorio),
-            UsuariosTab(repositorio: repositorio),
-          ],
-        ),
-      ),
+    final titulo = switch (seccion) {
+      SeccionAdmin.resumen => 'Administración deportiva',
+      SeccionAdmin.clases => 'Clases y horarios',
+      SeccionAdmin.reservas => 'Revisión de reservas',
+      SeccionAdmin.entrenadores => 'Equipo de entrenadores',
+      SeccionAdmin.usuarios => 'Usuarios',
+    };
+    return PanelConMenu(
+      titulo: Text(titulo),
+      body: switch (seccion) {
+        SeccionAdmin.resumen => ResumenTab(repositorio: repositorio),
+        SeccionAdmin.clases => _ClasesTab(repositorio: repositorio),
+        SeccionAdmin.reservas => ReservasTab(repositorio: repositorio),
+        SeccionAdmin.entrenadores => _EntrenadoresTab(repositorio: repositorio),
+        SeccionAdmin.usuarios => UsuariosTab(repositorio: repositorio),
+      },
     );
   }
 }
@@ -79,16 +60,13 @@ class _ClasesTab extends StatelessWidget {
         if (entrenadoresSnapshot.hasError) {
           return _ErrorCarga(error: entrenadoresSnapshot.error!);
         }
-        if (!entrenadoresSnapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
+        if (!entrenadoresSnapshot.hasData) return const Center(child: CircularProgressIndicator());
         final entrenadores = entrenadoresSnapshot.data!;
         return StreamBuilder<List<Deporte>>(
           stream: repositorio.observarDeportes(),
           builder: (context, deportesSnapshot) {
-            if (deportesSnapshot.hasError)
-              return _ErrorCarga(error: deportesSnapshot.error!);
-            if (!deportesSnapshot.hasData)
-              return const Center(child: CircularProgressIndicator());
+            if (deportesSnapshot.hasError) return _ErrorCarga(error: deportesSnapshot.error!);
+            if (!deportesSnapshot.hasData) return const Center(child: CircularProgressIndicator());
             final deportes = deportesSnapshot.data!;
             return Column(
               children: [
@@ -97,17 +75,14 @@ class _ClasesTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Oferta deportiva',
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w600)),
+                      const Text('Oferta deportiva', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerRight,
                         child: SizedBox(
                           width: 160,
                           child: FilledButton.icon(
-                            onPressed: () =>
-                                _editarDeporte(context, repositorio),
+                            onPressed: () => _editarDeporte(context, repositorio),
                             icon: const Icon(Icons.add),
                             label: const Text('Nueva clase'),
                           ),
@@ -118,9 +93,7 @@ class _ClasesTab extends StatelessWidget {
                 ),
                 Expanded(
                   child: deportes.isEmpty
-                      ? const _Vacio(
-                          icono: Icons.sports,
-                          mensaje: 'Aún no hay clases. Crea la primera.')
+                      ? const _Vacio(icono: Icons.sports, mensaje: 'Aún no hay clases. Crea la primera.')
                       : ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                           itemCount: deportes.length,
@@ -153,11 +126,8 @@ class _TarjetaDeporte extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entrenadorIds =
-        entrenadores.map((entrenador) => entrenador.uid).toSet();
-    final entrenadorActual = entrenadorIds.contains(deporte.entrenadorId)
-        ? deporte.entrenadorId
-        : '';
+    final entrenadorIds = entrenadores.map((entrenador) => entrenador.uid).toSet();
+    final entrenadorActual = entrenadorIds.contains(deporte.entrenadorId) ? deporte.entrenadorId : '';
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -171,24 +141,21 @@ class _TarjetaDeporte extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(deporte.nombre,
-                          style: Theme.of(context).textTheme.titleLarge),
+                      Text(deporte.nombre, style: Theme.of(context).textTheme.titleLarge),
                       if (deporte.categoria.isNotEmpty) Text(deporte.categoria),
                     ],
                   ),
                 ),
                 IconButton(
                   tooltip: 'Editar clase',
-                  onPressed: () =>
-                      _editarDeporte(context, repositorio, deporte),
+                  onPressed: () => _editarDeporte(context, repositorio, deporte),
                   icon: const Icon(Icons.edit_outlined),
                 ),
                 IconButton(
                   tooltip: 'Configurar horarios',
                   onPressed: () => showDialog<void>(
                     context: context,
-                    builder: (_) => _HorariosDialog(
-                        deporte: deporte, repositorio: repositorio),
+                    builder: (_) => _HorariosDialog(deporte: deporte, repositorio: repositorio),
                   ),
                   icon: const Icon(Icons.schedule),
                 ),
@@ -196,8 +163,7 @@ class _TarjetaDeporte extends StatelessWidget {
                   tooltip: 'Inscritos',
                   onPressed: () => showDialog<void>(
                     context: context,
-                    builder: (_) => InscritosDialog(
-                        deporte: deporte, repositorio: repositorio),
+                    builder: (_) => InscritosDialog(deporte: deporte, repositorio: repositorio),
                   ),
                   icon: const Icon(Icons.groups_2_outlined),
                 ),
@@ -217,18 +183,14 @@ class _TarjetaDeporte extends StatelessWidget {
               children: [
                 const Icon(Icons.people_outline, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                    '${deporte.cuposOcupados}/${deporte.cupoMaximo} cupos ocupados'),
+                Text('${deporte.cuposOcupados}/${deporte.cupoMaximo} cupos ocupados'),
                 const Spacer(),
                 Text(deporte.activo ? 'Activa' : 'Inactiva'),
                 Switch(
                   value: deporte.activo,
-                  onChanged: (activo) => repositorio
-                      .actualizarActivoDeporte(deporte.codigo, activo)
-                      .catchError((Object error) {
-                    if (context.mounted)
-                      _mensaje(
-                          context, 'No se pudo actualizar la clase: $error');
+                  onChanged: (activo) =>
+                      repositorio.actualizarActivoDeporte(deporte.codigo, activo).catchError((Object error) {
+                    if (context.mounted) _mensaje(context, 'No se pudo actualizar la clase: $error');
                   }),
                 ),
               ],
@@ -244,18 +206,13 @@ class _TarjetaDeporte extends StatelessWidget {
               items: [
                 const DropdownMenuItem(value: '', child: Text('Sin asignar')),
                 ...entrenadores.map(
-                  (entrenador) => DropdownMenuItem(
-                      value: entrenador.uid, child: Text(entrenador.nombreCompleto)),
+                  (entrenador) => DropdownMenuItem(value: entrenador.uid, child: Text(entrenador.nombreCompleto)),
                 ),
               ],
               onChanged: (uid) {
                 if (uid == null) return;
-                repositorio
-                    .asignarEntrenador(deporte.codigo, uid)
-                    .catchError((Object error) {
-                  if (context.mounted)
-                    _mensaje(
-                        context, 'No se pudo asignar el entrenador: $error');
+                repositorio.asignarEntrenador(deporte.codigo, uid).catchError((Object error) {
+                  if (context.mounted) _mensaje(context, 'No se pudo asignar el entrenador: $error');
                 });
               },
             ),
@@ -264,8 +221,7 @@ class _TarjetaDeporte extends StatelessWidget {
               stream: repositorio.observarHorarios(deporte.codigo),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Text(
-                      'No se pudieron cargar los horarios: ${snapshot.error}');
+                  return Text('No se pudieron cargar los horarios: ${snapshot.error}');
                 }
                 if (!snapshot.hasData) {
                   return const LinearProgressIndicator();
@@ -307,8 +263,7 @@ class _EntrenadoresTab extends StatelessWidget {
       stream: repositorio.observarEntrenadores(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return _ErrorCarga(error: snapshot.error!);
-        if (!snapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final entrenadores = snapshot.data!;
         return Column(
           children: [
@@ -317,9 +272,7 @@ class _EntrenadoresTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Equipo de entrenadores',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                  const Text('Equipo de entrenadores', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
@@ -337,9 +290,7 @@ class _EntrenadoresTab extends StatelessWidget {
             ),
             Expanded(
               child: entrenadores.isEmpty
-                  ? const _Vacio(
-                      icono: Icons.groups_outlined,
-                      mensaje: 'Aún no hay entrenadores registrados.')
+                  ? const _Vacio(icono: Icons.groups_outlined, mensaje: 'Aún no hay entrenadores registrados.')
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       itemCount: entrenadores.length,
@@ -347,8 +298,7 @@ class _EntrenadoresTab extends StatelessWidget {
                         final entrenador = entrenadores[index];
                         return Card(
                           child: ListTile(
-                            leading: const CircleAvatar(
-                                child: Icon(Icons.sports_handball_outlined)),
+                            leading: const CircleAvatar(child: Icon(Icons.sports_handball_outlined)),
                             title: Text(entrenador.nombreCompleto),
                             subtitle: Text(
                               '${entrenador.especialidad}\n${entrenador.correo}',
@@ -357,21 +307,15 @@ class _EntrenadoresTab extends StatelessWidget {
                             ),
                             isThreeLine: true,
                             trailing: IconButton(
-                              tooltip:
-                                  'Reenviar enlace para configurar contraseña',
-                              icon:
-                                  const Icon(Icons.mark_email_unread_outlined),
+                              tooltip: 'Reenviar enlace para configurar contraseña',
+                              icon: const Icon(Icons.mark_email_unread_outlined),
                               onPressed: () async {
                                 try {
-                                  await repositorio
-                                      .reenviarEnlace(entrenador.correo);
-                                  if (context.mounted)
-                                    _mensaje(context,
-                                        'Enlace enviado a ${entrenador.correo}.');
+                                  await repositorio.reenviarEnlace(entrenador.correo);
+                                  if (context.mounted) _mensaje(context, 'Enlace enviado a ${entrenador.correo}.');
                                 } on FirebaseAuthException catch (error) {
                                   if (context.mounted) {
-                                    _mensaje(context,
-                                        'No se pudo enviar el enlace: ${error.message ?? error.code}');
+                                    _mensaje(context, 'No se pudo enviar el enlace: ${error.message ?? error.code}');
                                   }
                                 }
                               },
@@ -400,16 +344,13 @@ class _DeporteDialog extends StatefulWidget {
 class _DeporteDialogState extends State<_DeporteDialog> {
   final _formKey = GlobalKey<FormState>();
   late final _codigo = TextEditingController(text: widget.deporte?.codigo);
-  late final _costo = TextEditingController(
-      text: widget.deporte == null ? '0' : widget.deporte!.costoReserva.toStringAsFixed(2));
+  late final _costo =
+      TextEditingController(text: widget.deporte == null ? '0' : widget.deporte!.costoReserva.toStringAsFixed(2));
   late final _duracion = TextEditingController(text: widget.deporte?.duracion);
   late final _nombre = TextEditingController(text: widget.deporte?.nombre);
-  late final _categoria =
-      TextEditingController(text: widget.deporte?.categoria);
-  late final _descripcion =
-      TextEditingController(text: widget.deporte?.descripcion);
-  late final _cupos =
-      TextEditingController(text: '${widget.deporte?.cupoMaximo ?? 20}');
+  late final _categoria = TextEditingController(text: widget.deporte?.categoria);
+  late final _descripcion = TextEditingController(text: widget.deporte?.descripcion);
+  late final _cupos = TextEditingController(text: '${widget.deporte?.cupoMaximo ?? 20}');
 
   @override
   void dispose() {
@@ -436,8 +377,7 @@ class _DeporteDialogState extends State<_DeporteDialog> {
               TextFormField(
                 controller: _codigo,
                 enabled: widget.deporte == null,
-                decoration: const InputDecoration(
-                    labelText: 'Código único *', hintText: 'Ej. BAS-01'),
+                decoration: const InputDecoration(labelText: 'Código único *', hintText: 'Ej. BAS-01'),
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
@@ -471,10 +411,8 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   final cupos = int.tryParse(value ?? '');
-                  if (cupos == null || cupos < 1)
-                    return 'Ingresa un cupo mayor que cero.';
-                  if (widget.deporte != null &&
-                      cupos < widget.deporte!.cuposOcupados) {
+                  if (cupos == null || cupos < 1) return 'Ingresa un cupo mayor que cero.';
+                  if (widget.deporte != null && cupos < widget.deporte!.cuposOcupados) {
                     return 'No puede ser menor que los ${widget.deporte!.cuposOcupados} inscritos.';
                   }
                   return null;
@@ -484,10 +422,8 @@ class _DeporteDialogState extends State<_DeporteDialog> {
               TextFormField(
                 controller: _costo,
                 decoration: const InputDecoration(
-                    labelText: 'Costo de la reserva (USD) *',
-                    helperText: '0 para una disciplina gratuita'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                    labelText: 'Costo de la reserva (USD) *', helperText: '0 para una disciplina gratuita'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   final costo = double.tryParse((value ?? '').replaceAll(',', '.'));
                   if (costo == null || costo < 0) return 'Ingresa un monto válido.';
@@ -496,18 +432,14 @@ class _DeporteDialogState extends State<_DeporteDialog> {
               ),
               TextFormField(
                 controller: _duracion,
-                decoration: const InputDecoration(
-                    labelText: 'Duración',
-                    hintText: 'Ej. Trimestre 2627-1 · 12 semanas'),
+                decoration: const InputDecoration(labelText: 'Duración', hintText: 'Ej. Trimestre 2627-1 · 12 semanas'),
               ),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
@@ -538,8 +470,7 @@ class _DeporteDialogState extends State<_DeporteDialog> {
   }
 }
 
-Future<void> _editarDeporte(BuildContext context, AdminRepository repositorio,
-    [Deporte? deporte]) async {
+Future<void> _editarDeporte(BuildContext context, AdminRepository repositorio, [Deporte? deporte]) async {
   final resultado = await showDialog<Deporte>(
     context: context,
     builder: (_) => _DeporteDialog(deporte: deporte),
@@ -549,35 +480,27 @@ Future<void> _editarDeporte(BuildContext context, AdminRepository repositorio,
     await repositorio.guardarDeporte(resultado, nueva: deporte == null);
   } on CodigoRepetidoException {
     if (context.mounted) {
-      _mensaje(context,
-          'Ya existe una disciplina con el código ${resultado.codigo}. Usa otro código.');
+      _mensaje(context, 'Ya existe una disciplina con el código ${resultado.codigo}. Usa otro código.');
     }
   } on FirebaseException catch (error) {
-    if (context.mounted)
-      _mensaje(context,
-          'No se pudo guardar la clase: ${error.message ?? error.code}');
+    if (context.mounted) _mensaje(context, 'No se pudo guardar la clase: ${error.message ?? error.code}');
   }
 }
 
 /// Elimina una disciplina por completo, con confirmación. Si tiene inscripciones
 /// vigentes el repositorio lo impide y aquí se explica el motivo y la alternativa.
-Future<void> _eliminarDeporte(
-    BuildContext context, AdminRepository repositorio, Deporte deporte) async {
+Future<void> _eliminarDeporte(BuildContext context, AdminRepository repositorio, Deporte deporte) async {
   final confirmado = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       title: Text('Eliminar ${deporte.nombre}'),
-      content: const Text(
-          'Se borrarán la disciplina y sus horarios de forma definitiva. Solo es '
+      content: const Text('Se borrarán la disciplina y sus horarios de forma definitiva. Solo es '
           'posible si no tiene inscripciones vigentes; si las tiene, puedes darla '
           'de baja con el interruptor "Activa" para conservar el historial.'),
       actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
         FilledButton(
-          style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(c).colorScheme.error),
+          style: FilledButton.styleFrom(backgroundColor: Theme.of(c).colorScheme.error),
           onPressed: () => Navigator.pop(c, true),
           child: const Text('Eliminar definitivamente'),
         ),
@@ -592,8 +515,7 @@ Future<void> _eliminarDeporte(
     if (context.mounted) _mensaje(context, e.mensaje);
   } on FirebaseException catch (error) {
     if (context.mounted) {
-      _mensaje(context,
-          'No se pudo eliminar la clase: ${error.message ?? error.code}');
+      _mensaje(context, 'No se pudo eliminar la clase: ${error.message ?? error.code}');
     }
   }
 }
@@ -613,11 +535,8 @@ class _HorariosDialog extends StatelessWidget {
         child: StreamBuilder<List<Horario>>(
           stream: repositorio.observarHorarios(deporte.codigo),
           builder: (context, snapshot) {
-            if (snapshot.hasError)
-              return Text(
-                  'No se pudieron cargar los horarios: ${snapshot.error}');
-            if (!snapshot.hasData)
-              return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError) return Text('No se pudieron cargar los horarios: ${snapshot.error}');
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             final horarios = snapshot.data!;
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -625,8 +544,7 @@ class _HorariosDialog extends StatelessWidget {
                 if (horarios.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(12),
-                    child:
-                        Text('Agrega los días, horas y lugares de esta clase.'),
+                    child: Text('Agrega los días, horas y lugares de esta clase.'),
                   )
                 else
                   ConstrainedBox(
@@ -638,22 +556,18 @@ class _HorariosDialog extends StatelessWidget {
                         final horario = horarios[index];
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(
-                              '${_nombreDia(horario.dia)} · ${horario.horaInicio}-${horario.horaFin}'),
+                          title: Text('${_nombreDia(horario.dia)} · ${horario.horaInicio}-${horario.horaFin}'),
                           subtitle: Text(horario.lugar),
-                          onTap: () => _editarHorario(
-                              context, repositorio, deporte, horarios, horario),
+                          onTap: () => _editarHorario(context, repositorio, deporte, horarios, horario),
                           trailing: IconButton(
                             tooltip: 'Eliminar horario',
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () async {
                               try {
-                                await repositorio.eliminarHorario(
-                                    deporte.codigo, horario.id);
+                                await repositorio.eliminarHorario(deporte.codigo, horario.id);
                               } on FirebaseException catch (error) {
                                 if (context.mounted) {
-                                  _mensaje(context,
-                                      'No se pudo eliminar el horario: ${error.message ?? error.code}');
+                                  _mensaje(context, 'No se pudo eliminar el horario: ${error.message ?? error.code}');
                                 }
                               }
                             },
@@ -664,8 +578,7 @@ class _HorariosDialog extends StatelessWidget {
                   ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () =>
-                      _editarHorario(context, repositorio, deporte, horarios),
+                  onPressed: () => _editarHorario(context, repositorio, deporte, horarios),
                   icon: const Icon(Icons.add),
                   label: const Text('Agregar horario'),
                 ),
@@ -674,10 +587,7 @@ class _HorariosDialog extends StatelessWidget {
           },
         ),
       ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context), child: const Text('Listo'))
-      ],
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Listo'))],
     );
   }
 }
@@ -694,8 +604,7 @@ class _HorarioDialog extends StatefulWidget {
 class _HorarioDialogState extends State<_HorarioDialog> {
   final _formKey = GlobalKey<FormState>();
   late DiaSemana _dia = widget.horario?.dia ?? DiaSemana.lunes;
-  late TimeOfDay _inicio =
-      _horaDesdeTexto(widget.horario?.horaInicio ?? '16:00');
+  late TimeOfDay _inicio = _horaDesdeTexto(widget.horario?.horaInicio ?? '16:00');
   late TimeOfDay _fin = _horaDesdeTexto(widget.horario?.horaFin ?? '18:00');
   late final _lugar = TextEditingController(text: widget.horario?.lugar);
 
@@ -708,8 +617,7 @@ class _HorarioDialogState extends State<_HorarioDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title:
-          Text(widget.horario == null ? 'Agregar horario' : 'Editar horario'),
+      title: Text(widget.horario == null ? 'Agregar horario' : 'Editar horario'),
       content: Form(
         key: _formKey,
         child: Column(
@@ -718,10 +626,7 @@ class _HorarioDialogState extends State<_HorarioDialog> {
             DropdownButtonFormField<DiaSemana>(
               initialValue: _dia,
               decoration: const InputDecoration(labelText: 'Día'),
-              items: DiaSemana.values
-                  .map((dia) => DropdownMenuItem(
-                      value: dia, child: Text(_nombreDia(dia))))
-                  .toList(),
+              items: DiaSemana.values.map((dia) => DropdownMenuItem(value: dia, child: Text(_nombreDia(dia)))).toList(),
               onChanged: (dia) {
                 if (dia != null) setState(() => _dia = dia);
               },
@@ -730,15 +635,10 @@ class _HorarioDialogState extends State<_HorarioDialog> {
               children: [
                 Expanded(
                     child: _SelectorHora(
-                        label: 'Desde',
-                        hora: _inicio,
-                        onChange: (hora) => setState(() => _inicio = hora))),
+                        label: 'Desde', hora: _inicio, onChange: (hora) => setState(() => _inicio = hora))),
                 const SizedBox(width: 12),
                 Expanded(
-                    child: _SelectorHora(
-                        label: 'Hasta',
-                        hora: _fin,
-                        onChange: (hora) => setState(() => _fin = hora))),
+                    child: _SelectorHora(label: 'Hasta', hora: _fin, onChange: (hora) => setState(() => _fin = hora))),
               ],
             ),
             TextFormField(
@@ -750,15 +650,12 @@ class _HorarioDialogState extends State<_HorarioDialog> {
         ),
       ),
       actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
             if (_minutos(_inicio) >= _minutos(_fin)) {
-              _mensaje(context,
-                  'La hora de fin debe ser posterior a la hora de inicio.');
+              _mensaje(context, 'La hora de fin debe ser posterior a la hora de inicio.');
               return;
             }
             Navigator.pop(
@@ -780,8 +677,7 @@ class _HorarioDialogState extends State<_HorarioDialog> {
 }
 
 class _SelectorHora extends StatelessWidget {
-  const _SelectorHora(
-      {required this.label, required this.hora, required this.onChange});
+  const _SelectorHora({required this.label, required this.hora, required this.onChange});
 
   final String label;
   final TimeOfDay hora;
@@ -791,8 +687,7 @@ class _SelectorHora extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton.icon(
       onPressed: () async {
-        final seleccion =
-            await showTimePicker(context: context, initialTime: hora);
+        final seleccion = await showTimePicker(context: context, initialTime: hora);
         if (seleccion != null) onChange(seleccion);
       },
       icon: const Icon(Icons.access_time),
@@ -813,17 +708,14 @@ Future<void> _editarHorario(
     builder: (_) => _HorarioDialog(horario: horario),
   );
   if (resultado == null || !context.mounted) return;
-  if (horarios.any((existente) =>
-      existente.id != resultado.id && existente.seSolapaCon(resultado))) {
+  if (horarios.any((existente) => existente.id != resultado.id && existente.seSolapaCon(resultado))) {
     _mensaje(context, 'Este horario se cruza con otro en el mismo lugar.');
     return;
   }
   try {
     await repositorio.guardarHorario(deporte.codigo, resultado);
   } on FirebaseException catch (error) {
-    if (context.mounted)
-      _mensaje(context,
-          'No se pudo guardar el horario: ${error.message ?? error.code}');
+    if (context.mounted) _mensaje(context, 'No se pudo guardar el horario: ${error.message ?? error.code}');
   }
 }
 
@@ -893,16 +785,14 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                           for (final letra in Validadores.nacionalidades)
                             DropdownMenuItem(value: letra, child: Text(letra)),
                         ],
-                        onChanged: (letra) =>
-                            setState(() => _nacionalidad = letra ?? 'V'),
+                        onChanged: (letra) => setState(() => _nacionalidad = letra ?? 'V'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
                         controller: _cedula,
-                        decoration:
-                            const InputDecoration(labelText: 'Cédula *'),
+                        decoration: const InputDecoration(labelText: 'Cédula *'),
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -915,8 +805,7 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                 ),
                 TextFormField(
                   controller: _correo,
-                  decoration:
-                      const InputDecoration(labelText: 'Correo electrónico *'),
+                  decoration: const InputDecoration(labelText: 'Correo electrónico *'),
                   keyboardType: TextInputType.emailAddress,
                   validator: Validadores.correo,
                 ),
@@ -927,35 +816,27 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                 ),
                 TextFormField(
                   controller: _especialidad,
-                  decoration:
-                      const InputDecoration(labelText: 'Especialidad *'),
-                  validator: (value) =>
-                      Validadores.requerido(value, 'la especialidad'),
+                  decoration: const InputDecoration(labelText: 'Especialidad *'),
+                  validator: (value) => Validadores.requerido(value, 'la especialidad'),
                 ),
                 TextFormField(
                   controller: _experiencia,
-                  decoration:
-                      const InputDecoration(labelText: 'Años de experiencia'),
+                  decoration: const InputDecoration(labelText: 'Años de experiencia'),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     final anios = int.tryParse(value ?? '');
-                    return anios == null || anios < 0
-                        ? 'Ingresa un número igual o mayor que cero.'
-                        : null;
+                    return anios == null || anios < 0 ? 'Ingresa un número igual o mayor que cero.' : null;
                   },
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                    'Se enviará un enlace al correo para que configure su contraseña.'),
+                const Text('Se enviará un enlace al correo para que configure su contraseña.'),
               ],
             ),
           ),
         ),
       ),
       actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
@@ -1002,8 +883,7 @@ class _DatosEntrenador {
   final int aniosExperiencia;
 }
 
-Future<void> _crearEntrenador(
-    BuildContext context, AdminRepository repositorio) async {
+Future<void> _crearEntrenador(BuildContext context, AdminRepository repositorio) async {
   final datos = await showDialog<_DatosEntrenador>(
     context: context,
     builder: (_) => const _EntrenadorDialog(),
@@ -1020,22 +900,16 @@ Future<void> _crearEntrenador(
       especialidad: datos.especialidad,
       aniosExperiencia: datos.aniosExperiencia,
     );
-    if (context.mounted)
-      _mensaje(context,
-          'Entrenador creado. Enviamos el enlace de contraseña a ${datos.correo}.');
+    if (context.mounted) _mensaje(context, 'Entrenador creado. Enviamos el enlace de contraseña a ${datos.correo}.');
   } on EntrenadorCreadoException {
     if (context.mounted) {
-      _mensaje(context,
-          'La cuenta se creó, pero no se pudo enviar el enlace. Reenvíalo desde la lista de entrenadores.');
+      _mensaje(
+          context, 'La cuenta se creó, pero no se pudo enviar el enlace. Reenvíalo desde la lista de entrenadores.');
     }
   } on FirebaseAuthException catch (error) {
-    if (context.mounted)
-      _mensaje(context,
-          'No se pudo crear la cuenta: ${error.message ?? error.code}');
+    if (context.mounted) _mensaje(context, 'No se pudo crear la cuenta: ${error.message ?? error.code}');
   } on FirebaseException catch (error) {
-    if (context.mounted)
-      _mensaje(context,
-          'No se pudo guardar el entrenador: ${error.message ?? error.code}');
+    if (context.mounted) _mensaje(context, 'No se pudo guardar el entrenador: ${error.message ?? error.code}');
   } on StateError catch (error) {
     if (context.mounted) _mensaje(context, error.message);
   }
@@ -1072,8 +946,7 @@ class _ErrorCarga extends StatelessWidget {
   Widget build(BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text('No se pudieron cargar los datos: $error',
-              textAlign: TextAlign.center),
+          child: Text('No se pudieron cargar los datos: $error', textAlign: TextAlign.center),
         ),
       );
 }

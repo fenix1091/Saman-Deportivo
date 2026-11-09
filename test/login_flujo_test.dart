@@ -124,7 +124,7 @@ void main() {
         find.widgetWithText(TextFormField, 'Contraseña'), 'Entrenador123');
     await tester.tap(find.text('Entrar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Mi perfil'));
+    await tester.tap(find.text('Perfil'));
     await tester.pumpAndSettle();
     expect(find.text('Fútbol'), findsOneWidget);
     expect(find.text('V-20333444'), findsOneWidget);

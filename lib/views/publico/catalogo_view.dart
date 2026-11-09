@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../viewmodels/catalogo_view_model.dart';
-import '../../widgets/acciones_sesion.dart';
 import '../../widgets/barra_cupos.dart';
+import '../../widgets/panel_con_menu.dart';
 
 /// Catálogo público de disciplinas con búsqueda y filtros (CU-04, CU-05).
 ///
@@ -49,8 +49,8 @@ class _CatalogoViewState extends State<CatalogoView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<CatalogoViewModel>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Catálogo de deportes'), actions: const [AccionesSesion()]),
+    return PanelConMenu(
+      titulo: const Text('Catálogo de deportes'),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),

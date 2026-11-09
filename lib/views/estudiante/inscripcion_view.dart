@@ -9,9 +9,9 @@ import '../../models/inscripcion.dart';
 import '../../models/pago.dart';
 import '../../models/persona.dart';
 import '../../viewmodels/inscripcion_view_model.dart';
-import '../../widgets/acciones_sesion.dart';
 import '../../widgets/barra_cupos.dart';
 import '../../widgets/formulario_centrado.dart';
+import '../../widgets/panel_con_menu.dart';
 
 /// Inscripción en un deporte con validación, control de cupo y pago (CU-07).
 class InscripcionView extends StatelessWidget {
@@ -51,13 +51,10 @@ class InscripcionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<InscripcionViewModel>();
     final deporte = vm.deporte;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inscripción'),
-        leading: BackButton(
-          onPressed: () => context.canPop() ? context.pop() : context.go('/catalogo/${Uri.encodeComponent(vm.codigo)}'),
-        ),
-        actions: const [AccionesSesion()],
+    return PanelConMenu(
+      titulo: const Text('Inscripción'),
+      leading: BackButton(
+        onPressed: () => context.canPop() ? context.pop() : context.go('/catalogo/${Uri.encodeComponent(vm.codigo)}'),
       ),
       body: () {
         if (vm.cargando) return const Center(child: CircularProgressIndicator());

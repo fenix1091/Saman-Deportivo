@@ -43,7 +43,7 @@ void main() {
   testWidgets('el entrenador entra y ve solo sus disciplinas, con los inscritos de cada una', (tester) async {
     await entrarComoEntrenador(tester);
     expect(find.text('Mis disciplinas'), findsOneWidget);
-    expect(find.text('Entrenador Prueba'), findsOneWidget);
+    expect(find.text('Entrenador Prueba'), findsAtLeastNWidgets(1));
     expect(find.text('Fútbol'), findsOneWidget);
     expect(find.text('Tenis'), findsOneWidget);
     expect(find.text('Baloncesto'), findsNothing, reason: 'no está asignado a ese deporte');

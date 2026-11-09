@@ -8,8 +8,8 @@ import '../../models/persona.dart';
 import '../../models/resena.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/detalle_deporte_view_model.dart';
-import '../../widgets/acciones_sesion.dart';
 import '../../widgets/barra_cupos.dart';
+import '../../widgets/panel_con_menu.dart';
 
 /// Detalle público de un deporte (CU-06, RF-06): entrenador, horarios, cupos en
 /// tiempo real, costo de la reserva y reseñas.
@@ -23,7 +23,7 @@ class DetalleDeporteView extends StatelessWidget {
     final usuario = context.watch<AuthViewModel>().usuario;
     // Los visitantes también ven el botón: la guardia los manda al login y vuelven aquí (CU-06, A1).
     final puedeInscribirse = deporte != null && !vm.noDisponible && (usuario == null || usuario.rol == Rol.estudiante);
-    return Scaffold(
+    return PanelConMenu(
       bottomNavigationBar: !puedeInscribirse
           ? null
           : SafeArea(
@@ -43,11 +43,8 @@ class DetalleDeporteView extends StatelessWidget {
                 ),
               ),
             ),
-      appBar: AppBar(
-        title: Text(deporte?.nombre ?? 'Deporte'),
-        leading: BackButton(onPressed: () => context.canPop() ? context.pop() : context.go('/catalogo')),
-        actions: const [AccionesSesion()],
-      ),
+      titulo: Text(deporte?.nombre ?? 'Deporte'),
+      leading: BackButton(onPressed: () => context.canPop() ? context.pop() : context.go('/catalogo')),
       body: () {
         if (vm.cargando) return const Center(child: CircularProgressIndicator());
         if (vm.error != null) return _Mensaje(vm.error!);

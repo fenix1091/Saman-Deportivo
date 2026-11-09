@@ -7,6 +7,7 @@ import '../models/inscripcion.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/mis_inscripciones_view_model.dart';
 import '../widgets/animaciones.dart';
+import '../widgets/panel_con_menu.dart';
 import 'dialogs/publicar_resena_dialog.dart';
 
 /// Reservas del estudiante (CU-10, CU-11, CU-12): vigentes e historial, en tiempo real.
@@ -35,16 +36,13 @@ class _MisInscripcionesViewState extends State<MisInscripcionesView> {
 
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Mis inscripciones'),
-          leading: BackButton(onPressed: () => context.canPop() ? context.pop() : context.go('/catalogo')),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Vigentes'),
-              Tab(text: 'Historial'),
-            ],
-          ),
+      child: PanelConMenu(
+        titulo: const Text('Mis inscripciones'),
+        bottom: const TabBar(
+          tabs: [
+            Tab(text: 'Vigentes'),
+            Tab(text: 'Historial'),
+          ],
         ),
         body: vm.cargando
             ? const Esqueleto(filas: 3, alto: 150)

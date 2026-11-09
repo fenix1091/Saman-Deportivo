@@ -63,7 +63,7 @@ void main() {
       const casos = {
         'estudiante@correo.unimet.edu.ve': ('Estudiante123', Rol.estudiante, '/estudiante'),
         'entrenador@unimet.edu.ve': ('Entrenador123', Rol.entrenador, '/entrenador/mis-deportes'),
-        'admin@unimet.edu.ve': ('Admin1234', Rol.administrador, '/admin/dashboard'),
+        'admin@unimet.edu.ve': ('Admin1234', Rol.administrador, '/admin/resumen'),
       };
       for (final MapEntry(key: correo, value: (clave, rol, ruta)) in casos.entries) {
         expect(await vm.iniciarSesion(correo, clave), isTrue);

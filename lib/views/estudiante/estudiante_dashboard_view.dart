@@ -8,10 +8,10 @@ import '../../models/inscripcion.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/mis_inscripciones_view_model.dart';
-import '../../widgets/acciones_sesion.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/encabezado_panel.dart';
 import '../../widgets/grafico_barras.dart';
+import '../../widgets/panel_con_menu.dart';
 
 /// Inicio del estudiante: sus reservas por estado, su asistencia, los
 /// entrenamientos de la semana y los accesos al catálogo y al perfil. Todo en
@@ -46,8 +46,8 @@ class _EstudianteDashboardViewState extends State<EstudianteDashboardView> {
     final sesiones = confirmadas.fold<int>(0, (s, i) => s + i.sesiones);
     final asistidas = confirmadas.fold<int>(0, (s, i) => s + i.sesionesAsistidas);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mi panel'), actions: const [AccionesSesion()]),
+    return PanelConMenu(
+      titulo: const Text('Mi panel'),
       body: vm.cargando
           ? const Esqueleto(filas: 3, alto: 160)
           : Align(

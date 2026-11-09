@@ -6,10 +6,10 @@ import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../repositories/asistencia_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
-import '../../widgets/acciones_sesion.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/barra_cupos.dart';
 import '../../widgets/encabezado_panel.dart';
+import '../../widgets/panel_con_menu.dart';
 
 /// Inicio del entrenador (CU-13): sus disciplinas asignadas, en tiempo real, con
 /// los inscritos y el acceso a la toma de asistencia de cada una.
@@ -20,8 +20,8 @@ class MisDisciplinasView extends StatelessWidget {
   Widget build(BuildContext context) {
     final usuario = context.watch<AuthViewModel>().usuario;
     final repositorio = context.read<AsistenciaRepository>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mis disciplinas'), actions: const [AccionesSesion()]),
+    return PanelConMenu(
+      titulo: const Text('Mis disciplinas'),
       body: usuario == null
           ? const SizedBox.shrink()
           : StreamBuilder<List<Deporte>>(

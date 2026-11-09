@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // Importación agregada para navegación
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/validadores.dart';
 import '../../models/persona.dart';
-import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/perfil_view_model.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/formulario_centrado.dart';
+import '../../widgets/panel_con_menu.dart';
 
 /// Perfil del usuario, común a los tres roles (CU-03, RF-03).
 class PerfilView extends StatefulWidget {
@@ -73,29 +72,8 @@ class _PerfilViewState extends State<PerfilView> {
     final usuario = vm.usuario;
     if (usuario == null) return const Scaffold(body: SizedBox.shrink());
     final textos = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: AppBar(
-        // Flecha de regreso para salir de Mi Perfil
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Volver',
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/catalogo');
-            }
-          },
-        ),
-        title: const Text('Mi perfil'),
-        actions: [
-          IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
-          ),
-        ],
-      ),
+    return PanelConMenu(
+      titulo: const Text('Mi perfil'),
       body: FormularioCentrado(
         child: Form(
           key: _formulario,

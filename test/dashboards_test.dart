@@ -142,7 +142,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Mi panel'), findsOneWidget);
-      expect(find.text('Estudiante Prueba'), findsOneWidget);
+      expect(find.text('Estudiante Prueba'), findsAtLeastNWidgets(1));
       expect(find.text('confirmadas'), findsOneWidget);
       expect(find.text('Tu pago está en revisión. La Coordinación de Deportes confirmará tu cupo pronto.'),
           findsOneWidget);

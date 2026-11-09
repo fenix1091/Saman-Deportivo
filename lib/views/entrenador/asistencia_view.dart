@@ -6,8 +6,8 @@ import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/asistencia_view_model.dart';
-import '../../widgets/acciones_sesion.dart';
 import '../../widgets/animaciones.dart';
+import '../../widgets/panel_con_menu.dart';
 import '../../widgets/formulario_centrado.dart';
 
 /// Toma de asistencia e historial de una disciplina (CU-14, CU-15).
@@ -23,19 +23,16 @@ class AsistenciaView extends StatelessWidget {
         final deporte = snap.data;
         return DefaultTabController(
           length: 2,
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(deporte?.nombre ?? vm.codigo),
-              leading: BackButton(
-                onPressed: () => context.canPop() ? context.pop() : context.go('/entrenador/mis-deportes'),
-              ),
-              actions: const [AccionesSesion()],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(icon: Icon(Icons.fact_check_outlined), text: 'Tomar asistencia'),
-                  Tab(icon: Icon(Icons.insights_outlined), text: 'Historial'),
-                ],
-              ),
+          child: PanelConMenu(
+            titulo: Text(deporte?.nombre ?? vm.codigo),
+            leading: BackButton(
+              onPressed: () => context.canPop() ? context.pop() : context.go('/entrenador/mis-deportes'),
+            ),
+            bottom: const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.fact_check_outlined), text: 'Tomar asistencia'),
+                Tab(icon: Icon(Icons.insights_outlined), text: 'Historial'),
+              ],
             ),
             body: vm.cargando
                 ? const Esqueleto(filas: 4, alto: 64)

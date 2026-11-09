@@ -61,7 +61,7 @@ void main() {
     expect(find.text('Requisitos'), findsOneWidget);
     expect(find.byIcon(Icons.cancel), findsNothing);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.drag(find.byType(ListView).last, const Offset(0, -700));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Pagar \$5.00 con PayPal'));
     await tester.pumpAndSettle();
@@ -89,7 +89,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('No apareces como solvente'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.drag(find.byType(ListView).last, const Offset(0, -700));
     await tester.pumpAndSettle();
     final boton = tester.widget<ButtonStyleButton>(
       find.ancestor(of: find.text('Pagar \$5.00 con PayPal'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
