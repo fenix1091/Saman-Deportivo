@@ -10,6 +10,7 @@ import '../../models/deporte.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../widgets/animaciones.dart';
+import '../../widgets/video_fondo.dart';
 
 /// Naranja profundo: lleva texto blanco con 5,2:1 de contraste (sobre el naranja
 /// de la marca el blanco solo llega a 2,6:1). Se usa en botones, degradados y textos.
@@ -467,6 +468,26 @@ class _Portada extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          // Video de fondo (solo web, silenciado y en bucle) con un velo naranja encima
+          // para que la portada siga siendo de la marca y el texto se lea bien.
+          if (!MediaQuery.of(context).disableAnimations) ...[
+            const Positioned.fill(child: VideoFondo(videoId: 'Bb6HLK_zlz8', inicio: 13)),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.naranja.withValues(alpha: 0.82),
+                      const Color(0xFFE5640F).withValues(alpha: 0.80),
+                      _naranjaProfundo.withValues(alpha: 0.86),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           // Halos de color difuminados al fondo (profundidad sin imágenes pesadas).
           const Positioned(top: -120, right: -80, child: _Halo(color: Colors.white, tamano: 420, alfa: 0.22)),
           const Positioned(bottom: -160, left: -120, child: _Halo(color: Color(0xFFFFB547), tamano: 460, alfa: 0.35)),
