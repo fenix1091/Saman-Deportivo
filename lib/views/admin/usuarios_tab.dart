@@ -405,20 +405,24 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                     controller: _especialidad,
                     decoration: const InputDecoration(labelText: 'Especialidad'),
                   ),
+                if (u is! Administrador) ...[
+                  const Divider(height: 32),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
+                      onPressed: () => Navigator.pop(context, {'__eliminar': true}),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('Eliminar usuario'),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
       actions: [
-        if (widget.usuario is! Administrador)
-          TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
-            onPressed: () => Navigator.pop(context, {'__eliminar': true}),
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Eliminar usuario'),
-          ),
-        const Spacer(),
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(110, 44)),
@@ -426,7 +430,6 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
           child: const Text('Guardar'),
         ),
       ],
-      actionsAlignment: MainAxisAlignment.start,
     );
   }
 }

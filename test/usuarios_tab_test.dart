@@ -70,6 +70,23 @@ void main() {
     expect(find.text('1 usuario'), findsOneWidget);
   });
 
+  testWidgets('la ventana de edición se abre completa y guarda solo lo que cambió', (tester) async {
+    final repo = await abrir(tester);
+    await tester.tap(find.text('Gallo, Vincenzo'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Editar a Vincenzo Gallo'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Nombre'), findsOneWidget);
+    expect(find.text('Eliminar usuario'), findsOneWidget);
+    expect(find.text('Cancelar'), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Carrera'), 'Ingeniería de Sistemas');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(repo.cambios['a'], {'carrera': 'Ingeniería de Sistemas'});
+  });
+
   testWidgets('filtra por rol y marca la solvencia de un estudiante', (tester) async {
     final repo = await abrir(tester);
     await tester.tap(find.widgetWithText(ChoiceChip, 'Entrenadores'));
