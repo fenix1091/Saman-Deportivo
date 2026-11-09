@@ -29,7 +29,11 @@ class NotificacionRepositoryFirebase implements NotificacionRepository {
 
   @override
   Stream<List<Notificacion>> observar(String uid, Rol rol) => _col
-      .where(Filter.or(Filter('paraUid', isEqualTo: uid), Filter('paraRol', isEqualTo: rol.name)))
+      // Los avisos a un rol van con paraUid vacío; la consulta lo dice para que las reglas la acepten.
+      .where(Filter.or(
+        Filter('paraUid', isEqualTo: uid),
+        Filter.and(Filter('paraUid', isEqualTo: ''), Filter('paraRol', isEqualTo: rol.name)),
+      ))
       .snapshots()
       .map((c) =>
           [for (final d in c.docs) Notificacion.desdeMapa(d.id, d.data())]..sort((a, b) => b.fecha.compareTo(a.fecha)));

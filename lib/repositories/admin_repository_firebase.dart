@@ -411,8 +411,9 @@ class AdminRepositoryFirebase implements AdminRepository {
       final doc = await tx.get(ref);
       if (doc.data() == null) throw const OperacionNoPermitidaException('La inscripción ya no existe.');
       final inscripcion = Inscripcion.desdeMapa(doc.id, doc.data()!);
-      if (!inscripcion.estaVigente())
+      if (!inscripcion.estaVigente()) {
         throw const OperacionNoPermitidaException('Esa inscripción ya no estaba vigente.');
+      }
       final refDeporte = _db.collection('deportes').doc(inscripcion.deporteCodigo);
       final deporte = await tx.get(refDeporte);
       final ocupados = (deporte.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
@@ -448,6 +449,12 @@ class AdminRepositoryFirebase implements AdminRepository {
     lote.delete(_db.collection('cedulas').doc(persona.cedulaTexto));
     if (persona is Estudiante && persona.carnet.isNotEmpty) lote.delete(_db.collection('carnets').doc(persona.carnet));
     lote.delete(refUsuario);
+    // La marca impide que la cuenta de acceso vuelva a crearse un perfil (ver firestore.rules).
+    lote.set(_db.collection('eliminados').doc(uid), {
+      'correo': persona.correo,
+      'cedula': persona.cedulaTexto,
+      'fecha': FieldValue.serverTimestamp(),
+    });
     await lote.commit();
   }
 }

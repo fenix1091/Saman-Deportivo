@@ -7,6 +7,8 @@ administrar deportes, entrenadores y horarios.
 
 Proyecto Final 2627-1 · Sistemas de Información (FPTSP04) · Prof. Franklin Sandoval.
 
+**Aplicación publicada:** https://saman-deportivo-7b59f.web.app
+
 ## Equipo
 
 | Integrante | Cédula | Rol |
@@ -121,9 +123,8 @@ Firebase Authentication → Plantillas.
 
 ## Flujo de trabajo
 
-- `main`: versión estable, se actualiza al cerrar cada hito.
-- `develop`: integración de funcionalidades terminadas.
-- `feature/<nombre>`: una rama por funcionalidad; se integra a `develop` con un pull request
+- `main`: versión estable; es la que se publica en Firebase Hosting.
+- `feature/<nombre>`: una rama por funcionalidad; se integra a `main` con un pull request
   revisado por otro integrante.
 - Mensajes de commit con prefijo: `feat`, `fix`, `docs`, `style`, `refactor`, `test`.
 

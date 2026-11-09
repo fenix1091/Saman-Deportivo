@@ -6,7 +6,7 @@
     "background_color": "#F6F8F6",
     "theme_color": "#F58220",
     "description": "Plataforma de gestión de clubes deportivos de la UNIMET.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

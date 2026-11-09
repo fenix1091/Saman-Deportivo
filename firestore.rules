@@ -59,6 +59,15 @@ service cloud.firestore {
       return datos.nacionalidad + '-' + string(datos.cedula);
     }
 
+    // Solo se registran cuentas con correo de la universidad.
+    function correoUnimet() {
+      return request.auth.token.email.matches('^[^@]+@(correo[.])?unimet[.]edu[.]ve$');
+    }
+    // Un perfil eliminado por el administrador deja su marca y no se puede volver a crear.
+    function fueEliminado(uid) {
+      return exists(/databases/$(database)/documents/eliminados/$(uid));
+    }
+
     function vencida(inscripcion) {
       return request.time > inscripcion.fechaInscripcion + duration.value(15, 'm');
     }
@@ -80,6 +89,8 @@ service cloud.firestore {
           && request.resource.data.estado == 'activo'
           && request.resource.data.solvente == false
           && request.resource.data.correo == request.auth.token.email
+          && correoUnimet()
+          && !fueEliminado(uid)
           && request.resource.data.creadoEn == request.time)
         || (esAdmin()
           && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'apellido', 'correo',
@@ -129,6 +140,11 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && getAfter(rutaUsuario(request.auth.uid)).data.carnet == carnet;
       allow delete: if esAdmin();
+    }
+
+    // Marca de los perfiles eliminados (la cuenta de acceso no se puede borrar desde la app).
+    match /eliminados/{uid} {
+      allow read, write: if esAdmin();
     }
 
     // ---------- Estructura base de la gestión deportiva ----------

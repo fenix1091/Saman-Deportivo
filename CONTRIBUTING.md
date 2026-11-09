@@ -3,7 +3,7 @@
 ## Antes de empezar una tarea
 
 1. Toma la tarea en Trello y muévela a "En progreso".
-2. Actualiza `develop`: `git checkout develop && git pull`.
+2. Actualiza `main`: `git checkout main && git pull`.
 3. Crea tu rama: `git checkout -b feature/nombre-corto` (por ejemplo `feature/catalogo-filtros`).
 
 ## Commits
@@ -24,7 +24,7 @@ Ejemplo: `feat: filtro por disponibilidad de cupos en el catálogo`
 ## Pull requests
 
 1. Antes de subir: `flutter analyze` sin errores y `flutter test` en verde.
-2. Sube tu rama y abre el pull request hacia `develop`.
+2. Sube tu rama y abre el pull request hacia `main`.
 3. Otro integrante lo revisa y lo aprueba antes de integrarlo.
 4. Enlaza el pull request en la tarjeta de Trello.
 

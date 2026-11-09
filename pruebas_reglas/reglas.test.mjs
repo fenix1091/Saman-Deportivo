@@ -1,10 +1,11 @@
 // Pruebas de las reglas de seguridad de Firestore (seguridad de los perfiles).
 // Ejecutar con: npm test   (levanta el emulador de Firestore; requiere Java 11+)
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, increment, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc,
+  and, collection, deleteDoc, doc, getDoc, getDocs, increment, or, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc,
   where, writeBatch,
 } from 'firebase/firestore';
 
@@ -87,6 +88,22 @@ describe('Registro de estudiantes (RF-01)', () => {
   test('no puede crear el perfil de otra cuenta ni con otro correo', async () => {
     await assertFails(registrar(nuevo(), 'otro', perfilEstudiante('nuevo@correo.unimet.edu.ve')));
     await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('falso@correo.unimet.edu.ve')));
+  });
+
+  test('solo se registran correos de la universidad', async () => {
+    const externo = entorno.authenticatedContext('externo', { email: 'alguien@gmail.com' }).firestore();
+    await assertFails(registrar(externo, 'externo', perfilEstudiante('alguien@gmail.com')));
+    const parecido = entorno.authenticatedContext('parecido', { email: 'alguien@unimet.edu.ve.com' }).firestore();
+    await assertFails(registrar(parecido, 'parecido', perfilEstudiante('alguien@unimet.edu.ve.com')));
+    const personal = entorno.authenticatedContext('personal', { email: 'docente@unimet.edu.ve' }).firestore();
+    await assertSucceeds(registrar(personal, 'personal', perfilEstudiante('docente@unimet.edu.ve')));
+  });
+
+  test('una cuenta cuyo perfil fue eliminado no puede volver a crearlo', async () => {
+    await assertSucceeds(setDoc(doc(comoAdmin(), 'eliminados/nuevo'), { correo: 'nuevo@correo.unimet.edu.ve', cedula: 'V-31985476', fecha: serverTimestamp() }));
+    await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve')));
+    await assertFails(getDoc(doc(nuevo(), 'eliminados/nuevo')));
+    await assertFails(deleteDoc(doc(comoEstudiante(), 'eliminados/nuevo')));
   });
 
   test('no puede agregar campos que no son del registro', async () => {
@@ -517,6 +534,32 @@ describe('Notificaciones dentro de la app (RF-22)', () => {
     await assertSucceeds(getDoc(doc(comoAdmin(), 'notificaciones/r1')));
     await assertFails(getDoc(doc(comoEstudiante(), 'notificaciones/r1')));
     await assertFails(getDoc(doc(comoEntrenador(), 'notificaciones/r1')));
+  });
+});
+
+describe('Lista de avisos de la campana (RF-22)', () => {
+  const campana = (db, uid, rol) => query(collection(db, 'notificaciones'),
+    or(where('paraUid', '==', uid), and(where('paraUid', '==', ''), where('paraRol', '==', rol))));
+
+  beforeEach(() => entorno.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    const base = { deUid: 'x', tipo: 'reservaRecibida', titulo: 't', mensaje: 'm', ruta: '/', fecha: Timestamp.now(), leida: false };
+    await setDoc(doc(db, 'notificaciones/rolAdmin'), { ...base, paraUid: '', paraRol: 'administrador' });
+    await setDoc(doc(db, 'notificaciones/paraEst1'), { ...base, paraUid: 'est1', paraRol: '' });
+    await setDoc(doc(db, 'notificaciones/paraEst2'), { ...base, paraUid: 'est2', paraRol: '' });
+  }));
+
+  test('cada quien lista sus avisos y los de su rol, como lo pide la app', async () => {
+    const delAdmin = await assertSucceeds(getDocs(campana(comoAdmin(), 'adm1', 'administrador')));
+    assert.deepEqual(delAdmin.docs.map((d) => d.id), ['rolAdmin']);
+    const delEstudiante = await assertSucceeds(getDocs(campana(comoEstudiante(), 'est1', 'estudiante')));
+    assert.deepEqual(delEstudiante.docs.map((d) => d.id), ['paraEst1']);
+  });
+
+  test('no se pueden listar los avisos de otra persona ni los de otro rol', async () => {
+    await assertFails(getDocs(campana(comoEstudiante(), 'est2', 'estudiante')));
+    await assertFails(getDocs(campana(comoEstudiante(), 'est1', 'administrador')));
+    await assertFails(getDocs(collection(comoEstudiante(), 'notificaciones')));
   });
 });
 
