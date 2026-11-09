@@ -38,15 +38,15 @@ Future<void> main() async {
   ));
 }
 
-/// Clave pública del sitio en reCAPTCHA v3 (la secreta está en la consola de Firebase).
-const _claveRecaptcha = '6LcFvRguAAAAAAJFneqq17aL1By3U5kp6X1ONFtP';
+/// Clave pública del sitio en reCAPTCHA Enterprise (registrada en App Check de Firebase).
+const _claveRecaptcha = '6LevoxguAAAAAA_D0S_QklxeNpinveBYB4KAFJWg';
 
 /// App Check: cada petición a Firebase lleva una prueba de que sale de esta web y no
 /// de un programa automático. Si reCAPTCHA no responde, la app arranca igual.
 Future<void> _activarAppCheck() async {
   if (!kIsWeb) return;
   try {
-    await FirebaseAppCheck.instance.activate(providerWeb: ReCaptchaV3Provider(_claveRecaptcha));
+    await FirebaseAppCheck.instance.activate(providerWeb: ReCaptchaEnterpriseProvider(_claveRecaptcha));
   } catch (_) {
     // Sin App Check la app sigue funcionando mientras la verificación no sea obligatoria.
   }
