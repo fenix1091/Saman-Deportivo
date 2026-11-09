@@ -1,4 +1,6 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +26,7 @@ import 'viewmodels/notificaciones_view_model.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _activarAppCheck();
   final notificaciones = NotificacionRepositoryFirebase();
   runApp(SamanDeportivoApp(
     repositorio: AuthRepositoryFirebase(),
@@ -33,6 +36,20 @@ Future<void> main() async {
     adminRepository: AdminRepositoryFirebase(notificaciones: notificaciones),
     notificaciones: notificaciones,
   ));
+}
+
+/// Clave pública del sitio en reCAPTCHA v3 (la secreta está en la consola de Firebase).
+const _claveRecaptcha = '6LcFvRguAAAAAAJFneqq17aL1By3U5kp6X1ONFtP';
+
+/// App Check: cada petición a Firebase lleva una prueba de que sale de esta web y no
+/// de un programa automático. Si reCAPTCHA no responde, la app arranca igual.
+Future<void> _activarAppCheck() async {
+  if (!kIsWeb) return;
+  try {
+    await FirebaseAppCheck.instance.activate(providerWeb: ReCaptchaV3Provider(_claveRecaptcha));
+  } catch (_) {
+    // Sin App Check la app sigue funcionando mientras la verificación no sea obligatoria.
+  }
 }
 
 /// Punto de entrada de Samán Deportivo.
