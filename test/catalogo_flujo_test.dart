@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:saman_deportivo/main.dart';
 
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/notificacion_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
 import 'falsos/inscripcion_repository_falso.dart';
 
@@ -17,6 +18,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     final deportes = DeporteRepositoryFalso.conDatosDePrueba();
     await tester.pumpWidget(SamanDeportivoApp(
+      notificaciones: NotificacionRepositoryFalso(),
       repositorio: AuthRepositoryFalso.conDatosDePrueba(),
       deportes: deportes,
       inscripciones: InscripcionRepositoryFalso(deportes),
@@ -63,6 +65,8 @@ void main() {
     final deportes = await abrirCatalogo(tester);
     await tester.tap(find.text('Fútbol'));
     await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
+    await tester.pumpAndSettle();
     expect(find.text('Entrenador Prueba'), findsOneWidget);
     expect(find.text('Fútbol · 8 años de experiencia'), findsOneWidget);
     expect(find.text('Jueves 16:00 - 18:00'), findsOneWidget);
@@ -89,6 +93,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     final deportes = DeporteRepositoryFalso.conDatosDePrueba();
     await tester.pumpWidget(SamanDeportivoApp(
+      notificaciones: NotificacionRepositoryFalso(),
       repositorio: AuthRepositoryFalso.conDatosDePrueba(),
       deportes: deportes,
       inscripciones: InscripcionRepositoryFalso(deportes),

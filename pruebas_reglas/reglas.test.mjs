@@ -489,6 +489,37 @@ describe('Gestión del administrador: eliminar e inscribir (Hito 3, puntos 6 a 8
   });
 });
 
+describe('Notificaciones dentro de la app (RF-22)', () => {
+  const aviso = (extra = {}) => ({
+    paraUid: '', paraRol: 'administrador', deUid: 'est1', tipo: 'reservaRecibida', titulo: 'Nueva reserva por revisar',
+    mensaje: 'Un estudiante pagó su reserva en Fútbol.', ruta: '/admin/reservas', fecha: serverTimestamp(), leida: false, ...extra,
+  });
+
+  test('un estudiante avisa a los administradores de su reserva, pero no a otras personas ni con otro tipo', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'notificaciones/n1'), aviso()));
+    await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/n2'), aviso({ paraUid: 'est2', paraRol: '' })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/n3'), aviso({ tipo: 'reservaConfirmada' })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/n4'), aviso({ deUid: 'est2' })));
+    await assertFails(setDoc(doc(sinSesion(), 'notificaciones/n5'), aviso()));
+  });
+
+  test('el administrador avisa a quien quiera; solo el destinatario lee y marca como leído', async () => {
+    await assertSucceeds(setDoc(doc(comoAdmin(), 'notificaciones/p1'), aviso({ paraUid: 'est1', paraRol: '', deUid: 'adm1', tipo: 'reservaConfirmada' })));
+    await assertSucceeds(getDoc(doc(comoEstudiante(), 'notificaciones/p1')));
+    await assertFails(getDoc(doc(comoOtroEstudiante(), 'notificaciones/p1')));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'notificaciones/p1'), { leida: true }));
+    await assertFails(updateDoc(doc(comoEstudiante(), 'notificaciones/p1'), { mensaje: 'otro' }));
+    await assertFails(updateDoc(doc(comoOtroEstudiante(), 'notificaciones/p1'), { leida: true }));
+  });
+
+  test('los avisos al rol administrador los lee el administrador y no el estudiante', async () => {
+    await entorno.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'notificaciones/r1'), aviso({ fecha: Timestamp.now() })));
+    await assertSucceeds(getDoc(doc(comoAdmin(), 'notificaciones/r1')));
+    await assertFails(getDoc(doc(comoEstudiante(), 'notificaciones/r1')));
+    await assertFails(getDoc(doc(comoEntrenador(), 'notificaciones/r1')));
+  });
+});
+
 describe('Asistencia del entrenador (RF-14 a RF-16)', () => {
   const ID = 'FUT-01_est1_2026-11-08';
   const asistencia = (extra = {}) => ({

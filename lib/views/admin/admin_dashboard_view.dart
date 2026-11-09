@@ -347,6 +347,7 @@ class _DeporteDialogState extends State<_DeporteDialog> {
   late final _costo =
       TextEditingController(text: widget.deporte == null ? '0' : widget.deporte!.costoReserva.toStringAsFixed(2));
   late final _duracion = TextEditingController(text: widget.deporte?.duracion);
+  late final _imagen = TextEditingController(text: widget.deporte?.imagenUrl);
   late final _nombre = TextEditingController(text: widget.deporte?.nombre);
   late final _categoria = TextEditingController(text: widget.deporte?.categoria);
   late final _descripcion = TextEditingController(text: widget.deporte?.descripcion);
@@ -357,6 +358,7 @@ class _DeporteDialogState extends State<_DeporteDialog> {
     _codigo.dispose();
     _costo.dispose();
     _duracion.dispose();
+    _imagen.dispose();
     _nombre.dispose();
     _categoria.dispose();
     _descripcion.dispose();
@@ -434,6 +436,22 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                 controller: _duracion,
                 decoration: const InputDecoration(labelText: 'Duración', hintText: 'Ej. Trimestre 2627-1 · 12 semanas'),
               ),
+              TextFormField(
+                controller: _imagen,
+                decoration: const InputDecoration(
+                    labelText: 'Foto (enlace https)',
+                    helperText: 'Sin foto se muestra un fondo de color con el icono del deporte'),
+                keyboardType: TextInputType.url,
+                validator: (value) {
+                  final v = (value ?? '').trim();
+                  if (v.isEmpty) return null;
+                  final uri = Uri.tryParse(v);
+                  if (uri == null || !uri.hasScheme || !uri.scheme.startsWith('http')) {
+                    return 'Pega un enlace completo que empiece por https://';
+                  }
+                  return null;
+                },
+              ),
             ],
           ),
         ),
@@ -456,7 +474,7 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                 cuposOcupados: anterior?.cuposOcupados ?? 0,
                 costoReserva: double.parse(_costo.text.replaceAll(',', '.')),
                 duracion: _duracion.text.trim(),
-                imagenUrl: anterior?.imagenUrl ?? '',
+                imagenUrl: _imagen.text.trim(),
                 entrenadorId: anterior?.entrenadorId ?? '',
                 activo: anterior?.activo ?? true,
                 vecesBuscado: anterior?.vecesBuscado ?? 0,

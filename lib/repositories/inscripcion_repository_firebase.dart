@@ -5,7 +5,9 @@ import '../models/inscripcion.dart';
 import '../models/pago.dart';
 import '../models/persona.dart';
 import '../models/resena.dart';
+import '../models/notificacion.dart';
 import 'inscripcion_repository.dart';
+import 'notificacion_repository.dart';
 
 /// Texto con los días, horas y lugares de una disciplina, uno por línea.
 String describirHorarios(List<Horario> horarios) =>
@@ -19,9 +21,12 @@ String describirHorarios(List<Horario> horarios) =>
 /// de uno en uno junto con un pago completado (RNF-05). La reserva pagada queda en
 /// revisión hasta que el administrador la confirma (ver AdminRepository).
 class InscripcionRepositoryFirebase implements InscripcionRepository {
-  InscripcionRepositoryFirebase({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
+  InscripcionRepositoryFirebase({FirebaseFirestore? db, NotificacionRepository? notificaciones})
+      : _db = db ?? FirebaseFirestore.instance,
+        _notificaciones = notificaciones;
 
   final FirebaseFirestore _db;
+  final NotificacionRepository? _notificaciones;
 
   CollectionReference<Map<String, dynamic>> get _inscripciones => _db.collection('inscripciones');
 
@@ -99,6 +104,21 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
         return hayCupo;
       });
       if (!resultado) throw const InscripcionException(ErrorInscripcion.cupoAgotado);
+      // Aviso a la Coordinación: hay una reserva pagada por revisar (sustituye al correo de RF-22).
+      await notificarSinFallar(
+        _notificaciones,
+        Notificacion(
+          id: '',
+          paraRol: 'administrador',
+          deUid: inscripcion.estudianteId,
+          tipo: TipoNotificacion.reservaRecibida,
+          titulo: TipoNotificacion.reservaRecibida.titulo,
+          mensaje: 'Un estudiante pagó su reserva en ${inscripcion.nombreDeporte.isEmpty ? inscripcion.deporteCodigo : inscripcion.nombreDeporte}'
+              '${monto == 0 ? '' : ' (\$${monto.toStringAsFixed(2)})'}. Revísala para confirmarla o rechazarla.',
+          ruta: '/admin/reservas',
+          fecha: DateTime.now(),
+        ),
+      );
       return Pago(
         id: pagoId,
         inscripcionId: inscripcion.id,

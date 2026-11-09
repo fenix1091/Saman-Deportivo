@@ -296,6 +296,32 @@ service cloud.firestore {
       allow create, update: if entrenaEse(request.resource.data.deporteCodigo) && asistenciaValida();
       allow write: if esAdmin();
     }
+    // ---------- Notificaciones dentro de la app (sustituyen al correo de RF-22) ----------
+    // Cada aviso va a una persona (paraUid) o a un rol (paraRol). Cualquier usuario con
+    // sesión puede avisar a los administradores (reserva por revisar); los avisos a personas
+    // los crea el administrador. Solo el destinatario puede marcarlo como leído.
+    match /notificaciones/{id} {
+      function esDestinatario() {
+        return autenticado()
+          && (resource.data.paraUid == request.auth.uid
+            || (resource.data.paraUid == '' && resource.data.paraRol == rol()));
+      }
+      allow read: if esDestinatario();
+      allow create: if esAdmin()
+        || (autenticado()
+          && request.resource.data.keys().hasOnly(['paraUid', 'paraRol', 'deUid', 'tipo', 'titulo', 'mensaje', 'ruta', 'fecha', 'leida'])
+          && request.resource.data.paraUid == ''
+          && request.resource.data.paraRol == 'administrador'
+          && request.resource.data.deUid == request.auth.uid
+          && request.resource.data.tipo == 'reservaRecibida'
+          && request.resource.data.leida == false
+          && request.resource.data.mensaje is string
+          && request.resource.data.mensaje.size() <= 300);
+      allow update: if esDestinatario()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['leida']);
+      allow delete: if esAdmin();
+    }
+
     // Reseñas (CU-12): una por estudiante y deporte, solo si está inscrito y ya cursó
     // (asistió al menos a un entrenamiento registrado por el entrenador).
     match /resenas/{id} {

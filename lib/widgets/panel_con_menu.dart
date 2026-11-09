@@ -7,6 +7,7 @@ import '../models/persona.dart';
 import '../viewmodels/auth_view_model.dart';
 import 'acciones_sesion.dart';
 import 'avatar_usuario.dart';
+import 'campana_notificaciones.dart';
 
 /// Naranja profundo de la marca (texto blanco con 5,2:1 de contraste).
 const _naranjaProfundo = Color(0xFFC2410C);
@@ -158,7 +159,11 @@ class PanelConMenu extends StatelessWidget {
       final principales = destinos.take(5).toList();
       final indice = principales.indexWhere((d) => d.activo(rutaActual));
       return Scaffold(
-        appBar: AppBar(title: titulo, leading: leading, bottom: bottom, actions: [...acciones, const AccionesSesion()]),
+        appBar: AppBar(
+            title: titulo,
+            leading: leading,
+            bottom: bottom,
+            actions: [...acciones, const CampanaNotificaciones(), const AccionesSesion()]),
         body: body,
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,
@@ -193,7 +198,10 @@ class PanelConMenu extends StatelessWidget {
                   leading: leading,
                   automaticallyImplyLeading: leading != null,
                   bottom: bottom,
-                  actions: acciones),
+                  actions: [
+                    ...acciones,
+                    const Padding(padding: EdgeInsets.only(right: 8), child: CampanaNotificaciones())
+                  ]),
               body: body,
               bottomNavigationBar: bottomNavigationBar,
             ),

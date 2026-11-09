@@ -8,6 +8,7 @@ import '../../repositories/asistencia_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/barra_cupos.dart';
+import '../../widgets/calendario_semanal.dart';
 import '../../widgets/encabezado_panel.dart';
 import '../../widgets/panel_con_menu.dart';
 
@@ -59,6 +60,8 @@ class MisDisciplinasView extends StatelessWidget {
                               '$inscritos ${inscritos == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}. '
                               'Elige una para pasar la asistencia de hoy o revisar el historial.',
                         ),
+                        const TituloSeccion(antetitulo: 'Esta semana', titulo: 'Calendario'),
+                        Revelar(orden: 1, child: CalendarioDeDisciplinas(deportes: deportes)),
                         const TituloSeccion(antetitulo: 'Mis disciplinas', titulo: 'Toma de asistencia'),
                         for (var i = 0; i < deportes.length; i++)
                           Revelar(

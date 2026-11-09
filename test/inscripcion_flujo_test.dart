@@ -5,6 +5,7 @@ import 'package:saman_deportivo/main.dart';
 import 'package:saman_deportivo/models/persona.dart';
 
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/notificacion_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
 import 'falsos/inscripcion_repository_falso.dart';
 
@@ -30,6 +31,7 @@ void main() {
       );
     final deportes = DeporteRepositoryFalso.conDatosDePrueba();
     await tester.pumpWidget(SamanDeportivoApp(
+      notificaciones: NotificacionRepositoryFalso(),
       repositorio: auth,
       deportes: deportes,
       inscripciones: InscripcionRepositoryFalso(deportes),

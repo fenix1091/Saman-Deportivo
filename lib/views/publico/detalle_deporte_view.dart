@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/apariencia_deporte.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../models/persona.dart';
@@ -110,7 +111,9 @@ class _Encabezado extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(deporte.nombre, style: textos.headlineMedium),
+        PortadaDeporte(deporte: deporte, alto: 220, radio: BorderRadius.circular(22)),
+        const SizedBox(height: 18),
+        Text(deporte.nombre, style: textos.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

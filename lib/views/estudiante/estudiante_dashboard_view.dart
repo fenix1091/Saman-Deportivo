@@ -9,6 +9,7 @@ import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/mis_inscripciones_view_model.dart';
 import '../../widgets/animaciones.dart';
+import '../../widgets/calendario_semanal.dart';
 import '../../widgets/encabezado_panel.dart';
 import '../../widgets/grafico_barras.dart';
 import '../../widgets/panel_con_menu.dart';
@@ -154,7 +155,22 @@ class _EstudianteDashboardViewState extends State<EstudianteDashboardView> {
                           ),
                         ),
                       ),
-                    const TituloSeccion(antetitulo: 'Esta semana', titulo: 'Mis entrenamientos'),
+                    if (confirmadas.isNotEmpty) ...[
+                      const TituloSeccion(antetitulo: 'Esta semana', titulo: 'Calendario'),
+                      Revelar(
+                        orden: 2,
+                        child: CalendarioDeDisciplinas(
+                          deportes: [
+                            for (final i in confirmadas)
+                              Deporte(
+                                  codigo: i.deporteCodigo,
+                                  nombre: i.nombreDeporte.isEmpty ? i.deporteCodigo : i.nombreDeporte,
+                                  cupoMaximo: i.cupoMaximo),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const TituloSeccion(antetitulo: 'Mis disciplinas', titulo: 'Mis entrenamientos'),
                     if (confirmadas.isEmpty)
                       Revelar(
                         orden: 3,

@@ -7,6 +7,7 @@ import 'package:saman_deportivo/repositories/asistencia_repository.dart';
 
 import 'falsos/asistencia_repository_falso.dart';
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/notificacion_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
 
 void main() {
@@ -26,6 +27,7 @@ void main() {
       ..inscribir(
           'FUT-01', const EstudianteInscrito(uid: 'b', inscripcionId: 'FUT-01_b', nombreCompleto: 'Luis Rojas'));
     await tester.pumpWidget(SamanDeportivoApp(
+      notificaciones: NotificacionRepositoryFalso(),
       repositorio: AuthRepositoryFalso.conDatosDePrueba(),
       deportes: deportes,
       asistenciaRepository: asistencia,
@@ -44,8 +46,8 @@ void main() {
     await entrarComoEntrenador(tester);
     expect(find.text('Mis disciplinas'), findsOneWidget);
     expect(find.text('Entrenador Prueba'), findsAtLeastNWidgets(1));
-    expect(find.text('Fútbol'), findsOneWidget);
-    expect(find.text('Tenis'), findsOneWidget);
+    expect(find.text('Fútbol'), findsWidgets, reason: 'tarjeta y bloques del calendario');
+    expect(find.text('Tenis'), findsWidgets);
     expect(find.text('Baloncesto'), findsNothing, reason: 'no está asignado a ese deporte');
     expect(find.text('20 inscritos'), findsOneWidget);
   });

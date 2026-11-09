@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/apariencia_deporte.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../viewmodels/catalogo_view_model.dart';
@@ -173,7 +174,7 @@ class _Contenido extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columnas,
-          mainAxisExtent: 210,
+          mainAxisExtent: 326,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -202,53 +203,80 @@ class _TarjetaDeporte extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/catalogo/${Uri.encodeComponent(deporte.codigo)}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      deporte.nombre,
-                      style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PortadaDeporte(
+              deporte: deporte,
+              alto: 116,
+              radio: BorderRadius.zero,
+              hijo: Positioned(
+                right: 12,
+                bottom: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    deporte.hayCupo() ? '${deporte.cuposDisponibles()} cupos' : 'Lleno',
+                    style: textos.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700, color: deporte.hayCupo() ? AppColors.verdeSaman : AppColors.rojo),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            deporte.nombre,
+                            style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(deporte.codigo, style: gris),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (deporte.categoria.isNotEmpty) deporte.categoria,
+                        deporte.entrenador?.nombre ?? 'Entrenador por asignar',
+                      ].join(' · '),
+                      style: gris,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(deporte.codigo, style: gris),
-                ],
+                    const SizedBox(height: 10),
+                    if (horarios.isEmpty)
+                      Text('Horarios por publicar', style: textos.bodyMedium)
+                    else
+                      for (final h in horarios.take(maxHorarios))
+                        Row(
+                          children: [
+                            const Icon(Icons.schedule, size: 16, color: AppColors.naranja),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(h.etiqueta,
+                                  style: textos.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
+                    if (resto > 0) Text('y $resto horario${resto == 1 ? '' : 's'} más', style: gris),
+                    const Spacer(),
+                    BarraCupos(deporte: deporte),
+                  ],
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                [
-                  if (deporte.categoria.isNotEmpty) deporte.categoria,
-                  deporte.entrenador?.nombre ?? 'Entrenador por asignar',
-                ].join(' · '),
-                style: gris,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 10),
-              if (horarios.isEmpty)
-                Text('Horarios por publicar', style: textos.bodyMedium)
-              else
-                for (final h in horarios.take(maxHorarios))
-                  Row(
-                    children: [
-                      const Icon(Icons.schedule, size: 16, color: AppColors.naranja),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(h.etiqueta, style: textos.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
-                  ),
-              if (resto > 0) Text('y $resto horario${resto == 1 ? '' : 's'} más', style: gris),
-              const Spacer(),
-              BarraCupos(deporte: deporte),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

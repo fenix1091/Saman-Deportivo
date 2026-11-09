@@ -15,18 +15,23 @@ import 'repositories/deporte_repository.dart';
 import 'repositories/deporte_repository_firebase.dart';
 import 'repositories/inscripcion_repository.dart';
 import 'repositories/inscripcion_repository_firebase.dart';
+import 'repositories/notificacion_repository.dart';
 import 'repositories/pasarela_pago.dart';
 import 'viewmodels/auth_view_model.dart';
 import 'viewmodels/mis_inscripciones_view_model.dart';
+import 'viewmodels/notificaciones_view_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final notificaciones = NotificacionRepositoryFirebase();
   runApp(SamanDeportivoApp(
     repositorio: AuthRepositoryFirebase(),
     deportes: DeporteRepositoryFirebase(),
-    inscripciones: InscripcionRepositoryFirebase(),
+    inscripciones: InscripcionRepositoryFirebase(notificaciones: notificaciones),
     pasarela: PasarelaPayPalSimulada(),
+    adminRepository: AdminRepositoryFirebase(notificaciones: notificaciones),
+    notificaciones: notificaciones,
   ));
 }
 
@@ -42,6 +47,7 @@ class SamanDeportivoApp extends StatefulWidget {
     this.pasarela,
     this.adminRepository,
     this.asistenciaRepository,
+    this.notificaciones,
   });
 
   final AuthRepository repositorio;
@@ -52,6 +58,7 @@ class SamanDeportivoApp extends StatefulWidget {
   final PasarelaPago? pasarela;
   final AdminRepository? adminRepository;
   final AsistenciaRepository? asistenciaRepository;
+  final NotificacionRepository? notificaciones;
 
   @override
   State<SamanDeportivoApp> createState() => _SamanDeportivoAppState();
@@ -77,9 +84,15 @@ class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
         Provider<InscripcionRepository>(create: (_) => widget.inscripciones ?? InscripcionRepositoryFirebase()),
         Provider<PasarelaPago>(create: (_) => widget.pasarela ?? PasarelaPayPalSimulada()),
         Provider<AsistenciaRepository>(create: (_) => widget.asistenciaRepository ?? AsistenciaRepositoryFirebase()),
+        Provider<NotificacionRepository>(create: (_) => widget.notificaciones ?? NotificacionRepositoryFirebase()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _auth),
         ChangeNotifierProvider(
             create: (context) => MisInscripcionesViewModel(context.read<InscripcionRepository>())),
+        // La campana sigue a la sesión: al entrar escucha los avisos de esa persona y al salir se vacía.
+        ChangeNotifierProxyProvider<AuthViewModel, NotificacionesViewModel>(
+          create: (context) => NotificacionesViewModel(context.read<NotificacionRepository>()),
+          update: (_, auth, vm) => vm!..seguir(auth.usuario),
+        ),
       ],
       child: MaterialApp.router(
         title: 'Samán Deportivo',

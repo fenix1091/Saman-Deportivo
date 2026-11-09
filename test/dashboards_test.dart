@@ -12,6 +12,7 @@ import 'package:saman_deportivo/views/admin/resumen_tab.dart';
 import 'package:saman_deportivo/widgets/grafico_barras.dart';
 
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/notificacion_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
 import 'falsos/inscripcion_repository_falso.dart';
 
@@ -132,7 +133,7 @@ void main() {
           nombreDeporte: 'Tenis',
         ));
       final auth = AuthRepositoryFalso.conDatosDePrueba();
-      await tester.pumpWidget(SamanDeportivoApp(repositorio: auth, deportes: deportes, inscripciones: inscripciones));
+      await tester.pumpWidget(SamanDeportivoApp(notificaciones: NotificacionRepositoryFalso(), repositorio: auth, deportes: deportes, inscripciones: inscripciones));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Iniciar sesión'));
       await tester.pumpAndSettle();
@@ -146,8 +147,12 @@ void main() {
       expect(find.text('confirmadas'), findsOneWidget);
       expect(find.text('Tu pago está en revisión. La Coordinación de Deportes confirmará tu cupo pronto.'),
           findsOneWidget);
+      await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+      await tester.pumpAndSettle();
       expect(find.text('Mis entrenamientos'), findsOneWidget);
       expect(find.text('Asistencia 2 de 2 sesiones'), findsOneWidget);
+      await tester.drag(find.byType(ListView).last, const Offset(0, 600));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Explorar deportes'));
       await tester.pumpAndSettle();

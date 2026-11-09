@@ -8,6 +8,7 @@ import 'package:saman_deportivo/models/persona.dart';
 import 'package:saman_deportivo/repositories/admin_repository_firebase.dart';
 import 'falsos/asistencia_repository_falso.dart';
 import 'falsos/auth_repository_falso.dart';
+import 'falsos/notificacion_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
 
 class _AdminRepositoryFalso implements AdminRepository {
@@ -90,6 +91,7 @@ void main() {
     final deportes = DeporteRepositoryFalso.conDatosDePrueba();
     await tester.pumpWidget(
       SamanDeportivoApp(
+        notificaciones: NotificacionRepositoryFalso(),
         repositorio:
             AuthRepositoryFalso.conDatosDePrueba(latencia: Duration.zero),
         deportes: deportes,

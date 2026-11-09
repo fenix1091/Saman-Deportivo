@@ -7,13 +7,16 @@ import 'package:firebase_core/firebase_core.dart';
 import '../core/validacion_admin.dart';
 import '../models/deporte.dart';
 import '../models/inscripcion.dart';
+import '../models/notificacion.dart';
 import '../models/pago.dart';
 import '../models/persona.dart';
+import 'notificacion_repository.dart';
 
 abstract interface class AdminRepository {
   Stream<List<Deporte>> observarDeportes();
   Stream<List<Entrenador>> observarEntrenadores();
   Stream<List<Horario>> observarHorarios(String codigo);
+
   /// Crea una disciplina ([nueva] con su código único como id) o actualiza una
   /// existente. Lanza [CodigoRepetidoException] si el código ya está en uso.
   Future<void> guardarDeporte(Deporte deporte, {bool nueva = false});
@@ -102,40 +105,47 @@ class EntrenadorCreadoException implements Exception {
   final Object causa;
 
   @override
-  String toString() =>
-      'La cuenta se creó, pero no se pudo enviar el enlace: $causa';
+  String toString() => 'La cuenta se creó, pero no se pudo enviar el enlace: $causa';
 }
 
 /// Acceso a la gestión administrativa de deportes, horarios y entrenadores.
 class AdminRepositoryFirebase implements AdminRepository {
-  AdminRepositoryFirebase({FirebaseFirestore? db, FirebaseAuth? auth})
+  AdminRepositoryFirebase({FirebaseFirestore? db, FirebaseAuth? auth, NotificacionRepository? notificaciones})
       : _db = db ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+        _auth = auth ?? FirebaseAuth.instance,
+        _notificaciones = notificaciones;
 
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
+  final NotificacionRepository? _notificaciones;
+
+  Future<void> _avisar(String uid, TipoNotificacion tipo, String mensaje, {String ruta = '/mis-inscripciones'}) =>
+      notificarSinFallar(
+        _notificaciones,
+        Notificacion(
+            id: '',
+            paraUid: uid,
+            deUid: _auth.currentUser?.uid ?? '',
+            tipo: tipo,
+            titulo: tipo.titulo,
+            mensaje: mensaje,
+            ruta: ruta,
+            fecha: DateTime.now()),
+      );
 
   @override
-  Stream<List<Deporte>> observarDeportes() =>
-      _db.collection('deportes').snapshots().map(
-            (snapshot) => snapshot.docs
-                .map((doc) => Deporte.desdeMapa(doc.id, doc.data()))
-                .toList()
-              ..sort((a, b) =>
-                  a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase())),
-          );
+  Stream<List<Deporte>> observarDeportes() => _db.collection('deportes').snapshots().map(
+        (snapshot) => snapshot.docs.map((doc) => Deporte.desdeMapa(doc.id, doc.data())).toList()
+          ..sort((a, b) => a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase())),
+      );
 
   @override
   Stream<List<Entrenador>> observarEntrenadores() => _db
       .collection('usuarios')
       .where('rol', isEqualTo: Rol.entrenador.name)
       .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => Entrenador.desdeMapa(doc.id, doc.data()))
-          .toList()
-        ..sort((a, b) => a.nombreCompleto
-            .toLowerCase()
-            .compareTo(b.nombreCompleto.toLowerCase())));
+      .map((snapshot) => snapshot.docs.map((doc) => Entrenador.desdeMapa(doc.id, doc.data())).toList()
+        ..sort((a, b) => a.nombreCompleto.toLowerCase().compareTo(b.nombreCompleto.toLowerCase())));
 
   @override
   Stream<List<Horario>> observarHorarios(String codigo) => _db
@@ -143,9 +153,7 @@ class AdminRepositoryFirebase implements AdminRepository {
       .doc(codigo)
       .collection('horarios')
       .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => Horario.desdeMapa(doc.id, doc.data()))
-          .toList()
+      .map((snapshot) => snapshot.docs.map((doc) => Horario.desdeMapa(doc.id, doc.data())).toList()
         ..sort((a, b) {
           final dia = a.dia.index.compareTo(b.dia.index);
           return dia == 0 ? a.horaInicio.compareTo(b.horaInicio) : dia;
@@ -184,36 +192,24 @@ class AdminRepositoryFirebase implements AdminRepository {
   @override
   Future<void> asignarEntrenador(String codigo, String entrenadorId) async {
     if (entrenadorId.isNotEmpty) {
-      final entrenador =
-          await _db.collection('usuarios').doc(entrenadorId).get();
+      final entrenador = await _db.collection('usuarios').doc(entrenadorId).get();
       if (entrenador.data()?['rol'] != Rol.entrenador.name) {
-        throw StateError(
-            'El usuario seleccionado no tiene el rol de entrenador.');
+        throw StateError('El usuario seleccionado no tiene el rol de entrenador.');
       }
     }
-    await _db
-        .collection('deportes')
-        .doc(codigo)
-        .update({'entrenadorId': entrenadorId});
+    await _db.collection('deportes').doc(codigo).update({'entrenadorId': entrenadorId});
   }
 
   @override
   Future<void> guardarHorario(String codigo, Horario horario) async {
-    final horarios =
-        _db.collection('deportes').doc(codigo).collection('horarios');
-    final referencia =
-        horario.id.isEmpty ? horarios.doc() : horarios.doc(horario.id);
+    final horarios = _db.collection('deportes').doc(codigo).collection('horarios');
+    final referencia = horario.id.isEmpty ? horarios.doc() : horarios.doc(horario.id);
     await referencia.set(horario.aMapa());
   }
 
   @override
   Future<void> eliminarHorario(String codigo, String horarioId) async {
-    await _db
-        .collection('deportes')
-        .doc(codigo)
-        .collection('horarios')
-        .doc(horarioId)
-        .delete();
+    await _db.collection('deportes').doc(codigo).collection('horarios').doc(horarioId).delete();
   }
 
   @override
@@ -276,50 +272,45 @@ class AdminRepositoryFirebase implements AdminRepository {
   }
 
   @override
-  Stream<List<Persona>> observarUsuarios() =>
-      _db.collection('usuarios').snapshots().map((snapshot) => snapshot.docs
-          .map((doc) => Persona.desdeMapa(doc.id, doc.data()))
-          .toList()
-        ..sort((a, b) => '${a.apellido} ${a.nombre}'
-            .toLowerCase()
-            .compareTo('${b.apellido} ${b.nombre}'.toLowerCase())));
+  Stream<List<Persona>> observarUsuarios() => _db.collection('usuarios').snapshots().map((snapshot) => snapshot.docs
+      .map((doc) => Persona.desdeMapa(doc.id, doc.data()))
+      .toList()
+    ..sort((a, b) => '${a.apellido} ${a.nombre}'.toLowerCase().compareTo('${b.apellido} ${b.nombre}'.toLowerCase())));
 
   @override
   Future<void> actualizarUsuario(String uid, Map<String, dynamic> cambios) =>
       _db.collection('usuarios').doc(uid).update(cambios);
 
   @override
-  Future<void> reenviarEnlace(String correo) =>
-      _auth.sendPasswordResetEmail(email: correo);
+  Future<void> reenviarEnlace(String correo) => _auth.sendPasswordResetEmail(email: correo);
 
   static String _claveAleatoria() {
-    const caracteres =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
+    const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
     final aleatorio = Random.secure();
-    return List.generate(
-        40, (_) => caracteres[aleatorio.nextInt(caracteres.length)]).join();
+    return List.generate(40, (_) => caracteres[aleatorio.nextInt(caracteres.length)]).join();
   }
 
   @override
-  Stream<List<Inscripcion>> observarInscripciones() => _db
-      .collection('inscripciones')
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => Inscripcion.desdeMapa(doc.id, doc.data()))
-          .toList()
+  Stream<List<Inscripcion>> observarInscripciones() => _db.collection('inscripciones').snapshots().map((snapshot) =>
+      snapshot.docs.map((doc) => Inscripcion.desdeMapa(doc.id, doc.data())).toList()
         ..sort((a, b) => b.fechaInscripcion.compareTo(a.fechaInscripcion)));
 
   @override
   Future<void> confirmarReserva(String id) async {
     final ref = _db.collection('inscripciones').doc(id);
-    await _db.runTransaction((tx) async {
+    final reserva = await _db.runTransaction((tx) async {
       final doc = await tx.get(ref);
       if (doc.data()?['estado'] != EstadoInscripcion.enRevision.name) {
         throw const ReservaNoRevisableException();
       }
       tx.update(ref, {'estado': EstadoInscripcion.confirmada.name, 'motivo': ''});
+      return Inscripcion.desdeMapa(doc.id, doc.data()!);
     });
+    await _avisar(reserva.estudianteId, TipoNotificacion.reservaConfirmada,
+        'Tu cupo en ${_nombre(reserva)} quedó confirmado. ¡Nos vemos en el entrenamiento!');
   }
+
+  static String _nombre(Inscripcion i) => i.nombreDeporte.isEmpty ? i.deporteCodigo : i.nombreDeporte;
 
   @override
   Future<void> rechazarReserva(String id, String motivo) async {
@@ -340,6 +331,9 @@ class AdminRepositoryFirebase implements AdminRepository {
       if (ocupados > 0) tx.update(refDeporte, {'cuposOcupados': ocupados - 1});
       tx.update(ref, {'estado': EstadoInscripcion.rechazada.name, 'motivo': motivo});
     });
+    final reserva = Inscripcion.desdeMapa(id, (await ref.get()).data()!);
+    await _avisar(reserva.estudianteId, TipoNotificacion.reservaRechazada,
+        'Tu reserva en ${_nombre(reserva)} fue rechazada: $motivo El pago quedó marcado como reembolsado.');
   }
 
   Future<List<Inscripcion>> _inscripcionesDe(String campo, String valor) async {
@@ -371,9 +365,9 @@ class AdminRepositoryFirebase implements AdminRepository {
     final refUsuario = _db.collection('usuarios').doc(estudianteUid);
     final refInscripcion = _db.collection('inscripciones').doc(Inscripcion.idPara(codigo, estudianteUid));
     final horarios = await refDeporte.collection('horarios').get();
-    final textoHorarios = [
-      for (final h in horarios.docs) Horario.desdeMapa(h.id, h.data())
-    ].map((h) => h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}').join('\n');
+    final textoHorarios = [for (final h in horarios.docs) Horario.desdeMapa(h.id, h.data())]
+        .map((h) => h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}')
+        .join('\n');
     await _db.runTransaction((tx) async {
       final deporteDoc = await tx.get(refDeporte);
       final usuarioDoc = await tx.get(refUsuario);
@@ -403,6 +397,11 @@ class AdminRepositoryFirebase implements AdminRepository {
       });
       tx.update(refDeporte, {'cuposOcupados': deporte.cuposOcupados + 1});
     });
+    final deporteDoc = await refDeporte.get();
+    final nombre = deporteDoc.data()?['nombre'] as String? ?? codigo;
+    await _avisar(estudianteUid, TipoNotificacion.inscripcionDirecta,
+        'La Coordinación de Deportes te inscribió en $nombre. Ya puedes ver tus horarios en Mi panel.',
+        ruta: '/estudiante');
   }
 
   @override
@@ -412,13 +411,17 @@ class AdminRepositoryFirebase implements AdminRepository {
       final doc = await tx.get(ref);
       if (doc.data() == null) throw const OperacionNoPermitidaException('La inscripción ya no existe.');
       final inscripcion = Inscripcion.desdeMapa(doc.id, doc.data()!);
-      if (!inscripcion.estaVigente()) throw const OperacionNoPermitidaException('Esa inscripción ya no estaba vigente.');
+      if (!inscripcion.estaVigente())
+        throw const OperacionNoPermitidaException('Esa inscripción ya no estaba vigente.');
       final refDeporte = _db.collection('deportes').doc(inscripcion.deporteCodigo);
       final deporte = await tx.get(refDeporte);
       final ocupados = (deporte.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
       if (inscripcion.ocupaCupo && ocupados > 0) tx.update(refDeporte, {'cuposOcupados': ocupados - 1});
-      tx.update(ref, {'estado': EstadoInscripcion.cancelada.name, 'motivo': 'Retirado por la Coordinación de Deportes.'});
-    });
+      tx.update(
+          ref, {'estado': EstadoInscripcion.cancelada.name, 'motivo': 'Retirado por la Coordinación de Deportes.'});
+      return inscripcion;
+    }).then((inscripcion) => _avisar(inscripcion.estudianteId, TipoNotificacion.retiro,
+        'La Coordinación de Deportes te retiró de ${_nombre(inscripcion)}. Si crees que es un error, acércate a la Coordinación.'));
   }
 
   @override
@@ -429,7 +432,10 @@ class AdminRepositoryFirebase implements AdminRepository {
     if (datos == null) return;
     final persona = Persona.desdeMapa(uid, datos);
     final deportes = persona is Entrenador
-        ? [for (final d in (await _db.collection('deportes').where('entrenadorId', isEqualTo: uid).get()).docs) Deporte.desdeMapa(d.id, d.data())]
+        ? [
+            for (final d in (await _db.collection('deportes').where('entrenadorId', isEqualTo: uid).get()).docs)
+              Deporte.desdeMapa(d.id, d.data())
+          ]
         : const <Deporte>[];
     final motivo = ValidacionAdmin.eliminarUsuario(
       persona,
@@ -445,5 +451,3 @@ class AdminRepositoryFirebase implements AdminRepository {
     await lote.commit();
   }
 }
-
-
