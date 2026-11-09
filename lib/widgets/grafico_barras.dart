@@ -124,8 +124,13 @@ class _PintorBarras extends CustomPainter {
 
 /// Tarjeta con una cifra grande y su etiqueta, para los resúmenes.
 class TarjetaCifra extends StatelessWidget {
-  const TarjetaCifra(
-      {super.key, required this.icono, required this.valor, required this.etiqueta, this.color = AppColors.verdeSaman});
+  const TarjetaCifra({
+    super.key,
+    required this.icono,
+    required this.valor,
+    required this.etiqueta,
+    this.color = AppColors.verdeSaman,
+  });
 
   final IconData icono;
   final String valor;
@@ -136,19 +141,26 @@ class TarjetaCifra extends StatelessWidget {
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE3E8EE)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, color: color),
-          const SizedBox(height: 10),
-          Text(valor, style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: color)),
-          Text(etiqueta, style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+            child: Icon(icono, color: color, size: 24),
+          ),
+          const SizedBox(height: 14),
+          Text(valor, style: textos.displaySmall?.copyWith(fontWeight: FontWeight.w800, color: color, height: 1)),
+          const SizedBox(height: 6),
+          Text(etiqueta, style: textos.bodyMedium?.copyWith(color: AppColors.gris)),
         ],
       ),
     );

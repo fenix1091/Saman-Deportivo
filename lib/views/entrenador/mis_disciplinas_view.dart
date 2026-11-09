@@ -9,6 +9,7 @@ import '../../viewmodels/auth_view_model.dart';
 import '../../widgets/acciones_sesion.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/barra_cupos.dart';
+import '../../widgets/encabezado_panel.dart';
 
 /// Inicio del entrenador (CU-13): sus disciplinas asignadas, en tiempo real, con
 /// los inscritos y el acceso a la toma de asistencia de cada una.
@@ -19,7 +20,6 @@ class MisDisciplinasView extends StatelessWidget {
   Widget build(BuildContext context) {
     final usuario = context.watch<AuthViewModel>().usuario;
     final repositorio = context.read<AsistenciaRepository>();
-    final textos = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Mis disciplinas'), actions: const [AccionesSesion()]),
       body: usuario == null
@@ -46,27 +46,20 @@ class MisDisciplinasView extends StatelessWidget {
                 return Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 860),
+                    constraints: const BoxConstraints(maxWidth: 1100),
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
                       children: [
-                        Revelar(
-                          child: Text(
-                            'Hola, ${usuario.nombre}',
-                            style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-                          ),
+                        EncabezadoPanel(
+                          nombre: usuario.nombreCompleto,
+                          fotoUrl: usuario.fotoUrl,
+                          saludo: 'HOLA, PROFESOR',
+                          mensaje:
+                              'Tienes ${deportes.length} ${deportes.length == 1 ? 'disciplina asignada' : 'disciplinas asignadas'} y '
+                              '$inscritos ${inscritos == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}. '
+                              'Elige una para pasar la asistencia de hoy o revisar el historial.',
                         ),
-                        Revelar(
-                          orden: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 4, bottom: 16),
-                            child: Text(
-                              '${deportes.length} ${deportes.length == 1 ? 'disciplina' : 'disciplinas'} · '
-                              '$inscritos ${inscritos == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}',
-                              style: textos.bodyMedium?.copyWith(color: AppColors.gris),
-                            ),
-                          ),
-                        ),
+                        const TituloSeccion(antetitulo: 'Mis disciplinas', titulo: 'Toma de asistencia'),
                         for (var i = 0; i < deportes.length; i++)
                           Revelar(
                             key: ValueKey(deportes[i].codigo),
