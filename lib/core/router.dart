@@ -9,6 +9,7 @@ import '../repositories/auth_repository.dart';
 import '../repositories/deporte_repository.dart';
 import '../repositories/inscripcion_repository.dart';
 import '../repositories/pasarela_pago.dart';
+import '../viewmodels/accion_correo_view_model.dart';
 import '../viewmodels/asistencia_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/catalogo_view_model.dart';
@@ -22,6 +23,7 @@ import '../views/entrenador/mis_disciplinas_view.dart';
 import '../views/estudiante/estudiante_dashboard_view.dart';
 import '../views/estudiante/inscripcion_view.dart';
 import '../views/mis_inscripciones_view.dart';
+import '../views/publico/accion_correo_view.dart';
 import '../views/publico/catalogo_view.dart';
 import '../views/publico/detalle_deporte_view.dart';
 import '../views/publico/inicio_view.dart';
@@ -31,7 +33,7 @@ import '../views/publico/registro_view.dart';
 
 /// Rutas que se pueden abrir sin iniciar sesión. El detalle de cada deporte
 /// (/catalogo/{codigo}) también es público (CU-06).
-const _rutasPublicas = {'/', '/login', '/registro', '/recuperar-clave', '/catalogo'};
+const _rutasPublicas = {'/', '/login', '/registro', '/recuperar-clave', '/catalogo', '/accion'};
 
 bool _esPublica(String ruta) => _rutasPublicas.contains(ruta) || ruta.startsWith('/catalogo/');
 
@@ -39,8 +41,9 @@ bool _esPublica(String ruta) => _rutasPublicas.contains(ruta) || ruta.startsWith
 ///
 /// El guardia de autenticación manda al login a quien abre una ruta protegida sin
 /// sesión, y a su pantalla de inicio a quien intenta entrar en la sección de otro rol.
-GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
+GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository, String? rutaInicial}) {
   return GoRouter(
+    initialLocation: rutaInicial,
     refreshListenable: auth,
     redirect: (context, state) => redirigir(auth.usuario, state.uri, listo: auth.listo),
     routes: [
@@ -55,6 +58,19 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
       ),
       GoRoute(path: '/registro', builder: (_, __) => const RegistroView()),
       GoRoute(path: '/recuperar-clave', builder: (_, __) => const RecuperarClaveView()),
+      // Destino de los enlaces de los correos (contraseña nueva y verificación).
+      GoRoute(
+        path: '/accion',
+        builder: (context, state) => ChangeNotifierProvider(
+          key: ValueKey(state.uri.queryParameters['oobCode']),
+          create: (_) => AccionCorreoViewModel(
+            context.read<AuthRepository>(),
+            modo: state.uri.queryParameters['mode'],
+            codigo: state.uri.queryParameters['oobCode'],
+          ),
+          child: const AccionCorreoView(),
+        ),
+      ),
       GoRoute(
         path: '/catalogo',
         builder: (context, __) => ChangeNotifierProvider(
@@ -122,6 +138,15 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository}) {
       ),
     ],
   );
+}
+
+/// Si la página se abrió desde el enlace de un correo de Firebase (que llega como
+/// `/?mode=resetPassword&oobCode=...`), devuelve la ruta interna que lo atiende.
+String? rutaDeEnlaceDeCorreo(Uri direccion) {
+  final modo = direccion.queryParameters['mode'];
+  final codigo = direccion.queryParameters['oobCode'];
+  if (modo == null || codigo == null) return null;
+  return Uri(path: '/accion', queryParameters: {'mode': modo, 'oobCode': codigo}).toString();
 }
 
 /// Decide a dónde redirigir según la sesión y el rol; `null` deja pasar.

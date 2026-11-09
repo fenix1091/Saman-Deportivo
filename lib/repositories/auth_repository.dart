@@ -34,6 +34,16 @@ abstract class AuthRepository {
   /// Envía el enlace para restablecer la contraseña (CU-02, A3).
   Future<void> enviarRecuperacionClave(String correo);
 
+  /// Comprueba el código del enlace de "restablecer contraseña" y devuelve el correo de la cuenta.
+  /// Lanza [AuthException] con [ErrorAuth.enlaceInvalido] si venció o ya se usó.
+  Future<String> correoDelEnlace(String codigo);
+
+  /// Guarda la contraseña nueva usando el código del enlace del correo.
+  Future<void> cambiarClaveConEnlace(String codigo, String clave);
+
+  /// Marca el correo como verificado con el código del enlace de bienvenida.
+  Future<void> verificarCorreo(String codigo);
+
   Future<void> cerrarSesion();
 
   /// Guarda el nombre, el apellido, el teléfono y la foto del perfil (CU-03).
@@ -52,6 +62,7 @@ enum ErrorAuth {
   claveDebil('La contraseña es muy débil. Usa al menos 8 caracteres, con letras y números.'),
   demasiadosIntentos('Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.'),
   perfilNoEncontrado('No encontramos los datos de tu cuenta. Escribe a la Coordinación de Deportes.'),
+  enlaceInvalido('Este enlace venció o ya se usó. Pide uno nuevo.'),
   sinPermiso('No tienes permiso para hacer esto.'),
   sinConexion('No hay conexión. Revisa tu internet e inténtalo de nuevo.'),
   desconocido('Ocurrió un error inesperado. Inténtalo de nuevo.');

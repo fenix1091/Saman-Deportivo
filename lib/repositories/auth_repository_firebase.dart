@@ -17,6 +17,8 @@ class AuthRepositoryFirebase implements AuthRepository {
   AuthRepositoryFirebase({FirebaseAuth? auth, FirebaseFirestore? db})
       : _auth = auth ?? FirebaseAuth.instance,
         _db = db ?? FirebaseFirestore.instance {
+    // Los correos de verificación y de contraseña salen en español.
+    _auth.setLanguageCode('es');
     _suscripcion = _auth.authStateChanges().listen(_alCambiarUsuario);
   }
 
@@ -158,6 +160,33 @@ class AuthRepositoryFirebase implements AuthRepository {
   }
 
   @override
+  Future<String> correoDelEnlace(String codigo) async {
+    try {
+      return await _auth.verifyPasswordResetCode(codigo);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_traducir(e.code));
+    }
+  }
+
+  @override
+  Future<void> cambiarClaveConEnlace(String codigo, String clave) async {
+    try {
+      await _auth.confirmPasswordReset(code: codigo, newPassword: clave);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_traducir(e.code));
+    }
+  }
+
+  @override
+  Future<void> verificarCorreo(String codigo) async {
+    try {
+      await _auth.applyActionCode(codigo);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_traducir(e.code));
+    }
+  }
+
+  @override
   Future<void> cerrarSesion() async {
     await _auth.signOut();
     _publicar(null);
@@ -194,6 +223,7 @@ class AuthRepositoryFirebase implements AuthRepository {
         'invalid-email' ||
         'user-disabled' =>
           ErrorAuth.credencialesInvalidas,
+        'expired-action-code' || 'invalid-action-code' => ErrorAuth.enlaceInvalido,
         'email-already-in-use' => ErrorAuth.correoYaRegistrado,
         'weak-password' => ErrorAuth.claveDebil,
         'too-many-requests' => ErrorAuth.demasiadosIntentos,

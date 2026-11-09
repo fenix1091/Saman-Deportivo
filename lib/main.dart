@@ -35,6 +35,7 @@ Future<void> main() async {
     pasarela: PasarelaPayPalSimulada(),
     adminRepository: AdminRepositoryFirebase(notificaciones: notificaciones),
     notificaciones: notificaciones,
+    rutaInicial: rutaDeEnlaceDeCorreo(Uri.base),
   ));
 }
 
@@ -65,6 +66,7 @@ class SamanDeportivoApp extends StatefulWidget {
     this.adminRepository,
     this.asistenciaRepository,
     this.notificaciones,
+    this.rutaInicial,
   });
 
   final AuthRepository repositorio;
@@ -77,13 +79,16 @@ class SamanDeportivoApp extends StatefulWidget {
   final AsistenciaRepository? asistenciaRepository;
   final NotificacionRepository? notificaciones;
 
+  /// Ruta con la que arranca la app; se usa al llegar desde el enlace de un correo.
+  final String? rutaInicial;
+
   @override
   State<SamanDeportivoApp> createState() => _SamanDeportivoAppState();
 }
 
 class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
   late final AuthViewModel _auth = AuthViewModel(widget.repositorio);
-  late final GoRouter _router = crearRouter(_auth, adminRepository: widget.adminRepository);
+  late final GoRouter _router = crearRouter(_auth, adminRepository: widget.adminRepository, rutaInicial: widget.rutaInicial);
 
   @override
   void dispose() {

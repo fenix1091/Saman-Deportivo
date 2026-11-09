@@ -148,6 +148,35 @@ class AuthRepositoryFalso implements AuthRepository {
     await Future<void>.delayed(latencia);
   }
 
+  /// Códigos de enlace vigentes (código → correo), como los que manda Firebase por correo.
+  final enlaces = <String, String>{};
+
+  /// Correos ya verificados con su enlace.
+  final verificados = <String>{};
+
+  @override
+  Future<String> correoDelEnlace(String codigo) async {
+    await Future<void>.delayed(latencia);
+    final correo = enlaces[codigo];
+    if (correo == null) throw const AuthException(ErrorAuth.enlaceInvalido);
+    return correo;
+  }
+
+  @override
+  Future<void> cambiarClaveConEnlace(String codigo, String clave) async {
+    final usuario = _buscarPorCorreo(await correoDelEnlace(codigo));
+    if (usuario == null) throw const AuthException(ErrorAuth.enlaceInvalido);
+    _claves[usuario.uid] = clave;
+    _intentosFallidos.remove(usuario.correo.toLowerCase());
+    enlaces.remove(codigo);
+  }
+
+  @override
+  Future<void> verificarCorreo(String codigo) async {
+    verificados.add(await correoDelEnlace(codigo));
+    enlaces.remove(codigo);
+  }
+
   @override
   Future<void> cerrarSesion() async {
     _abrirSesion(null);
