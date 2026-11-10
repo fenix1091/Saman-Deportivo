@@ -1,7 +1,7 @@
 name: saman_deportivo
 description: "Samán Deportivo: plataforma de gestión de clubes deportivos de la UNIMET."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.4.0+1
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

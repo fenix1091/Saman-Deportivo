@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme.dart';
 import '../../core/validadores.dart';
 import '../../models/persona.dart';
 import '../../viewmodels/perfil_view_model.dart';
+import '../dialogs/novedades_dialog.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/formulario_centrado.dart';
 import '../../widgets/panel_con_menu.dart';
@@ -80,11 +82,30 @@ class _PerfilViewState extends State<PerfilView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: AvatarUsuario(
-                    nombre: usuario.nombreCompleto,
-                    fotoUrl: usuario.fotoUrl,
-                    bytes: vm.fotoNueva),
+              Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  Center(
+                    child: AvatarUsuario(
+                        nombre: usuario.nombreCompleto,
+                        fotoUrl: usuario.fotoUrl,
+                        bytes: vm.fotoNueva),
+                  ),
+                  // Solo el administrador ve el registro de actualizaciones del sistema.
+                  if (usuario.rol == Rol.administrador)
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton.filledTonal(
+                        tooltip: 'Registro de actualizaciones',
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.naranjaClaro,
+                          foregroundColor: AppColors.naranjaProfundo,
+                        ),
+                        onPressed: () => NovedadesDialog.mostrar(context),
+                        icon: const Icon(Icons.history),
+                      ),
+                    ),
+                ],
               ),
               Center(
                 child: TextButton.icon(
