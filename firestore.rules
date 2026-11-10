@@ -69,7 +69,8 @@ service cloud.firestore {
     function correoUnimet() {
       return request.auth.token.email.matches('^[^@]+@(correo[.])?unimet[.]edu[.]ve$');
     }
-    // Un perfil eliminado por el administrador deja su marca y no se puede volver a crear.
+    // Un perfil eliminado deja su marca: esa misma cuenta no vuelve a crearlo; primero se
+    // borra del todo y luego la persona se registra con una cuenta nueva.
     function fueEliminado(uid) {
       return exists(/databases/$(database)/documents/eliminados/$(uid));
     }
@@ -153,9 +154,11 @@ service cloud.firestore {
       allow delete: if esAdmin();
     }
 
-    // Marca de los perfiles eliminados (la cuenta de acceso no se puede borrar desde la app).
+    // Marca de los perfiles eliminados. El panel solo puede borrar el perfil; la cuenta de
+    // acceso la termina de borrar su dueño la siguiente vez que entra, y ahí quita su marca.
     match /eliminados/{uid} {
       allow read, write: if esAdmin();
+      allow get, delete: if autenticado() && request.auth.uid == uid;
     }
 
     // ---------- Estructura base de la gestión deportiva ----------

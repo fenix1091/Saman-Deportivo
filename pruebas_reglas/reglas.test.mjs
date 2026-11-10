@@ -104,8 +104,12 @@ describe('Registro de estudiantes (RF-01)', () => {
   test('una cuenta cuyo perfil fue eliminado no puede volver a crearlo', async () => {
     await assertSucceeds(setDoc(doc(comoAdmin(), 'eliminados/nuevo'), { correo: 'nuevo@correo.unimet.edu.ve', cedula: 'V-31985476', fecha: serverTimestamp() }));
     await assertFails(registrar(nuevo(), 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve')));
-    await assertFails(getDoc(doc(nuevo(), 'eliminados/nuevo')));
+    // Otro usuario no ve ni quita la marca; el dueño sí, al terminar de borrar su cuenta.
+    await assertFails(getDoc(doc(comoEstudiante(), 'eliminados/nuevo')));
     await assertFails(deleteDoc(doc(comoEstudiante(), 'eliminados/nuevo')));
+    await assertFails(setDoc(doc(nuevo(), 'eliminados/nuevo'), { correo: 'otro@correo.unimet.edu.ve' }));
+    await assertSucceeds(getDoc(doc(nuevo(), 'eliminados/nuevo')));
+    await assertSucceeds(deleteDoc(doc(nuevo(), 'eliminados/nuevo')));
   });
 
   test('no puede agregar campos que no son del registro', async () => {

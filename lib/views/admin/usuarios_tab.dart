@@ -69,7 +69,7 @@ class _UsuariosTabState extends State<UsuariosTab> {
       builder: (c) => AlertDialog(
         title: Text('Eliminar a ${usuario.nombreCompleto}'),
         content: const Text(
-            'Se borrará su perfil y quedará sin acceso a la plataforma. Un estudiante solo se puede eliminar si no '
+            'Se borrará su perfil y su correo quedará libre para registrarse de nuevo. Un estudiante solo se puede eliminar si no '
             'tiene inscripciones vigentes, y un entrenador si no tiene disciplinas asignadas.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),

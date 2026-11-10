@@ -70,6 +70,7 @@ enum ErrorAuth {
   demasiadosIntentos('Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.'),
   perfilNoEncontrado('No encontramos los datos de tu cuenta. Escribe a la Coordinación de Deportes.'),
   enlaceInvalido('Este enlace venció o ya se usó. Pide uno nuevo.'),
+  cuentaEliminada('Esta cuenta fue eliminada por la Coordinación de Deportes. Si quieres volver, regístrate de nuevo.'),
   sinPermiso('No tienes permiso para hacer esto.'),
   sinConexion('No hay conexión. Revisa tu internet e inténtalo de nuevo.'),
   desconocido('Ocurrió un error inesperado. Inténtalo de nuevo.');

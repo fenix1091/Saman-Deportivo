@@ -21,6 +21,7 @@ final novedades = <Novedad>[
       'Al crear la cuenta se pasa a la pantalla "Revisa tu correo", que avanza sola cuando se abre el enlace enviado.',
       'Hasta verificar el correo no se puede entrar a la aplicación; el correo se puede reenviar desde esa pantalla.',
       'El administrador puede dar un correo por verificado desde Usuarios, igual que la solvencia.',
+      'Eliminar un usuario ya no bloquea su correo: la cuenta se borra del todo y puede registrarse de nuevo.',
     ],
   ),
   Novedad(

@@ -56,14 +56,51 @@ class AuthRepositoryFirebase implements AuthRepository {
   }
 
   /// Lee `usuarios/{uid}`. Si la cuenta no tiene perfil, cierra la sesión.
-  Future<Persona> _leerPerfil(String uid) async {
+  ///
+  /// Con [borrarSiEliminada], una cuenta que la Coordinación eliminó se borra del
+  /// todo en este momento, para que su correo quede libre.
+  Future<Persona> _leerPerfil(String uid, {bool borrarSiEliminada = false}) async {
     final doc = await _usuarios.doc(uid).get();
     final datos = doc.data();
     if (datos == null) {
+      final user = _auth.currentUser;
+      if (borrarSiEliminada && user != null && await _borrarSiFueEliminada(user)) {
+        throw const AuthException(ErrorAuth.cuentaEliminada);
+      }
       await _auth.signOut();
       throw const AuthException(ErrorAuth.perfilNoEncontrado);
     }
     return Persona.desdeMapa(uid, datos);
+  }
+
+  /// Eliminar un usuario desde el panel solo puede borrar su perfil: la cuenta de
+  /// acceso únicamente la puede borrar su dueño. Por eso se termina de borrar aquí,
+  /// la siguiente vez que esa cuenta abre sesión. Devuelve `true` si la borró.
+  Future<bool> _borrarSiFueEliminada(User user) async {
+    try {
+      final marca = _db.collection('eliminados').doc(user.uid);
+      if (!(await marca.get()).exists) return false;
+      await marca.delete();
+      await user.delete();
+      return true;
+    } on FirebaseException {
+      return false;
+    }
+  }
+
+  /// Si [correo] es de una cuenta eliminada y [clave] es la suya, la borra del todo
+  /// para que el registro pueda crearla de nuevo. Devuelve `true` si quedó libre.
+  Future<bool> _liberarCuentaEliminada(String correo, String clave) async {
+    try {
+      final credencial = await _auth.signInWithEmailAndPassword(email: correo, password: clave);
+      final user = credencial.user!;
+      final tienePerfil = (await _usuarios.doc(user.uid).get()).exists;
+      if (!tienePerfil && await _borrarSiFueEliminada(user)) return true;
+      await _auth.signOut();
+      return false;
+    } on FirebaseException {
+      return false;
+    }
   }
 
   @override
@@ -91,8 +128,16 @@ class AuthRepositoryFirebase implements AuthRepository {
   }) async {
     _registrando = true;
     try {
-      final credencial =
-          await _auth.createUserWithEmailAndPassword(email: correo.trim().toLowerCase(), password: clave);
+      final direccion = correo.trim().toLowerCase();
+      UserCredential credencial;
+      try {
+        credencial = await _auth.createUserWithEmailAndPassword(email: direccion, password: clave);
+      } on FirebaseAuthException catch (e) {
+        // El correo puede ser de una cuenta eliminada: se borra del todo y se crea de nuevo.
+        final liberada = e.code == 'email-already-in-use' && await _liberarCuentaEliminada(direccion, clave);
+        if (!liberada) rethrow;
+        credencial = await _auth.createUserWithEmailAndPassword(email: direccion, password: clave);
+      }
       final user = credencial.user!;
       final indiceCedula = _db.collection('cedulas').doc('$nacionalidad-$cedula');
       try {
@@ -136,9 +181,12 @@ class AuthRepositoryFirebase implements AuthRepository {
 
   @override
   Future<Persona> iniciarSesion(String correo, String clave) async {
+    // Mientras dura el inicio de sesión se ignora el aviso automático de Firebase,
+    // para que no cierre la sesión antes de terminar de borrar una cuenta eliminada.
+    _registrando = true;
     try {
       final credencial = await _auth.signInWithEmailAndPassword(email: correo.trim().toLowerCase(), password: clave);
-      final usuario = await _leerPerfil(credencial.user!.uid);
+      final usuario = await _leerPerfil(credencial.user!.uid, borrarSiEliminada: true);
       _publicar(usuario);
       // Si verificó el correo desde otro dispositivo, se anota al entrar.
       unawaited(comprobarCorreoVerificado().then((_) {}, onError: (_) {}));
@@ -147,6 +195,8 @@ class AuthRepositoryFirebase implements AuthRepository {
       throw AuthException(_traducir(e.code));
     } on FirebaseException catch (e) {
       throw AuthException(_traducir(e.code));
+    } finally {
+      _registrando = false;
     }
   }
 
