@@ -13,6 +13,7 @@ class MarcoAcceso extends StatelessWidget {
     required this.child,
     this.lema = 'Tu deporte empieza aquí',
     this.detalle = 'Consulta las disciplinas de la UNIMET, reserva tu cupo y lleva tu asistencia en un solo lugar.',
+    this.conVolver = true,
   });
 
   /// El formulario.
@@ -21,6 +22,9 @@ class MarcoAcceso extends StatelessWidget {
   /// Frase grande sobre la foto.
   final String lema;
   final String detalle;
+
+  /// Muestra el botón "Volver" sobre el formulario.
+  final bool conVolver;
 
   static const _foto = 'design/fotos/acceso.jpg';
 
@@ -36,8 +40,8 @@ class MarcoAcceso extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Align(alignment: Alignment.centerLeft, child: _Volver()),
-              const SizedBox(height: 12),
+              if (conVolver) const Align(alignment: Alignment.centerLeft, child: _Volver()),
+              SizedBox(height: conVolver ? 12 : 24),
               child,
             ],
           ),
@@ -72,7 +76,7 @@ class MarcoAcceso extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Align(alignment: Alignment.centerLeft, child: _Volver()),
+                        if (conVolver) const Align(alignment: Alignment.centerLeft, child: _Volver()),
                         const SizedBox(height: 8),
                         child,
                       ],

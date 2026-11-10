@@ -194,6 +194,12 @@ class AuthRepositoryFirebase implements AuthRepository {
     if (_auth.currentUser == null || actual is! Estudiante) return false;
     if (actual.correoVerificado) return true;
     try {
+      // La Coordinación pudo darlo por verificado desde el panel.
+      final perfil = await _usuarios.doc(actual.uid).get();
+      if (perfil.data()?['correoVerificado'] == true) {
+        _publicar(actual.conCorreoVerificado());
+        return true;
+      }
       await _auth.currentUser!.reload();
       final user = _auth.currentUser;
       if (user == null || !user.emailVerified) return false;

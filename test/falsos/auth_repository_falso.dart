@@ -24,6 +24,7 @@ class AuthRepositoryFalso implements AuthRepository {
         correo: 'estudiante@correo.unimet.edu.ve',
         carnet: '20231110001',
         carrera: 'Ingeniería de Sistemas',
+        correoVerificado: true,
       ),
       'Estudiante123',
     );

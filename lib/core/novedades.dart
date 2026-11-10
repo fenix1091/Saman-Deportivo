@@ -19,8 +19,7 @@ final novedades = <Novedad>[
     titulo: 'Verificación del correo al registrarse',
     cambios: const [
       'Al crear la cuenta se pasa a la pantalla "Revisa tu correo", que avanza sola cuando se abre el enlace enviado.',
-      'Se puede reenviar el correo o dejar la verificación para después.',
-      'Sin verificar el correo se puede navegar, pero no reservar un cupo.',
+      'Hasta verificar el correo no se puede entrar a la aplicación; el correo se puede reenviar desde esa pantalla.',
       'El administrador puede dar un correo por verificado desde Usuarios, igual que la solvencia.',
     ],
   ),

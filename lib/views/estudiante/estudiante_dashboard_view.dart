@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../models/inscripcion.dart';
-import '../../models/persona.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/mis_inscripciones_view_model.dart';
@@ -124,36 +123,6 @@ class _EstudianteDashboardViewState extends State<EstudianteDashboardView> {
                         },
                       ),
                     ),
-                    if (usuario is Estudiante && !usuario.correoVerificado)
-                      Revelar(
-                        orden: 2,
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 18),
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: AppColors.naranja.withValues(alpha: 0.5)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.mark_email_unread_outlined, color: naranjaProfundo, size: 28),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Text(
-                                  'Verifica tu correo para poder reservar un cupo. Te enviamos un enlace al registrarte.',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ),
-                              FilledButton.tonal(
-                                style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-                                onPressed: () => context.push('/verificar-correo'),
-                                child: const Text('Verificar'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     if (pendientes > 0 || enRevision > 0)
                       Revelar(
                         orden: 2,

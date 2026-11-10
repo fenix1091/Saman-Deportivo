@@ -169,6 +169,11 @@ String? redirigir(Persona? usuario, Uri uri, {bool listo = true}) {
     if (_esPublica(ruta)) return null;
     return Uri(path: '/login', queryParameters: {'destino': uri.toString()}).toString();
   }
+  // El estudiante que aún no verificó su correo solo ve la pantalla de verificación
+  // (y la del enlace del correo), hasta que abra el enlace que se le envió.
+  if (usuario is Estudiante && !usuario.correoVerificado) {
+    return ruta == '/verificar-correo' || ruta == '/accion' ? null : '/verificar-correo';
+  }
   final inicio = AuthViewModel.rutaInicio(usuario.rol);
   if (ruta == '/login' || ruta == '/registro') {
     return uri.queryParameters['destino'] ?? inicio;

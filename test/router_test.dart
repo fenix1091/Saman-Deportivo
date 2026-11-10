@@ -9,6 +9,7 @@ void main() {
     nombre: 'Estudiante Prueba',
     correo: 'estudiante@correo.unimet.edu.ve',
     carnet: '20231110001',
+    correoVerificado: true,
   );
   const entrenador = Entrenador(
     uid: 't1',
@@ -44,6 +45,15 @@ void main() {
       expect(redirigir(estudiante, Uri.parse('/admin/dashboard')), '/estudiante');
       expect(redirigir(estudiante, Uri.parse('/entrenador/mis-deportes')), '/estudiante');
       expect(redirigir(entrenador, Uri.parse('/entrenador/mis-deportes')), isNull);
+    });
+    test('un estudiante sin verificar su correo solo ve la pantalla de verificación', () {
+      const nuevo = Estudiante(uid: 'e2', cedula: 2, nombre: 'Nuevo', correo: 'n@correo.unimet.edu.ve', carnet: '');
+      for (final ruta in ['/estudiante', '/catalogo', '/perfil', '/mis-inscripciones', '/login', '/']) {
+        expect(redirigir(nuevo, Uri.parse(ruta)), '/verificar-correo', reason: ruta);
+      }
+      expect(redirigir(nuevo, Uri.parse('/verificar-correo')), isNull);
+      expect(redirigir(nuevo, Uri.parse('/accion?mode=verifyEmail&oobCode=x')), isNull);
+      expect(redirigir(nuevo.conCorreoVerificado(), Uri.parse('/estudiante')), isNull);
     });
   });
 }

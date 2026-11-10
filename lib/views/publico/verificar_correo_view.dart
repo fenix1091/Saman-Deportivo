@@ -13,8 +13,8 @@ import '../../widgets/marco_acceso.dart';
 /// Paso posterior al registro: el estudiante confirma que el correo es suyo
 /// abriendo el enlace que se le envió. La pantalla lo detecta sola.
 ///
-/// Sin verificar puede seguir navegando, pero no reservar un cupo (lo impiden
-/// las reglas de Firestore).
+/// Hasta que lo haga, la guardia de rutas no lo deja pasar de aquí; la reserva de
+/// cupos, además, la impiden las reglas de Firestore.
 class VerificarCorreoView extends StatefulWidget {
   const VerificarCorreoView({super.key, this.cadaCuanto = const Duration(seconds: 4)});
 
@@ -100,6 +100,7 @@ class _VerificarCorreoViewState extends State<VerificarCorreoView> {
     return MarcoAcceso(
       lema: 'Un paso más y listo',
       detalle: 'Confirmar tu correo nos asegura que las reservas y los avisos lleguen a la persona correcta.',
+      conVolver: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: _verificado
@@ -123,7 +124,7 @@ class _VerificarCorreoViewState extends State<VerificarCorreoView> {
                     children: [
                       const TextSpan(text: 'Te enviamos un enlace a '),
                       TextSpan(text: usuario.correo, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      const TextSpan(text: '. Ábrelo para confirmar que es tuyo; esta pantalla avanza sola.'),
+                      const TextSpan(text: '. Ábrelo para confirmar que es tuyo y entrar; esta pantalla avanza sola.'),
                     ],
                   ),
                   textAlign: TextAlign.center,
@@ -153,7 +154,10 @@ class _VerificarCorreoViewState extends State<VerificarCorreoView> {
                   child: Text(_segundos > 0 ? 'Reenviar correo ($_segundos s)' : 'Reenviar correo'),
                 ),
                 const SizedBox(height: 4),
-                TextButton(onPressed: () => context.go('/catalogo'), child: const Text('Verificar después')),
+                TextButton(
+                  onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
+                  child: const Text('Cerrar sesión'),
+                ),
               ],
       ),
     );
