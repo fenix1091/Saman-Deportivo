@@ -60,7 +60,7 @@ class _AdminFalso implements AdminRepository {
 
   @override
   Stream<List<Persona>> observarUsuarios() => Stream.value(const [
-        Estudiante(uid: 'a', cedula: 1, nombre: 'Ana', correo: 'a@x', carnet: '1', solvente: true),
+        Estudiante(uid: 'a', cedula: 1, nombre: 'Ana', correo: 'a@x', carnet: '1', solvente: true, correoVerificado: true),
         Estudiante(uid: 'b', cedula: 2, nombre: 'Luis', correo: 'b@x', carnet: '2'),
         Entrenador(uid: 'e', cedula: 3, nombre: 'Carlos', correo: 'c@x', especialidad: 'Fútbol'),
       ]);

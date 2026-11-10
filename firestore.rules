@@ -30,7 +30,13 @@ service cloud.firestore {
     // La solvencia la marca la Coordinación de Deportes y el estudiante no puede cambiarla.
     function esEstudianteHabilitado() {
       let perfil = get(rutaUsuario(request.auth.uid)).data;
-      return tienePerfil() && perfil.rol == 'estudiante' && perfil.estado == 'activo' && perfil.solvente == true;
+      return tienePerfil() && perfil.rol == 'estudiante' && perfil.estado == 'activo' && perfil.solvente == true
+        && correoVerificado(perfil);
+    }
+    // El correo cuenta como verificado si el estudiante abrió el enlace (lo dice su sesión)
+    // o si la Coordinación lo dio por verificado en su perfil.
+    function correoVerificado(perfil) {
+      return request.auth.token.email_verified == true || perfil.get('correoVerificado', false) == true;
     }
     function rutaDeporte(codigo) {
       return /databases/$(database)/documents/deportes/$(codigo);
@@ -82,7 +88,8 @@ service cloud.firestore {
           && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['rol', 'nacionalidad', 'cedula', 'nombre', 'apellido', 'correo',
                                                     'telefono', 'fotoUrl', 'carnet', 'estado', 'solvente', 'carrera',
-                                                    'creadoEn'])
+                                                    'correoVerificado', 'creadoEn'])
+          && request.resource.data.get('correoVerificado', false) == false
           && request.resource.data.rol == 'estudiante'
           && cedulaValida(request.resource.data)
           && nombreValido(request.resource.data)
@@ -108,10 +115,14 @@ service cloud.firestore {
           && request.resource.data.aniosExperiencia >= 0);
 
       // Perfil: el dueño solo cambia nombre, apellido, teléfono y foto; el administrador, todo.
+      // El dueño también anota que verificó su correo, pero solo si su sesión lo confirma.
       allow update: if esAdmin()
         || (autenticado()
           && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'telefono', 'fotoUrl'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'telefono', 'fotoUrl',
+                                                                              'correoVerificado'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['correoVerificado'])
+            || (request.resource.data.correoVerificado == true && request.auth.token.email_verified == true))
           && nombreValido(request.resource.data)
           && request.resource.data.telefono is string
           && request.resource.data.telefono.size() <= 20

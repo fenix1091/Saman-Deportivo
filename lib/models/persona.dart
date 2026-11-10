@@ -104,6 +104,7 @@ class Estudiante extends Persona {
     this.estado = EstadoEstudiante.activo,
     this.solvente = false,
     this.carrera = '',
+    this.correoVerificado = false,
   });
 
   final String carnet;
@@ -113,6 +114,27 @@ class Estudiante extends Persona {
   /// y no puede cambiarlo (lo impiden las reglas de Firestore).
   final bool solvente;
   final String carrera;
+
+  /// El estudiante abrió el enlace que se le envió al registrarse (o la Coordinación
+  /// lo dio por verificado). Sin esto no puede reservar un cupo.
+  final bool correoVerificado;
+
+  /// El mismo estudiante con el correo ya verificado.
+  Estudiante conCorreoVerificado() => Estudiante(
+        uid: uid,
+        nacionalidad: nacionalidad,
+        cedula: cedula,
+        nombre: nombre,
+        apellido: apellido,
+        correo: correo,
+        telefono: telefono,
+        fotoUrl: fotoUrl,
+        carnet: carnet,
+        estado: estado,
+        solvente: solvente,
+        carrera: carrera,
+        correoVerificado: true,
+      );
 
   @override
   Rol get rol => Rol.estudiante;
@@ -133,6 +155,7 @@ class Estudiante extends Persona {
         estado: estado,
         solvente: solvente,
         carrera: carrera,
+        correoVerificado: correoVerificado,
       );
 
   @override
@@ -142,6 +165,7 @@ class Estudiante extends Persona {
         'estado': estado.name,
         'solvente': solvente,
         'carrera': carrera,
+        'correoVerificado': correoVerificado,
       };
 
   factory Estudiante.desdeMapa(String uid, Map<String, dynamic> mapa) => Estudiante(
@@ -157,6 +181,7 @@ class Estudiante extends Persona {
         estado: EstadoEstudiante.values.byName(mapa['estado'] as String? ?? 'activo'),
         solvente: mapa['solvente'] as bool? ?? false,
         carrera: mapa['carrera'] as String? ?? '',
+        correoVerificado: mapa['correoVerificado'] as bool? ?? false,
       );
 }
 

@@ -30,6 +30,7 @@ import '../views/publico/inicio_view.dart';
 import '../views/publico/login_view.dart';
 import '../views/publico/recuperar_clave_view.dart';
 import '../views/publico/registro_view.dart';
+import '../views/publico/verificar_correo_view.dart';
 
 /// Rutas que se pueden abrir sin iniciar sesión. El detalle de cada deporte
 /// (/catalogo/{codigo}) también es público (CU-06).
@@ -58,6 +59,7 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository, Stri
       ),
       GoRoute(path: '/registro', builder: (_, __) => const RegistroView()),
       GoRoute(path: '/recuperar-clave', builder: (_, __) => const RecuperarClaveView()),
+      GoRoute(path: '/verificar-correo', builder: (_, __) => const VerificarCorreoView()),
       // Destino de los enlaces de los correos (contraseña nueva y verificación).
       GoRoute(
         path: '/accion',

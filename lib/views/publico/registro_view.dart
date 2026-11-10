@@ -61,10 +61,7 @@ class _RegistroViewState extends State<RegistroView> {
       clave: _clave.text,
     );
     if (!ok || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('¡Bienvenido! Te enviamos un correo de verificación a ${_correo.text.trim()}.')),
-    );
-    context.go('/catalogo');
+    context.go('/verificar-correo');
   }
 
   @override

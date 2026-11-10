@@ -25,7 +25,7 @@ void main() {
           nombre: 'Estudiante Solvente',
           correo: 'solvente@correo.unimet.edu.ve',
           carnet: '20231110002',
-          solvente: true,
+          solvente: true, correoVerificado: true,
         ),
         'Solvente123',
       );

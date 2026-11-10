@@ -37,8 +37,10 @@ function registrar(db, uid, perfil, cedula = `${perfil.nacionalidad}-${perfil.ce
   return lote.commit();
 }
 
-const comoEstudiante = () => entorno.authenticatedContext('est1', { email: 'est1@correo.unimet.edu.ve' }).firestore();
-const comoOtroEstudiante = () => entorno.authenticatedContext('est2', { email: 'est2@correo.unimet.edu.ve' }).firestore();
+const comoEstudiante = () => entorno.authenticatedContext('est1', { email: 'est1@correo.unimet.edu.ve', email_verified: true }).firestore();
+const comoOtroEstudiante = () => entorno.authenticatedContext('est2', { email: 'est2@correo.unimet.edu.ve', email_verified: true }).firestore();
+/** El mismo est1, pero sin haber abierto el enlace de verificación. */
+const sinVerificar = () => entorno.authenticatedContext('est1', { email: 'est1@correo.unimet.edu.ve', email_verified: false }).firestore();
 const comoEntrenador = () => entorno.authenticatedContext('ent1', { email: 'ent1@unimet.edu.ve' }).firestore();
 const comoAdmin = () => entorno.authenticatedContext('adm1', { email: 'adm1@unimet.edu.ve' }).firestore();
 const sinSesion = () => entorno.unauthenticatedContext().firestore();
@@ -155,6 +157,18 @@ describe('Seguridad de los perfiles (RF-02, RF-03)', () => {
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { apellido: '' }));
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { nombre: 'x'.repeat(41) }));
     await assertFails(updateDoc(doc(db, 'usuarios/est1'), { apellido: 12345 }));
+  });
+
+  test('el dueño anota su correo como verificado solo si de verdad abrió el enlace', async () => {
+    await assertFails(updateDoc(doc(sinVerificar(), 'usuarios/est1'), { correoVerificado: true }));
+    await assertSucceeds(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { correoVerificado: true }));
+    await assertFails(updateDoc(doc(comoEstudiante(), 'usuarios/est1'), { correoVerificado: false }));
+  });
+
+  test('nadie se registra con el correo ya verificado', async () => {
+    const nuevo = entorno.authenticatedContext('nuevo', { email: 'nuevo@correo.unimet.edu.ve' }).firestore();
+    await assertFails(registrar(nuevo, 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { correoVerificado: true })));
+    await assertSucceeds(registrar(nuevo, 'nuevo', perfilEstudiante('nuevo@correo.unimet.edu.ve', { correoVerificado: false })));
   });
 
   test('el dueño no puede cambiarse el rol, la solvencia, la cédula ni el carnet', async () => {
@@ -292,6 +306,12 @@ describe('Validación, cupos y pago de la inscripción (RF-07, RF-08, RF-09)', (
   test('un estudiante activo y solvente reserva su cupo', async () => {
     await assertSucceeds(setDoc(doc(comoEstudiante(), 'inscripciones', ID), reserva()));
     await assertSucceeds(getDoc(doc(comoEstudiante(), 'inscripciones', ID)));
+  });
+
+  test('sin verificar el correo no se puede reservar; sí cuando la Coordinación lo da por verificado', async () => {
+    await assertFails(setDoc(doc(sinVerificar(), 'inscripciones', ID), reserva()));
+    await assertSucceeds(updateDoc(doc(comoAdmin(), 'usuarios/est1'), { correoVerificado: true }));
+    await assertSucceeds(setDoc(doc(sinVerificar(), 'inscripciones', ID), reserva()));
   });
 
   test('un estudiante no solvente o inactivo no puede reservar, aunque se salte la app (RN-01)', async () => {

@@ -7,7 +7,7 @@ import 'package:saman_deportivo/models/persona.dart';
 void main() {
   const futbol = Deporte(codigo: 'FUT-01', nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 20, entrenadorId: 'ent-1');
   const ana =
-      Estudiante(uid: 'a', cedula: 1, nombre: 'Ana', apellido: 'Pérez', correo: 'a@x', carnet: '1', solvente: true);
+      Estudiante(uid: 'a', cedula: 1, nombre: 'Ana', apellido: 'Pérez', correo: 'a@x', carnet: '1', solvente: true, correoVerificado: true);
   const carlos =
       Entrenador(uid: 'ent-1', cedula: 2, nombre: 'Carlos', apellido: 'Mora', correo: 'c@x', especialidad: 'Fútbol');
   const admin = Administrador(uid: 'adm', cedula: 3, nombre: 'Coordinación', correo: 'adm@x');
@@ -86,7 +86,7 @@ void main() {
           nombre: 'Marta',
           correo: 'm@x',
           carnet: '3',
-          solvente: true,
+          solvente: true, correoVerificado: true,
           estado: EstadoEstudiante.inactivo);
       expect(ValidacionAdmin.inscribirDirecto(noSolvente, futbol, const []), contains('no está solvente'));
       expect(ValidacionAdmin.inscribirDirecto(inactivo, futbol, const []), contains('inactivo'));

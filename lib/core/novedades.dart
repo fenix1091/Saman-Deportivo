@@ -14,6 +14,17 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.5',
+    fecha: DateTime(2026, 11, 9),
+    titulo: 'Verificación del correo al registrarse',
+    cambios: const [
+      'Al crear la cuenta se pasa a la pantalla "Revisa tu correo", que avanza sola cuando se abre el enlace enviado.',
+      'Se puede reenviar el correo o dejar la verificación para después.',
+      'Sin verificar el correo se puede navegar, pero no reservar un cupo.',
+      'El administrador puede dar un correo por verificado desde Usuarios, igual que la solvencia.',
+    ],
+  ),
+  Novedad(
     version: '1.4',
     fecha: DateTime(2026, 11, 9),
     titulo: 'Nueva imagen, más seguridad y registro de actualizaciones',

@@ -18,7 +18,7 @@ const solvente = Estudiante(
   nombre: 'Estudiante Solvente',
   correo: 'solvente@correo.unimet.edu.ve',
   carnet: '20231110001',
-  solvente: true,
+  solvente: true, correoVerificado: true,
 );
 
 void main() {
@@ -58,7 +58,7 @@ void main() {
         nombre: 'N',
         correo: 'n@x.com',
         carnet: '1',
-        solvente: true,
+        solvente: true, correoVerificado: true,
         estado: EstadoEstudiante.inactivo,
       );
       expect(validar(estudiante: inactivo).cumple(Requisito.estudianteActivo), isFalse);
@@ -68,7 +68,17 @@ void main() {
       const noSolvente = Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1');
       const lleno = Deporte(codigo: 'FUT-01', nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 25, entrenadorId: 't1');
       final r = validar(estudiante: noSolvente, deporte: lleno);
-      expect(r.incumplimientos.map((i) => i.requisito), [Requisito.solvente, Requisito.hayCupo]);
+      expect(r.incumplimientos.map((i) => i.requisito),
+          [Requisito.solvente, Requisito.correoVerificado, Requisito.hayCupo]);
+    });
+
+    test('sin verificar el correo no se puede reservar, aunque esté solvente', () {
+      const sinVerificar =
+          Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1', solvente: true);
+      final r = validar(estudiante: sinVerificar);
+      expect(r.aprobada, isFalse);
+      expect(r.incumplimientos.map((i) => i.requisito), [Requisito.correoVerificado]);
+      expect(validar(estudiante: sinVerificar.conCorreoVerificado()).aprobada, isTrue);
     });
   });
 
@@ -230,7 +240,7 @@ void main() {
       expect(deportes.leer('FUT-01')!.cuposOcupados, 21);
 
       final vm2 = crear(estudiante: const Estudiante(
-          uid: 'est-2', cedula: 2, nombre: 'Dos', correo: 'dos@correo.unimet.edu.ve', carnet: '2', solvente: true));
+          uid: 'est-2', cedula: 2, nombre: 'Dos', correo: 'dos@correo.unimet.edu.ve', carnet: '2', solvente: true, correoVerificado: true));
       await esperar();
       await vm2.inscribirYPagar();
       expect(deportes.leer('FUT-01')!.cuposOcupados, 22);

@@ -81,6 +81,27 @@ class AuthViewModel extends ChangeNotifier {
     return _ejecutar(() => _repositorio.enviarRecuperacionClave(correo.trim()));
   }
 
+  /// Consulta si el estudiante ya verificó su correo; `true` cuando está verificado.
+  Future<bool> comprobarCorreo() async {
+    try {
+      return await _repositorio.comprobarCorreoVerificado();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Reenvía el correo de verificación. Devuelve el mensaje de error, o `null` si se envió.
+  Future<String?> reenviarVerificacion() async {
+    try {
+      await _repositorio.reenviarVerificacion();
+      return null;
+    } on AuthException catch (e) {
+      return e.mensaje;
+    } catch (_) {
+      return ErrorAuth.desconocido.mensaje;
+    }
+  }
+
   Future<void> cerrarSesion() => _repositorio.cerrarSesion();
 
   /// Pantalla inicial de cada rol después de iniciar sesión.

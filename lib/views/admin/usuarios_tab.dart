@@ -318,6 +318,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
       TextEditingController(text: widget.usuario is Entrenador ? (widget.usuario as Entrenador).especialidad : '');
   late bool _solvente = widget.usuario is Estudiante && (widget.usuario as Estudiante).solvente;
   late bool _activo = widget.usuario is! Estudiante || (widget.usuario as Estudiante).estaActivo();
+  late bool _correoVerificado = widget.usuario is Estudiante && (widget.usuario as Estudiante).correoVerificado;
 
   @override
   void dispose() {
@@ -337,6 +338,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
       if (u is Estudiante) ...{
         'carrera': _carrera.text.trim(),
         'solvente': _solvente,
+        'correoVerificado': _correoVerificado,
         'estado': _activo ? EstadoEstudiante.activo.name : EstadoEstudiante.inactivo.name,
       },
       if (u is Entrenador) 'especialidad': _especialidad.text.trim(),
@@ -395,6 +397,13 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                     subtitle: const Text('Sin solvencia no puede inscribirse.'),
                     value: _solvente,
                     onChanged: (v) => setState(() => _solvente = v),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Correo verificado'),
+                    subtitle: const Text('Se marca solo al abrir el enlace; aquí se puede dar por verificado.'),
+                    value: _correoVerificado,
+                    onChanged: (v) => setState(() => _correoVerificado = v),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,

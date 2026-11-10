@@ -13,6 +13,7 @@ import '../models/persona.dart';
 enum Requisito {
   estudianteActivo('Estudiante activo'),
   solvente('Solvente con la universidad'),
+  correoVerificado('Correo verificado'),
   deporteDisponible('Disciplina abierta a inscripciones'),
   hayCupo('Cupos disponibles'),
   sinInscripcionPrevia('Sin otra inscripción en esta disciplina'),
@@ -97,6 +98,13 @@ class ValidacionInscripcion {
       fallas.add(const Incumplimiento(
         Requisito.solvente,
         'No apareces como solvente. Ponte al día en Caja y pide a la Coordinación de Deportes que lo actualice.',
+      ));
+    }
+
+    if (!estudiante.correoVerificado) {
+      fallas.add(const Incumplimiento(
+        Requisito.correoVerificado,
+        'Aún no has verificado tu correo. Abre el enlace que te enviamos o pide otro desde tu panel.',
       ));
     }
 

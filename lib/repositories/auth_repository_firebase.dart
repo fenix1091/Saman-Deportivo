@@ -140,6 +140,8 @@ class AuthRepositoryFirebase implements AuthRepository {
       final credencial = await _auth.signInWithEmailAndPassword(email: correo.trim().toLowerCase(), password: clave);
       final usuario = await _leerPerfil(credencial.user!.uid);
       _publicar(usuario);
+      // Si verificó el correo desde otro dispositivo, se anota al entrar.
+      unawaited(comprobarCorreoVerificado().then((_) {}, onError: (_) {}));
       return usuario;
     } on FirebaseAuthException catch (e) {
       throw AuthException(_traducir(e.code));
@@ -181,6 +183,36 @@ class AuthRepositoryFirebase implements AuthRepository {
   Future<void> verificarCorreo(String codigo) async {
     try {
       await _auth.applyActionCode(codigo);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_traducir(e.code));
+    }
+  }
+
+  @override
+  Future<bool> comprobarCorreoVerificado() async {
+    final actual = _actual;
+    if (_auth.currentUser == null || actual is! Estudiante) return false;
+    if (actual.correoVerificado) return true;
+    try {
+      await _auth.currentUser!.reload();
+      final user = _auth.currentUser;
+      if (user == null || !user.emailVerified) return false;
+      // Las reglas leen la verificación del token: se renueva antes de anotarla en el perfil.
+      await user.getIdToken(true);
+      await _usuarios.doc(actual.uid).update({'correoVerificado': true});
+      _publicar(actual.conCorreoVerificado());
+      return true;
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_traducir(e.code));
+    } on FirebaseException catch (e) {
+      throw AuthException(_traducir(e.code));
+    }
+  }
+
+  @override
+  Future<void> reenviarVerificacion() async {
+    try {
+      await _auth.currentUser?.sendEmailVerification();
     } on FirebaseAuthException catch (e) {
       throw AuthException(_traducir(e.code));
     }

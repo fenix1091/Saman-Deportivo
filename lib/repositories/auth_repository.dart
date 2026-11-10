@@ -44,6 +44,13 @@ abstract class AuthRepository {
   /// Marca el correo como verificado con el código del enlace de bienvenida.
   Future<void> verificarCorreo(String codigo);
 
+  /// Consulta si el estudiante con sesión ya abrió el enlace de verificación y, si
+  /// es así, lo deja anotado en su perfil. Devuelve `true` cuando el correo está verificado.
+  Future<bool> comprobarCorreoVerificado();
+
+  /// Vuelve a enviar el correo de verificación a la cuenta con sesión.
+  Future<void> reenviarVerificacion();
+
   Future<void> cerrarSesion();
 
   /// Guarda el nombre, el apellido, el teléfono y la foto del perfil (CU-03).

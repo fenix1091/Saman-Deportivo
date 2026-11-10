@@ -177,6 +177,29 @@ class AuthRepositoryFalso implements AuthRepository {
     enlaces.remove(codigo);
   }
 
+  /// Correos cuyo enlace de verificación "ya se abrió".
+  final enlacesAbiertos = <String>{};
+
+  /// Veces que se pidió reenviar el correo de verificación.
+  int reenvios = 0;
+
+  @override
+  Future<bool> comprobarCorreoVerificado() async {
+    final actual = _actual;
+    if (actual is! Estudiante) return false;
+    if (actual.correoVerificado) return true;
+    if (!enlacesAbiertos.contains(actual.correo)) return false;
+    final verificado = actual.conCorreoVerificado();
+    _usuarios[actual.uid] = verificado;
+    _abrirSesion(verificado);
+    return true;
+  }
+
+  @override
+  Future<void> reenviarVerificacion() async {
+    reenvios++;
+  }
+
   @override
   Future<void> cerrarSesion() async {
     _abrirSesion(null);
