@@ -64,6 +64,18 @@ class AuthRepositoryFalso implements AuthRepository {
   Persona? _actual;
   int _siguienteId = 1;
 
+  final _eliminadas = <String>{};
+
+  /// Imita "Eliminar usuario" del panel: se borra el perfil, pero la cuenta de acceso
+  /// sigue existiendo hasta que su dueño vuelve a usarla.
+  void eliminarDesdeElPanel(String correo) => _eliminadas.add(_buscarPorCorreo(correo)!.uid);
+
+  void _borrarDelTodo(Persona usuario) {
+    _usuarios.remove(usuario.uid);
+    _claves.remove(usuario.uid);
+    _eliminadas.remove(usuario.uid);
+  }
+
   /// Agrega otra cuenta, por ejemplo un estudiante solvente.
   void agregarCuenta(Persona usuario, String clave) => _agregar(usuario, clave);
 
@@ -105,7 +117,14 @@ class AuthRepositoryFalso implements AuthRepository {
     required String clave,
   }) async {
     await Future<void>.delayed(latencia);
-    if (_buscarPorCorreo(correo) != null) throw const AuthException(ErrorAuth.correoYaRegistrado);
+    final previa = _buscarPorCorreo(correo);
+    if (previa != null) {
+      // Una cuenta eliminada se borra del todo si quien se registra conoce su contraseña.
+      if (!_eliminadas.contains(previa.uid) || _claves[previa.uid] != clave) {
+        throw const AuthException(ErrorAuth.correoYaRegistrado);
+      }
+      _borrarDelTodo(previa);
+    }
     if (_usuarios.values.any((u) => u.nacionalidad == nacionalidad && u.cedula == cedula)) {
       throw const AuthException(ErrorAuth.cedulaYaRegistrada);
     }
@@ -139,6 +158,10 @@ class AuthRepositoryFalso implements AuthRepository {
       throw const AuthException(ErrorAuth.credencialesInvalidas);
     }
     _intentosFallidos.remove(c);
+    if (_eliminadas.contains(usuario.uid)) {
+      _borrarDelTodo(usuario);
+      throw const AuthException(ErrorAuth.cuentaEliminada);
+    }
     _abrirSesion(usuario);
     return usuario;
   }
