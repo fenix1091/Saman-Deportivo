@@ -252,14 +252,6 @@ class _EstudianteDashboardViewState extends State<EstudianteDashboardView> {
                               SizedBox(
                                   width: ancho,
                                   child: TarjetaAcceso(
-                                      icono: Icons.emoji_events_outlined,
-                                      titulo: 'Mi progreso',
-                                      detalle: 'Racha, nivel e insignias',
-                                      color: AppColors.naranjaProfundo,
-                                      alPulsar: () => context.push('/estudiante/progreso'))),
-                              SizedBox(
-                                  width: ancho,
-                                  child: TarjetaAcceso(
                                       icono: Icons.account_circle_outlined,
                                       titulo: 'Mi perfil',
                                       detalle: 'Datos, teléfono y foto',

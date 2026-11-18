@@ -45,10 +45,6 @@ class AsistenciaRepositoryFalso implements AsistenciaRepository {
       _vigilar(() => asistencias.values.where((a) => a.deporteCodigo == codigo).toList());
 
   @override
-  Stream<List<Asistencia>> asistenciasDelEstudiante(String estudianteId) =>
-      _vigilar(() => asistencias.values.where((a) => a.estudianteId == estudianteId).toList());
-
-  @override
   Future<void> registrarAsistencia({
     required String codigo,
     required DateTime fecha,

@@ -32,7 +32,7 @@ class DestinoMenu {
   final List<String> prefijos;
 
   /// Solo se marca en su ruta exacta (o en sus [prefijos]), no en las que cuelgan
-  /// de ella: el Inicio del estudiante no debe encenderse en /estudiante/progreso.
+  /// de ella: el Inicio del estudiante no debe encenderse en /estudiante/inscribir.
   final bool soloExacta;
 
   bool activo(String rutaActual) =>
@@ -61,11 +61,6 @@ List<DestinoMenu> destinosDe(Rol rol) => switch (rol) {
               icono: Icons.assignment_outlined,
               iconoActivo: Icons.assignment,
               ruta: '/mis-inscripciones'),
-          DestinoMenu(
-              etiqueta: 'Progreso',
-              icono: Icons.emoji_events_outlined,
-              iconoActivo: Icons.emoji_events,
-              ruta: '/estudiante/progreso'),
           DestinoMenu(
               etiqueta: 'Perfil',
               icono: Icons.account_circle_outlined,

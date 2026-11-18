@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:saman_deportivo/core/exportar/reportes.dart';
 import 'package:saman_deportivo/core/exportar/reportes_saman.dart';
-import 'package:saman_deportivo/core/progreso.dart';
 import 'package:saman_deportivo/core/validacion_admin.dart';
 import 'package:saman_deportivo/main.dart';
 import 'package:saman_deportivo/models/asistencia.dart';
@@ -16,10 +15,8 @@ import 'package:saman_deportivo/repositories/admin_repository_firebase.dart';
 import 'package:saman_deportivo/repositories/asistencia_repository.dart';
 import 'package:saman_deportivo/views/admin/admin_dashboard_view.dart';
 
-import 'falsos/asistencia_repository_falso.dart';
 import 'falsos/auth_repository_falso.dart';
 import 'falsos/deporte_repository_falso.dart';
-import 'falsos/inscripcion_repository_falso.dart';
 import 'falsos/notificacion_repository_falso.dart';
 
 Asistencia _a(String codigo, String uid, DateTime fecha, bool presente) => Asistencia(
@@ -65,98 +62,6 @@ class _AdminClasesFalso implements AdminRepository {
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
-
-  group('Mi progreso', () {
-    test('sin asistencias empieza en Novato, sin racha ni insignias', () {
-      final p = ProgresoEstudiante.calcular(const []);
-      expect(p.sesiones, 0);
-      expect(p.porcentaje, 0);
-      expect(p.rachaActual, 0);
-      expect(p.insigniasLogradas, 0);
-      expect(p.nivel.nombre, 'Novato');
-      expect(p.siguienteNivel!.nombre, 'Constante');
-    });
-
-    test('cuenta la racha actual, la mejor racha, el nivel y las insignias', () {
-      // Fútbol: P P P A P P (martes y jueves); Tenis: P un sábado.
-      final asistencias = [
-        _a('FUT-01', 'e', DateTime(2026, 10, 6), true),
-        _a('FUT-01', 'e', DateTime(2026, 10, 8), true),
-        _a('FUT-01', 'e', DateTime(2026, 10, 13), true),
-        _a('FUT-01', 'e', DateTime(2026, 10, 15), false),
-        _a('FUT-01', 'e', DateTime(2026, 10, 20), true),
-        _a('FUT-01', 'e', DateTime(2026, 10, 22), true),
-        _a('TEN-01', 'e', DateTime(2026, 10, 24), true),
-      ];
-      final p = ProgresoEstudiante.calcular(asistencias, nombres: {'FUT-01': 'Fútbol'});
-      expect(p.sesiones, 7);
-      expect(p.presentes, 6);
-      expect(p.rachaActual, 3, reason: 'los dos últimos de fútbol y el de tenis');
-      expect(p.mejorRacha, 3);
-      expect(p.nivel.nombre, 'Constante');
-      expect(p.avanceNivel, closeTo(0.1, 0.001), reason: '1 de las 10 asistencias entre Constante y Atleta');
-      final logradas = {for (final i in p.insignias.where((i) => i.lograda)) i.id};
-      expect(logradas, {'primer-paso', 'en-racha', 'multideporte', 'fin-de-semana'});
-      final perfecta = p.insignias.firstWhere((i) => i.id == 'perfecta');
-      expect(perfecta.actual, 1, reason: 'solo Tenis va al 100 %, con 1 sesión');
-      expect(p.porDisciplina.first.nombre, 'Fútbol');
-      expect(p.porDisciplina.first.porcentaje.round(), 83);
-      expect(p.porDisciplina.last.nombre, 'TEN-01', reason: 'sin nombre conocido usa el código');
-      expect(p.recientes.first.deporteCodigo, 'TEN-01');
-    });
-
-    testWidgets('el estudiante abre Mi progreso desde el menú y ve su nivel, su racha y sus insignias',
-        (tester) async {
-      tester.view.physicalSize = const Size(1280, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final deportes = DeporteRepositoryFalso.conDatosDePrueba();
-      final inscripciones = InscripcionRepositoryFalso(deportes)
-        ..agregar(Inscripcion(
-          id: 'FUT-01_est-demo',
-          estudianteId: 'est-demo',
-          deporteCodigo: 'FUT-01',
-          fechaInscripcion: DateTime(2026, 10, 1),
-          estado: EstadoInscripcion.confirmada,
-          nombreDeporte: 'Fútbol',
-        ));
-      final asistencia = AsistenciaRepositoryFalso(deportes);
-      for (final (dia, presente) in [(6, true), (8, true), (13, true), (15, false), (20, true)]) {
-        final a = _a('FUT-01', 'est-demo', DateTime(2026, 10, dia), presente);
-        asistencia.asistencias[a.id] = a;
-      }
-      final otro = _a('FUT-01', 'otro', DateTime(2026, 10, 6), true);
-      asistencia.asistencias[otro.id] = otro;
-
-      await tester.pumpWidget(SamanDeportivoApp(
-        notificaciones: NotificacionRepositoryFalso(),
-        repositorio: AuthRepositoryFalso.conDatosDePrueba(),
-        deportes: deportes,
-        inscripciones: inscripciones,
-        asistenciaRepository: asistencia,
-      ));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Iniciar sesión'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'estudiante@correo.unimet.edu.ve');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'Estudiante123');
-      await tester.tap(find.text('Entrar'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Progreso'));
-      await tester.pumpAndSettle();
-      expect(find.text('Mi progreso'), findsWidgets);
-      expect(find.text('80 %'), findsOneWidget, reason: '4 de 5 (la del otro estudiante no cuenta)');
-      expect(find.text('Novato'), findsOneWidget);
-      expect(find.text('Te falta 1 asistencia para Constante'), findsOneWidget);
-      expect(find.text('Racha de 1'), findsOneWidget);
-      expect(find.text('Mejor racha: 3'), findsOneWidget);
-      expect(find.text('4 de 5 asistencias'), findsOneWidget);
-      expect(find.text('2 DE 8 CONSEGUIDAS'), findsOneWidget, reason: 'Primer paso y En racha');
-      expect(find.text('Guerrero de fin de semana'), findsOneWidget);
-    });
-  });
 
   group('Código de disciplina repetido', () {
     const existentes = [

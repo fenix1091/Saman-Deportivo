@@ -70,14 +70,6 @@ class AsistenciaRepositoryFirebase implements AsistenciaRepository {
       .handleError((Object e) => throw _traducir(e));
 
   @override
-  Stream<List<Asistencia>> asistenciasDelEstudiante(String estudianteId) => _db
-      .collection('asistencias')
-      .where('estudianteId', isEqualTo: estudianteId)
-      .snapshots()
-      .map((consulta) => [for (final d in consulta.docs) Asistencia.desdeMapa(d.id, d.data())])
-      .handleError((Object e) => throw _traducir(e));
-
-  @override
   Future<void> registrarAsistencia({
     required String codigo,
     required DateTime fecha,
