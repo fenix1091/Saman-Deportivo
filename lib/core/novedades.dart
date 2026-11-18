@@ -14,6 +14,17 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.7',
+    fecha: DateTime(2026, 11, 17),
+    titulo: 'Mi progreso, reportes en PDF y Excel y códigos únicos',
+    cambios: const [
+      'Estudiantes: nueva sección "Mi progreso" con su asistencia, racha, nivel e insignias que se ganan al entrenar.',
+      'Entrenadores: la lista de inscritos y la asistencia de cada disciplina se descargan en PDF o Excel.',
+      'Administración: lista de inscritos por disciplina y reporte general descargables en PDF o Excel.',
+      'Al crear una disciplina, el formulario avisa al momento si el código ya existe y no deja guardarla.',
+    ],
+  ),
+  Novedad(
     version: '1.6',
     fecha: DateTime(2026, 11, 17),
     titulo: 'Página de cada disciplina para el entrenador',

@@ -22,6 +22,7 @@ import '../views/entrenador/asistencia_view.dart';
 import '../views/entrenador/mis_disciplinas_view.dart';
 import '../views/estudiante/estudiante_dashboard_view.dart';
 import '../views/estudiante/inscripcion_view.dart';
+import '../views/estudiante/mi_progreso_view.dart';
 import '../views/mis_inscripciones_view.dart';
 import '../views/publico/accion_correo_view.dart';
 import '../views/publico/catalogo_view.dart';
@@ -115,6 +116,7 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository, Stri
       GoRoute(
           path: '/estudiante',
           builder: (_, __) => const EstudianteDashboardView()),
+      GoRoute(path: '/estudiante/progreso', builder: (_, __) => const MiProgresoView()),
       GoRoute(
           path: '/mis-inscripciones',
           builder: (_, __) => const MisInscripcionesView()),

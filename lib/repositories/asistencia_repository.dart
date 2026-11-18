@@ -37,6 +37,10 @@ abstract class AsistenciaRepository {
   /// Todas las asistencias registradas en la disciplina, en tiempo real (RF-16).
   Stream<List<Asistencia>> asistenciasDe(String codigo);
 
+  /// Las asistencias de un estudiante en todas sus disciplinas, en tiempo real
+  /// (para "Mi progreso"). Las reglas solo dejan leer las propias.
+  Stream<List<Asistencia>> asistenciasDelEstudiante(String estudianteId);
+
   /// Guarda la asistencia de una fecha (RF-15): un documento por estudiante en
   /// `asistencias/{codigo}_{uid}_{aaaa-mm-dd}`. Si la fecha ya se había registrado,
   /// actualiza los estados en vez de duplicarlos, y mantiene al día los contadores

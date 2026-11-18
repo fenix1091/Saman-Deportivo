@@ -12,6 +12,23 @@ import '../models/persona.dart';
 class ValidacionAdmin {
   ValidacionAdmin._();
 
+  /// Código de una disciplina en su forma de comparar: mayúsculas, sin espacios
+  /// ni guiones ("bas-01", "BAS 01" y "BAS01" son el mismo código).
+  static String normalizarCodigo(String codigo) => codigo.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+
+  /// No se crea una disciplina con el código de otra que ya existe. Devuelve el
+  /// motivo si el código está tomado, o `null` si está libre.
+  static String? codigoRepetido(String codigo, Iterable<Deporte> existentes) {
+    final buscado = normalizarCodigo(codigo);
+    if (buscado.isEmpty) return null;
+    for (final d in existentes) {
+      if (normalizarCodigo(d.codigo) == buscado) {
+        return 'Ya existe una disciplina con ese código: ${d.nombre} (${d.codigo}).';
+      }
+    }
+    return null;
+  }
+
   /// Una disciplina solo se elimina si nadie tiene una inscripción vigente en ella
   /// (pendiente de pago, en revisión o confirmada). Si la tiene, lo correcto es
   /// darla de baja (dejarla inactiva) para conservar el historial.

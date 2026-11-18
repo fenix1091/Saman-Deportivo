@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../core/exportar/reportes_saman.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../models/inscripcion.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
 import '../../widgets/animaciones.dart';
+import '../../widgets/boton_exportar.dart';
 import '../../widgets/grafico_barras.dart';
 
 /// Dashboard del administrador (RF-21, CU-20): cifras y gráficos con los datos
@@ -117,7 +119,18 @@ class _Resumen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             Revelar(
-              child: Text('Resumen en tiempo real', style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('Resumen en tiempo real',
+                        style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  ),
+                  BotonExportar(
+                    etiqueta: 'Exportar reporte',
+                    reporte: () => ReportesSaman.general(deportes, inscripciones, usuarios),
+                  ),
+                ],
+              ),
             ),
             Revelar(
               orden: 1,

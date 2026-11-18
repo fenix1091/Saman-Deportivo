@@ -81,6 +81,10 @@ class _Ficha extends StatelessWidget {
                     icon: const Icon(Icons.insights_outlined),
                     label: const Text('Ver historial'),
                   ),
+                  BotonExportar(
+                    etiqueta: 'Exportar lista',
+                    reporte: () => ReportesSaman.asistenciaDisciplina(d, vm.nomina, vm.asistencias),
+                  ),
                 ],
               ),
             ),

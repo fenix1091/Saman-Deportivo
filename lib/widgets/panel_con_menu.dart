@@ -20,6 +20,7 @@ class DestinoMenu {
     required this.iconoActivo,
     required this.ruta,
     this.prefijos = const [],
+    this.soloExacta = false,
   });
 
   final String etiqueta;
@@ -30,8 +31,14 @@ class DestinoMenu {
   /// Otras rutas que también marcan este destino como activo.
   final List<String> prefijos;
 
+  /// Solo se marca en su ruta exacta (o en sus [prefijos]), no en las que cuelgan
+  /// de ella: el Inicio del estudiante no debe encenderse en /estudiante/progreso.
+  final bool soloExacta;
+
   bool activo(String rutaActual) =>
-      rutaActual == ruta || rutaActual.startsWith('$ruta/') || prefijos.any(rutaActual.startsWith);
+      rutaActual == ruta ||
+      (!soloExacta && rutaActual.startsWith('$ruta/')) ||
+      prefijos.any(rutaActual.startsWith);
 }
 
 /// Menú de cada rol. El visitante no tiene menú: ve la barra superior normal.
@@ -42,7 +49,7 @@ List<DestinoMenu> destinosDe(Rol rol) => switch (rol) {
               icono: Icons.space_dashboard_outlined,
               iconoActivo: Icons.space_dashboard,
               ruta: '/estudiante',
-              prefijos: []),
+              soloExacta: true),
           DestinoMenu(
               etiqueta: 'Catálogo',
               icono: Icons.search,
@@ -55,6 +62,11 @@ List<DestinoMenu> destinosDe(Rol rol) => switch (rol) {
               iconoActivo: Icons.assignment,
               ruta: '/mis-inscripciones'),
           DestinoMenu(
+              etiqueta: 'Progreso',
+              icono: Icons.emoji_events_outlined,
+              iconoActivo: Icons.emoji_events,
+              ruta: '/estudiante/progreso'),
+          DestinoMenu(
               etiqueta: 'Perfil',
               icono: Icons.account_circle_outlined,
               iconoActivo: Icons.account_circle,
@@ -66,7 +78,7 @@ List<DestinoMenu> destinosDe(Rol rol) => switch (rol) {
               icono: Icons.space_dashboard_outlined,
               iconoActivo: Icons.space_dashboard,
               ruta: '/entrenador/mis-deportes',
-              prefijos: ['/entrenador/asistencia']),
+              prefijos: ['/entrenador/asistencia', '/entrenador/disciplina']),
           DestinoMenu(etiqueta: 'Catálogo', icono: Icons.search, iconoActivo: Icons.search, ruta: '/catalogo'),
           DestinoMenu(
               etiqueta: 'Perfil',

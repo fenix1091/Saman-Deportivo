@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../core/exportar/reportes_saman.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../models/inscripcion.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
 import '../../widgets/animaciones.dart';
+import '../../widgets/boton_exportar.dart';
 
 /// Inscritos de una disciplina (Hito 3, punto 7): el administrador ve quién está
 /// inscrito, retira a un estudiante o inscribe a uno directamente, con validación.
@@ -72,10 +74,20 @@ class _InscritosDialogState extends State<InscritosDialog> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${vigentes.length} ${vigentes.length == 1 ? 'inscripción vigente' : 'inscripciones vigentes'} · '
-                      '${widget.deporte.cuposOcupados} de ${widget.deporte.cupoMaximo} cupos ocupados',
-                      style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${vigentes.length} ${vigentes.length == 1 ? 'inscripción vigente' : 'inscripciones vigentes'} · '
+                            '${widget.deporte.cuposOcupados} de ${widget.deporte.cupoMaximo} cupos ocupados',
+                            style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                          ),
+                        ),
+                        BotonExportar(
+                          etiqueta: 'Exportar lista',
+                          reporte: () => ReportesSaman.inscritosDisciplina(widget.deporte, vigentes, usuarios),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     TextField(

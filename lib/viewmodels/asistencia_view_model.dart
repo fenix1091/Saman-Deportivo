@@ -55,6 +55,9 @@ class AsistenciaViewModel extends ChangeNotifier {
   String? _aviso;
 
   List<EstudianteInscrito> get nomina => _nomina;
+
+  /// Todas las asistencias registradas en la disciplina (para exportarlas).
+  List<Asistencia> get asistencias => _asistencias;
   DateTime get fecha => _fecha;
   bool get cargando => _cargandoNomina || _cargandoAsistencias;
   bool get guardando => _guardando;

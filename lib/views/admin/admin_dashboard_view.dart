@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/validacion_admin.dart';
 import '../../core/validadores.dart';
 import '../../models/deporte.dart';
 import '../../models/persona.dart';
@@ -82,7 +83,7 @@ class _ClasesTab extends StatelessWidget {
                         child: SizedBox(
                           width: 160,
                           child: FilledButton.icon(
-                            onPressed: () => _editarDeporte(context, repositorio),
+                            onPressed: () => _editarDeporte(context, repositorio, null, deportes),
                             icon: const Icon(Icons.add),
                             label: const Text('Nueva clase'),
                           ),
@@ -333,9 +334,13 @@ class _EntrenadoresTab extends StatelessWidget {
 }
 
 class _DeporteDialog extends StatefulWidget {
-  const _DeporteDialog({this.deporte});
+  const _DeporteDialog({required this.repositorio, this.deporte, this.existentes = const []});
 
+  final AdminRepository repositorio;
   final Deporte? deporte;
+
+  /// Disciplinas ya creadas, para no repetir su código al crear una nueva.
+  final List<Deporte> existentes;
 
   @override
   State<_DeporteDialog> createState() => _DeporteDialogState();
@@ -352,6 +357,10 @@ class _DeporteDialogState extends State<_DeporteDialog> {
   late final _categoria = TextEditingController(text: widget.deporte?.categoria);
   late final _descripcion = TextEditingController(text: widget.deporte?.descripcion);
   late final _cupos = TextEditingController(text: '${widget.deporte?.cupoMaximo ?? 20}');
+  bool _guardando = false;
+
+  /// Error del servidor: otra persona creó ese código mientras se llenaba el formulario.
+  String? _repetidoEnServidor;
 
   @override
   void dispose() {
@@ -385,11 +394,19 @@ class _DeporteDialogState extends State<_DeporteDialog> {
                   FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
                   LengthLimitingTextInputFormatter(12),
                 ],
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onChanged: (_) {
+                  if (_repetidoEnServidor != null) setState(() => _repetidoEnServidor = null);
+                },
                 validator: (value) {
                   final v = (value ?? '').trim();
                   if (v.isEmpty) return 'Escribe un código, por ejemplo BAS-01.';
                   if (v.length < 3) return 'El código debe tener al menos 3 caracteres.';
-                  return null;
+                  if (widget.deporte == null) {
+                    final repetido = ValidacionAdmin.codigoRepetido(v, widget.existentes);
+                    if (repetido != null) return repetido;
+                  }
+                  return _repetidoEnServidor;
                 },
               ),
               const SizedBox(height: 12),
@@ -466,50 +483,60 @@ class _DeporteDialogState extends State<_DeporteDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
-          onPressed: () {
-            if (!_formKey.currentState!.validate()) return;
-            final anterior = widget.deporte;
-            final cupos = int.parse(_cupos.text);
-            Navigator.pop(
-              context,
-              Deporte(
-                codigo: anterior?.codigo ?? _codigo.text.trim().toUpperCase(),
-                nombre: _nombre.text.trim(),
-                categoria: _categoria.text.trim(),
-                descripcion: _descripcion.text.trim(),
-                cupoMaximo: cupos,
-                cuposOcupados: anterior?.cuposOcupados ?? 0,
-                costoReserva: double.parse(_costo.text.replaceAll(',', '.')),
-                duracion: _duracion.text.trim(),
-                imagenUrl: _imagen.text.trim(),
-                entrenadorId: anterior?.entrenadorId ?? '',
-                activo: anterior?.activo ?? true,
-                vecesBuscado: anterior?.vecesBuscado ?? 0,
-              ),
-            );
-          },
-          child: const Text('Guardar'),
+          onPressed: _guardando ? null : _guardar,
+          child: _guardando
+              ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Guardar'),
         ),
       ],
     );
   }
+
+  /// Guarda sin cerrar la ventana hasta que el servidor confirma: si el código
+  /// resultó repetido, se marca en el campo y no se pierde lo escrito.
+  Future<void> _guardar() async {
+    if (!_formKey.currentState!.validate()) return;
+    final anterior = widget.deporte;
+    final cupos = int.parse(_cupos.text);
+    final deporte = Deporte(
+      codigo: anterior?.codigo ?? _codigo.text.trim().toUpperCase(),
+      nombre: _nombre.text.trim(),
+      categoria: _categoria.text.trim(),
+      descripcion: _descripcion.text.trim(),
+      cupoMaximo: cupos,
+      cuposOcupados: anterior?.cuposOcupados ?? 0,
+      costoReserva: double.parse(_costo.text.replaceAll(',', '.')),
+      duracion: _duracion.text.trim(),
+      imagenUrl: _imagen.text.trim(),
+      entrenadorId: anterior?.entrenadorId ?? '',
+      activo: anterior?.activo ?? true,
+      vecesBuscado: anterior?.vecesBuscado ?? 0,
+    );
+    setState(() => _guardando = true);
+    try {
+      await widget.repositorio.guardarDeporte(deporte, nueva: anterior == null);
+      if (mounted) Navigator.pop(context, deporte);
+    } on CodigoRepetidoException {
+      if (!mounted) return;
+      setState(() {
+        _guardando = false;
+        _repetidoEnServidor = 'Ya existe una disciplina con el código ${deporte.codigo}. Usa otro código.';
+      });
+      _formKey.currentState!.validate();
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      setState(() => _guardando = false);
+      _mensaje(context, 'No se pudo guardar la clase: ${error.message ?? error.code}');
+    }
+  }
 }
 
-Future<void> _editarDeporte(BuildContext context, AdminRepository repositorio, [Deporte? deporte]) async {
-  final resultado = await showDialog<Deporte>(
+Future<void> _editarDeporte(BuildContext context, AdminRepository repositorio,
+    [Deporte? deporte, List<Deporte> existentes = const []]) async {
+  await showDialog<Deporte>(
     context: context,
-    builder: (_) => _DeporteDialog(deporte: deporte),
+    builder: (_) => _DeporteDialog(repositorio: repositorio, deporte: deporte, existentes: existentes),
   );
-  if (resultado == null || !context.mounted) return;
-  try {
-    await repositorio.guardarDeporte(resultado, nueva: deporte == null);
-  } on CodigoRepetidoException {
-    if (context.mounted) {
-      _mensaje(context, 'Ya existe una disciplina con el código ${resultado.codigo}. Usa otro código.');
-    }
-  } on FirebaseException catch (error) {
-    if (context.mounted) _mensaje(context, 'No se pudo guardar la clase: ${error.message ?? error.code}');
-  }
 }
 
 /// Elimina una disciplina por completo, con confirmación. Si tiene inscripciones
