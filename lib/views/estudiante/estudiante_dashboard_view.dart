@@ -8,6 +8,7 @@ import '../../models/inscripcion.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/mis_inscripciones_view_model.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/calendario_semanal.dart';
 import '../../widgets/encabezado_panel.dart';
@@ -213,12 +214,19 @@ class _EstudianteDashboardViewState extends State<EstudianteDashboardView> {
                         ),
                       )
                     else
-                      for (var i = 0; i < confirmadas.length; i++)
-                        Revelar(
-                          key: ValueKey(confirmadas[i].id),
-                          orden: (i + 3).clamp(0, 6),
-                          child: _TarjetaEntrenamiento(inscripcion: confirmadas[i]),
-                        ),
+                      CuadriculaAdaptable(
+                        anchoMinimo: 420,
+                        maxColumnas: 2,
+                        espacio: 14,
+                        hijos: [
+                          for (var i = 0; i < confirmadas.length; i++)
+                            Revelar(
+                              key: ValueKey(confirmadas[i].id),
+                              orden: (i + 3).clamp(0, 6),
+                              child: _TarjetaEntrenamiento(inscripcion: confirmadas[i]),
+                            ),
+                        ],
+                      ),
                     const TituloSeccion(antetitulo: 'Atajos', titulo: 'Accesos'),
                     Revelar(
                       orden: 4,
@@ -280,7 +288,7 @@ class _TarjetaEntrenamiento extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
     final nombre = inscripcion.nombreDeporte.isEmpty ? inscripcion.deporteCodigo : inscripcion.nombreDeporte;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: EdgeInsets.zero,
       child: Elevable(
         radio: 20,
         alPulsar: () => context.push('/catalogo/${Uri.encodeComponent(inscripcion.deporteCodigo)}'),

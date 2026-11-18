@@ -141,26 +141,39 @@ class TarjetaCifra extends StatelessWidget {
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE3E8EE)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
-            child: Icon(icono, color: color, size: 24),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icono, color: color, size: 22),
           ),
-          const SizedBox(height: 14),
-          Text(valor, style: textos.displaySmall?.copyWith(fontWeight: FontWeight.w800, color: color, height: 1)),
-          const SizedBox(height: 6),
-          Text(etiqueta, style: textos.bodyMedium?.copyWith(color: AppColors.gris)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(valor,
+                    style: textos.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: color, height: 1.05),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text(etiqueta,
+                    style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
         ],
       ),
     );

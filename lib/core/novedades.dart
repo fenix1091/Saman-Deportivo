@@ -14,6 +14,20 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.9',
+    fecha: DateTime(2026, 11, 18),
+    titulo: 'Mejor uso del espacio y datos del entrenador validados',
+    cambios: const [
+      'El resumen del administrador cabe en una pantalla: cifras compactas y gráficos de dos en dos.',
+      'Toda la web aprovecha las pantallas anchas: el detalle de cada deporte, el perfil y la inscripción van en dos '
+          'columnas; el catálogo llega a cuatro; clases, entrenadores, reservas, usuarios, Mis inscripciones, Mis '
+          'entrenamientos, las disciplinas del entrenador y la toma de asistencia se reparten en columnas.',
+      'Al registrar un entrenador, el correo tiene que ser de la UNIMET.',
+      'La especialidad del entrenador solo admite letras (sin números), al registrarlo y al editarlo.',
+      'Una reserva cancelada por la Coordinación muestra al estudiante el motivo de la cancelación.',
+    ],
+  ),
+  Novedad(
     version: '1.8',
     fecha: DateTime(2026, 11, 17),
     titulo: 'Cancelar o cambiar reservas desde la administración',

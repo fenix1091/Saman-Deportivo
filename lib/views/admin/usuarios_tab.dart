@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme.dart';
 import '../../core/validadores.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/avatar_usuario.dart';
 
 /// Gestión de usuarios para la Coordinación de Deportes (RF-03, edición de perfiles):
@@ -127,7 +129,7 @@ class _UsuariosTabState extends State<UsuariosTab> {
 
         return Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
+            constraints: const BoxConstraints(maxWidth: 1320),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -205,13 +207,20 @@ class _UsuariosTabState extends State<UsuariosTab> {
                 Expanded(
                   child: lista.isEmpty
                       ? const Center(child: Text('No hay usuarios con esos filtros.'))
-                      : ListView.builder(
+                      : SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                          itemCount: lista.length,
-                          itemBuilder: (_, i) => _FilaUsuario(
-                            usuario: lista[i],
-                            alEditar: () => _editar(lista[i]),
-                            alCambiarSolvencia: _cambiarSolvencia,
+                          child: CuadriculaAdaptable(
+                            anchoMinimo: 520,
+                            maxColumnas: 2,
+                            espacio: 8,
+                            hijos: [
+                              for (final u in lista)
+                                _FilaUsuario(
+                                  usuario: u,
+                                  alEditar: () => _editar(u),
+                                  alCambiarSolvencia: _cambiarSolvencia,
+                                ),
+                            ],
                           ),
                         ),
                 ),
@@ -341,7 +350,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
         'correoVerificado': _correoVerificado,
         'estado': _activo ? EstadoEstudiante.activo.name : EstadoEstudiante.inactivo.name,
       },
-      if (u is Entrenador) 'especialidad': _especialidad.text.trim(),
+      if (u is Entrenador) 'especialidad': _especialidad.text.trim().replaceAll(RegExp(r'\s+'), ' '),
     };
     final actuales = u.aMapa();
     nuevos.removeWhere((campo, valor) => actuales[campo] == valor);
@@ -416,7 +425,14 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _especialidad,
-                    decoration: const InputDecoration(labelText: 'Especialidad'),
+                    decoration: const InputDecoration(labelText: 'Especialidad *', hintText: 'Ej. Natación'),
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.deny(RegExp(r'\d')),
+                      LengthLimitingTextInputFormatter(60),
+                    ],
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    validator: Validadores.especialidad,
                   ),
                 ],
                 if (u is! Administrador) ...[

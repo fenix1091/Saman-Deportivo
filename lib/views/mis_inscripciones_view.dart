@@ -6,6 +6,7 @@ import '../core/theme.dart';
 import '../models/inscripcion.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/mis_inscripciones_view_model.dart';
+import '../widgets/cuadricula_adaptable.dart';
 import '../widgets/animaciones.dart';
 import '../widgets/panel_con_menu.dart';
 import 'dialogs/publicar_resena_dialog.dart';
@@ -78,14 +79,20 @@ class _ListaInscripciones extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: ListView.builder(
-          itemCount: inscripciones.length,
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          itemBuilder: (context, index) => Revelar(
-            key: ValueKey(inscripciones[index].id),
-            orden: index.clamp(0, 5),
-            child: _TarjetaInscripcion(inscripcion: inscripciones[index], esVigente: esVigente),
+          child: CuadriculaAdaptable(
+            anchoMinimo: 460,
+            maxColumnas: 2,
+            hijos: [
+              for (var index = 0; index < inscripciones.length; index++)
+                Revelar(
+                  key: ValueKey(inscripciones[index].id),
+                  orden: index.clamp(0, 5),
+                  child: _TarjetaInscripcion(inscripcion: inscripciones[index], esVigente: esVigente),
+                ),
+            ],
           ),
         ),
       ),
@@ -114,7 +121,7 @@ class _TarjetaInscripcion extends StatelessWidget {
           'Pago recibido. Tu cupo está apartado mientras la Coordinación de Deportes valida el pago.',
         EstadoInscripcion.confirmada =>
           'Tu cupo está confirmado. Asiste a los entrenamientos para poder dejar tu reseña.',
-        EstadoInscripcion.cancelada => 'Cancelaste esta inscripción.',
+        EstadoInscripcion.cancelada => inscripcion.motivo.isEmpty ? 'Cancelaste esta inscripción.' : inscripcion.motivo,
         EstadoInscripcion.rechazada => inscripcion.motivo.isEmpty ? 'La reserva fue rechazada.' : inscripcion.motivo,
         EstadoInscripcion.expirada => 'La reserva venció sin completar el pago.',
       };
@@ -142,7 +149,7 @@ class _TarjetaInscripcion extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.zero,
       child: Elevable(
         radio: 16,
         child: Padding(

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../core/validacion_admin.dart';
+import '../core/validadores.dart';
 import '../models/deporte.dart';
 import '../models/inscripcion.dart';
 import '../models/notificacion.dart';
@@ -233,6 +234,9 @@ class AdminRepositoryFirebase implements AdminRepository {
     required String especialidad,
     required int aniosExperiencia,
   }) async {
+    // Las mismas reglas del formulario, por si se llama sin pasar por él.
+    final invalido = Validadores.correoEntrenador(correo) ?? Validadores.especialidad(especialidad);
+    if (invalido != null) throw OperacionNoPermitidaException(invalido);
     final cedulaRef = _db.collection('cedulas').doc('$nacionalidad-$cedula');
     if ((await cedulaRef.get()).exists) {
       throw StateError('Ya existe una cuenta con esa cédula.');

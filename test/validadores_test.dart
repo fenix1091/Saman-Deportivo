@@ -66,4 +66,38 @@ void main() {
       expect(Validadores.normalizarNombre('  maría   JOSÉ '), 'María José');
     });
   });
+
+  group('Entrenador (lo registra el administrador)', () {
+    test('el correo tiene que ser de la UNIMET', () {
+      expect(Validadores.correoEntrenador('cmora@unimet.edu.ve'), isNull);
+      expect(Validadores.correoEntrenador('cmora@correo.unimet.edu.ve'), isNull);
+      expect(Validadores.correoEntrenador(' CMora@UNIMET.edu.ve '), isNull);
+      expect(Validadores.correoEntrenador('arroba@correo.com'),
+          'El entrenador debe tener correo de la UNIMET (@correo.unimet.edu.ve o @unimet.edu.ve).');
+      expect(Validadores.correoEntrenador('carlos@gmail.com'), isNotNull);
+      expect(Validadores.correoEntrenador('cmora@unimet.edu.ve.com'), isNotNull);
+      expect(Validadores.correoEntrenador(''), 'Ingresa tu correo.');
+    });
+
+    test('la especialidad es un deporte escrito con letras, sin números', () {
+      for (final v in ['Natación', 'Fútbol / Futsal', 'Voleibol de playa', 'Tenis, pádel', 'Artes marciales (Judo)']) {
+        expect(Validadores.especialidad(v), isNull, reason: v);
+      }
+      expect(Validadores.especialidad('12345'),
+          'La especialidad no lleva números: escribe el deporte, por ejemplo Natación.');
+      expect(Validadores.especialidad('Fútbol 5'), isNotNull);
+      expect(Validadores.especialidad('Natación!!'), 'Escribe la especialidad solo con letras, por ejemplo Fútbol / Futsal.');
+      expect(Validadores.especialidad('ab'), 'La especialidad debe tener al menos 3 letras.');
+      expect(Validadores.especialidad('   '), 'Ingresa la especialidad, por ejemplo Natación.');
+      expect(Validadores.especialidad('a' * 61), isNotNull);
+    });
+
+    test('los años de experiencia van de 0 a 60', () {
+      expect(Validadores.aniosExperiencia('0'), isNull);
+      expect(Validadores.aniosExperiencia('12'), isNull);
+      expect(Validadores.aniosExperiencia('-1'), isNotNull);
+      expect(Validadores.aniosExperiencia('61'), 'Revisa los años de experiencia (máximo 60).');
+      expect(Validadores.aniosExperiencia('diez'), isNotNull);
+    });
+  });
 }

@@ -54,7 +54,7 @@ class _CatalogoViewState extends State<CatalogoView> {
       titulo: const Text('Catálogo de deportes'),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: const BoxConstraints(maxWidth: 1400),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -165,11 +165,13 @@ class _Contenido extends StatelessWidget {
       );
     }
     return LayoutBuilder(builder: (context, medidas) {
-      final columnas = medidas.maxWidth >= 1000
-          ? 3
-          : medidas.maxWidth >= 600
-              ? 2
-              : 1;
+      final columnas = medidas.maxWidth >= 1280
+          ? 4
+          : medidas.maxWidth >= 900
+              ? 3
+              : medidas.maxWidth >= 600
+                  ? 2
+                  : 1;
       return GridView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

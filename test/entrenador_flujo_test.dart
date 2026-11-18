@@ -54,7 +54,10 @@ void main() {
 
   testWidgets('al pulsar una disciplina ve su ficha: lugar, horarios, cupos y estudiantes', (tester) async {
     await entrarComoEntrenador(tester);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Ver disciplina').first);
+    final ver = find.widgetWithText(OutlinedButton, 'Ver disciplina').first;
+    await tester.ensureVisible(ver);
+    await tester.pumpAndSettle();
+    await tester.tap(ver);
     await tester.pumpAndSettle();
     expect(find.text('Horarios y lugar'), findsOneWidget);
     expect(find.text('Cancha 1'), findsNWidgets(2), reason: 'martes y jueves');

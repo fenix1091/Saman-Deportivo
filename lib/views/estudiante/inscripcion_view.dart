@@ -61,45 +61,78 @@ class InscripcionView extends StatelessWidget {
         if (deporte == null || !deporte.activo) {
           return const Center(child: Text('Esta disciplina no está disponible.'));
         }
-        return Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              children: vm.pagada
-                  ? [_Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)]
-                  : [
-                      _Resumen(deporte: deporte, horarios: vm.horarios, estudiante: vm.estudiante, dinero: _dinero),
-                      _Requisitos(resultado: vm.validacion),
-                      if (vm.reservaPendiente != null) ...[
-                        const SizedBox(height: 16),
-                        _Aviso(
-                          'Tienes este cupo apartado hasta las ${_hora(vm.reservaPendiente!.vencePago)}. '
-                          'Completa el pago antes de esa hora.',
-                        ),
-                      ],
-                      if (vm.error != null) ...[const SizedBox(height: 16), MensajeError(vm.error!)],
-                      const SizedBox(height: 20),
-                      FilledButton.icon(
-                        onPressed: vm.puedePagar ? () => _pagar(context) : null,
-                        icon: vm.procesando
-                            ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Icon(vm.monto > 0 ? Icons.lock_outline : Icons.check),
-                        label: Text(vm.monto > 0 ? 'Pagar ${_dinero(vm.monto)} con PayPal' : 'Confirmar inscripción'),
-                      ),
-                      if (vm.monto > 0) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'El pago se hace en PayPal; Samán Deportivo solo guarda la referencia de la orden.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.gris),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ],
+        if (vm.pagada) {
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [_Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)],
+              ),
             ),
+          );
+        }
+        final resumen = _Resumen(deporte: deporte, horarios: vm.horarios, estudiante: vm.estudiante, dinero: _dinero);
+        final pago = <Widget>[
+          _Requisitos(resultado: vm.validacion),
+          if (vm.reservaPendiente != null) ...[
+            const SizedBox(height: 16),
+            _Aviso(
+              'Tienes este cupo apartado hasta las ${_hora(vm.reservaPendiente!.vencePago)}. '
+              'Completa el pago antes de esa hora.',
+            ),
+          ],
+          if (vm.error != null) ...[const SizedBox(height: 16), MensajeError(vm.error!)],
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: vm.puedePagar ? () => _pagar(context) : null,
+            icon: vm.procesando
+                ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(vm.monto > 0 ? Icons.lock_outline : Icons.check),
+            label: Text(vm.monto > 0 ? 'Pagar ${_dinero(vm.monto)} con PayPal' : 'Confirmar inscripción'),
           ),
-        );
+          if (vm.monto > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'El pago se hace en PayPal; Samán Deportivo solo guarda la referencia de la orden.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.gris),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ];
+        return LayoutBuilder(builder: (context, c) {
+          // En pantallas anchas: el resumen a la izquierda y los requisitos con el
+          // pago a la derecha, para ver todo sin desplazarse.
+          if (c.maxWidth < 900) {
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [resumen, ...pago]),
+              ),
+            );
+          }
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1180),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // El primer bloque de la derecha trae un margen arriba: se iguala.
+                    Expanded(child: Padding(padding: const EdgeInsets.only(top: 16), child: resumen)),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: pago),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
       }(),
     );
   }
@@ -149,11 +182,14 @@ class _Resumen extends StatelessWidget {
                   ? 'Por definir'
                   : [for (final h in horarios) h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}'].join('\n'),
             ),
-            dato(Icons.groups_outlined, 'Personas', '${deporte.cuposOcupados} inscritos de ${deporte.cupoMaximo} cupos'),
+            dato(
+                Icons.groups_outlined, 'Personas', '${deporte.cuposOcupados} inscritos de ${deporte.cupoMaximo} cupos'),
             dato(Icons.person_outline, 'Reserva', '${estudiante.nombreCompleto} · ${estudiante.cedulaTexto}'),
-            dato(Icons.payments_outlined, 'Monto', deporte.costoReserva == 0 ? 'Gratuita' : dinero(deporte.costoReserva)),
+            dato(Icons.payments_outlined, 'Monto',
+                deporte.costoReserva == 0 ? 'Gratuita' : dinero(deporte.costoReserva)),
             if (deporte.descripcion.isNotEmpty) dato(Icons.notes_outlined, 'Descripción', deporte.descripcion),
-            dato(Icons.calendar_month_outlined, 'Duración', deporte.duracion.isEmpty ? 'Todo el período académico' : deporte.duracion),
+            dato(Icons.calendar_month_outlined, 'Duración',
+                deporte.duracion.isEmpty ? 'Todo el período académico' : deporte.duracion),
             const SizedBox(height: 4),
             BarraCupos(deporte: deporte),
             const SizedBox(height: 12),
@@ -257,8 +293,8 @@ class _Comprobante extends StatelessWidget {
             Icon(confirmada ? Icons.verified : Icons.hourglass_top,
                 size: 56, color: confirmada ? AppColors.verdeHoja : AppColors.naranja),
             const SizedBox(height: 8),
-            Text(confirmada ? '¡Inscripción confirmada!' : 'Pago recibido, reserva en revisión', style: textos.titleLarge,
-                textAlign: TextAlign.center),
+            Text(confirmada ? '¡Inscripción confirmada!' : 'Pago recibido, reserva en revisión',
+                style: textos.titleLarge, textAlign: TextAlign.center),
             const SizedBox(height: 4),
             Text(
               confirmada

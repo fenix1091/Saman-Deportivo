@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/theme.dart';
 import '../../core/validacion_admin.dart';
 import '../../core/validadores.dart';
 import '../../models/deporte.dart';
@@ -11,6 +12,7 @@ import 'inscritos_dialog.dart';
 import 'reservas_tab.dart';
 import 'resumen_tab.dart';
 import 'usuarios_tab.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/panel_con_menu.dart';
 
 /// Secciones del panel de administración; cada una tiene su ruta (/admin/{seccion})
@@ -71,37 +73,27 @@ class _ClasesTab extends StatelessWidget {
             final deportes = deportesSnapshot.data!;
             return Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Oferta deportiva', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: SizedBox(
-                          width: 160,
-                          child: FilledButton.icon(
-                            onPressed: () => _editarDeporte(context, repositorio, null, deportes),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Nueva clase'),
-                          ),
-                        ),
-                      ),
-                    ],
+                _Encabezado(
+                  titulo: 'Oferta deportiva',
+                  detalle: '${deportes.length} ${deportes.length == 1 ? 'disciplina' : 'disciplinas'} · '
+                      '${deportes.where((d) => d.activo).length} activas',
+                  accion: FilledButton.icon(
+                    onPressed: () => _editarDeporte(context, repositorio, null, deportes),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Nueva clase'),
                   ),
                 ),
                 Expanded(
                   child: deportes.isEmpty
                       ? const _Vacio(icono: Icons.sports, mensaje: 'Aún no hay clases. Crea la primera.')
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                          itemCount: deportes.length,
-                          itemBuilder: (context, index) => _TarjetaDeporte(
-                            deporte: deportes[index],
-                            entrenadores: entrenadores,
-                            repositorio: repositorio,
+                      : _Contenido(
+                          child: CuadriculaAdaptable(
+                            anchoMinimo: 460,
+                            maxColumnas: 2,
+                            hijos: [
+                              for (final d in deportes)
+                                _TarjetaDeporte(deporte: d, entrenadores: entrenadores, repositorio: repositorio),
+                            ],
                           ),
                         ),
                 ),
@@ -130,7 +122,7 @@ class _TarjetaDeporte extends StatelessWidget {
     final entrenadorIds = entrenadores.map((entrenador) => entrenador.uid).toSet();
     final entrenadorActual = entrenadorIds.contains(deporte.entrenadorId) ? deporte.entrenadorId : '';
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -142,7 +134,8 @@ class _TarjetaDeporte extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(deporte.nombre, style: Theme.of(context).textTheme.titleLarge),
+                      Text(deporte.nombre,
+                          style: Theme.of(context).textTheme.titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
                       if (deporte.categoria.isNotEmpty) Text(deporte.categoria),
                     ],
                   ),
@@ -268,67 +261,123 @@ class _EntrenadoresTab extends StatelessWidget {
         final entrenadores = snapshot.data!;
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Equipo de entrenadores', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      width: 220,
-                      child: FilledButton.icon(
-                        onPressed: () => _crearEntrenador(context, repositorio),
-                        icon: const Icon(Icons.person_add_alt_1),
-                        label: const Text('Nuevo entrenador'),
-                      ),
-                    ),
-                  ),
-                ],
+            _Encabezado(
+              titulo: 'Equipo de entrenadores',
+              detalle: '${entrenadores.length} ${entrenadores.length == 1 ? 'entrenador' : 'entrenadores'}',
+              accion: FilledButton.icon(
+                onPressed: () => _crearEntrenador(context, repositorio),
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Nuevo entrenador'),
               ),
             ),
             Expanded(
               child: entrenadores.isEmpty
                   ? const _Vacio(icono: Icons.groups_outlined, mensaje: 'Aún no hay entrenadores registrados.')
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      itemCount: entrenadores.length,
-                      itemBuilder: (context, index) {
-                        final entrenador = entrenadores[index];
-                        return Card(
-                          child: ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.sports_handball_outlined)),
-                            title: Text(entrenador.nombreCompleto),
-                            subtitle: Text(
-                              '${entrenador.especialidad}\n${entrenador.correo}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                  : _Contenido(
+                      child: CuadriculaAdaptable(
+                        anchoMinimo: 320,
+                        maxColumnas: 3,
+                        hijos: [
+                          for (final entrenador in entrenadores)
+                            Card(
+                              margin: EdgeInsets.zero,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                                leading: const CircleAvatar(child: Icon(Icons.sports_handball_outlined)),
+                                title: Text(entrenador.nombreCompleto, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                subtitle: Text(
+                                  '${entrenador.especialidad.isEmpty ? 'Sin especialidad' : entrenador.especialidad}'
+                                  '${entrenador.aniosExperiencia > 0 ? ' · ${entrenador.aniosExperiencia} años' : ''}'
+                                  '\n${entrenador.correo}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                isThreeLine: true,
+                                trailing: IconButton(
+                                  tooltip: 'Reenviar enlace para configurar contraseña',
+                                  icon: const Icon(Icons.mark_email_unread_outlined),
+                                  onPressed: () async {
+                                    try {
+                                      await repositorio.reenviarEnlace(entrenador.correo);
+                                      if (context.mounted) _mensaje(context, 'Enlace enviado a ${entrenador.correo}.');
+                                    } on FirebaseAuthException catch (error) {
+                                      if (context.mounted) {
+                                        _mensaje(
+                                            context, 'No se pudo enviar el enlace: ${error.message ?? error.code}');
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
                             ),
-                            isThreeLine: true,
-                            trailing: IconButton(
-                              tooltip: 'Reenviar enlace para configurar contraseña',
-                              icon: const Icon(Icons.mark_email_unread_outlined),
-                              onPressed: () async {
-                                try {
-                                  await repositorio.reenviarEnlace(entrenador.correo);
-                                  if (context.mounted) _mensaje(context, 'Enlace enviado a ${entrenador.correo}.');
-                                } on FirebaseAuthException catch (error) {
-                                  if (context.mounted) {
-                                    _mensaje(context, 'No se pudo enviar el enlace: ${error.message ?? error.code}');
-                                  }
-                                }
-                              },
-                            ),
-                          ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+/// Encabezado de una sección del panel: título y resumen a la izquierda, la
+/// acción principal a la derecha, en la misma fila (en el teléfono se apilan).
+class _Encabezado extends StatelessWidget {
+  const _Encabezado({required this.titulo, required this.detalle, required this.accion});
+
+  final String titulo;
+  final String detalle;
+  final Widget accion;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final texto = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(titulo, style: textos.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+        Text(detalle, style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+      ],
+    );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _anchoPanel),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: LayoutBuilder(
+            builder: (context, c) => c.maxWidth < 480
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [texto, const SizedBox(height: 10), accion],
+                  )
+                : Row(
+                    children: [Expanded(child: texto), const SizedBox(width: 12), SizedBox(width: 230, child: accion)]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ancho máximo del contenido del panel: aprovecha pantallas grandes sin que
+/// las líneas queden larguísimas.
+const _anchoPanel = 1320.0;
+
+/// Contenido desplazable y centrado de una sección del panel.
+class _Contenido extends StatelessWidget {
+  const _Contenido({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Center(
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: _anchoPanel), child: child),
+      ),
     );
   }
 }
@@ -860,9 +909,11 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _correo,
-                  decoration: const InputDecoration(labelText: 'Correo electrónico *'),
+                  decoration:
+                      const InputDecoration(labelText: 'Correo de la UNIMET *', hintText: 'nombre@unimet.edu.ve'),
                   keyboardType: TextInputType.emailAddress,
-                  validator: Validadores.correo,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: Validadores.correoEntrenador,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -873,18 +924,22 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _especialidad,
-                  decoration: const InputDecoration(labelText: 'Especialidad *'),
-                  validator: (value) => Validadores.requerido(value, 'la especialidad'),
+                  decoration: const InputDecoration(labelText: 'Especialidad *', hintText: 'Ej. Natación'),
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(RegExp(r'\d')),
+                    LengthLimitingTextInputFormatter(60)
+                  ],
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: Validadores.especialidad,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _experiencia,
                   decoration: const InputDecoration(labelText: 'Años de experiencia'),
                   keyboardType: TextInputType.number,
-                  validator: (value) {
-                    final anios = int.tryParse(value ?? '');
-                    return anios == null || anios < 0 ? 'Ingresa un número igual o mayor que cero.' : null;
-                  },
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+                  validator: Validadores.aniosExperiencia,
                 ),
                 const SizedBox(height: 8),
                 const Text('Se enviará un enlace al correo para que configure su contraseña.'),
@@ -970,6 +1025,8 @@ Future<void> _crearEntrenador(BuildContext context, AdminRepository repositorio)
     if (context.mounted) _mensaje(context, 'No se pudo guardar el entrenador: ${error.message ?? error.code}');
   } on StateError catch (error) {
     if (context.mounted) _mensaje(context, error.message);
+  } on OperacionNoPermitidaException catch (error) {
+    if (context.mounted) _mensaje(context, error.mensaje);
   }
 }
 

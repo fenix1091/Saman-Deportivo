@@ -11,6 +11,7 @@ import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/asistencia_view_model.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/barra_cupos.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/boton_exportar.dart';
 import '../../widgets/panel_con_menu.dart';
 import '../../widgets/formulario_centrado.dart';
@@ -105,7 +106,7 @@ class _TomarAsistencia extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
+        constraints: const BoxConstraints(maxWidth: 1200),
         child: Column(
           children: [
             Padding(
@@ -146,50 +147,60 @@ class _TomarAsistencia extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                itemCount: vm.nomina.length,
-                itemBuilder: (context, i) {
-                  final e = vm.nomina[i];
-                  final presente = vm.presente(e.uid);
-                  return Revelar(
-                    key: ValueKey(e.uid),
-                    orden: i.clamp(0, 6),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: presente ? AppColors.verdeClaro : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: presente ? AppColors.verdeHoja.withValues(alpha: 0.5) : const Color(0xFFE3E8EE)),
-                      ),
-                      child: Material(
-                        type: MaterialType.transparency,
-                        borderRadius: BorderRadius.circular(12),
-                        child: CheckboxListTile(
-                          value: presente,
-                          onChanged: (v) => vm.marcar(e.uid, v ?? false),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          activeColor: AppColors.verdeHoja,
-                          title: Text(e.nombreCompleto, style: textos.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
-                          subtitle: Text(
-                            [if (e.cedulaTexto.isNotEmpty) e.cedulaTexto, if (e.carnet.isNotEmpty) 'carnet ${e.carnet}']
-                                .join(' · '),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: CuadriculaAdaptable(
+                  anchoMinimo: 420,
+                  maxColumnas: 2,
+                  espacio: 8,
+                  hijos: [
+                    for (var i = 0; i < vm.nomina.length; i++)
+                      () {
+                        final e = vm.nomina[i];
+                        final presente = vm.presente(e.uid);
+                        return Revelar(
+                          key: ValueKey(e.uid),
+                          orden: i.clamp(0, 6),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            decoration: BoxDecoration(
+                              color: presente ? AppColors.verdeClaro : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color:
+                                      presente ? AppColors.verdeHoja.withValues(alpha: 0.5) : const Color(0xFFE3E8EE)),
+                            ),
+                            child: Material(
+                              type: MaterialType.transparency,
+                              borderRadius: BorderRadius.circular(12),
+                              child: CheckboxListTile(
+                                value: presente,
+                                onChanged: (v) => vm.marcar(e.uid, v ?? false),
+                                controlAffinity: ListTileControlAffinity.leading,
+                                activeColor: AppColors.verdeHoja,
+                                title: Text(e.nombreCompleto,
+                                    style: textos.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                                subtitle: Text(
+                                  [
+                                    if (e.cedulaTexto.isNotEmpty) e.cedulaTexto,
+                                    if (e.carnet.isNotEmpty) 'carnet ${e.carnet}'
+                                  ].join(' · '),
+                                ),
+                                secondary: EtiquetaEstado(presente ? 'Presente' : 'Ausente',
+                                    color: presente ? AppColors.verdeHoja : AppColors.gris),
+                              ),
+                            ),
                           ),
-                          secondary: EtiquetaEstado(presente ? 'Presente' : 'Ausente',
-                              color: presente ? AppColors.verdeHoja : AppColors.gris),
-                        ),
-                      ),
-                    ),
-                  );
-                },
+                        );
+                      }(),
+                  ],
+                ),
               ),
             ),
             if (vm.error != null)
               Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: MensajeError(vm.error!)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                 onPressed: vm.puedeGuardar ? () => _guardar(context) : null,
@@ -224,7 +235,7 @@ class _Historial extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
+        constraints: const BoxConstraints(maxWidth: 1000),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

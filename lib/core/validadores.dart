@@ -52,6 +52,42 @@ class Validadores {
     return null;
   }
 
+  /// Correo institucional de un entrenador que registra el administrador: solo
+  /// cuentas de la UNIMET, para que nadie de fuera reciba el enlace de acceso.
+  static String? correoEntrenador(String? valor) {
+    final error = correo(valor);
+    if (error != null) return error;
+    final v = valor!.trim().toLowerCase();
+    if (!dominiosUnimet.any(v.endsWith)) {
+      return 'El entrenador debe tener correo de la UNIMET (${dominiosUnimet.join(' o ')}).';
+    }
+    return null;
+  }
+
+  static final _especialidad = RegExp(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ ,/()'-]*$");
+
+  /// Especialidad del entrenador: un deporte o área, solo letras (se admiten
+  /// espacios, comas, barras y guiones: "Fútbol / Futsal"). Sin números.
+  static String? especialidad(String? valor) {
+    final v = (valor ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (v.isEmpty) return 'Ingresa la especialidad, por ejemplo Natación.';
+    if (RegExp(r'\d').hasMatch(v)) return 'La especialidad no lleva números: escribe el deporte, por ejemplo Natación.';
+    if (!_especialidad.hasMatch(v)) return 'Escribe la especialidad solo con letras, por ejemplo Fútbol / Futsal.';
+    if (v.replaceAll(RegExp(r'[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]'), '').length < 3) {
+      return 'La especialidad debe tener al menos 3 letras.';
+    }
+    if (v.length > 60) return 'La especialidad no puede pasar de 60 caracteres.';
+    return null;
+  }
+
+  /// Años de experiencia: número entero de 0 a 60.
+  static String? aniosExperiencia(String? valor) {
+    final anios = int.tryParse((valor ?? '').trim());
+    if (anios == null || anios < 0) return 'Ingresa un número igual o mayor que cero.';
+    if (anios > 60) return 'Revisa los años de experiencia (máximo 60).';
+    return null;
+  }
+
   /// Letras de cédula admitidas: venezolano o extranjero.
   static const nacionalidades = ['V', 'E'];
 

@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../models/deporte.dart';
 import '../../repositories/asistencia_repository.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/barra_cupos.dart';
 import '../../widgets/calendario_semanal.dart';
@@ -69,15 +70,18 @@ class MisDisciplinasView extends StatelessWidget {
                           ),
                         ),
                         const TituloSeccion(antetitulo: 'Asignadas a ti', titulo: 'Disciplinas'),
-                        for (var i = 0; i < deportes.length; i++)
-                          Revelar(
-                            key: ValueKey(deportes[i].codigo),
-                            orden: (i + 2).clamp(0, 6),
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _TarjetaDisciplina(deporte: deportes[i]),
-                            ),
-                          ),
+                        CuadriculaAdaptable(
+                          anchoMinimo: 420,
+                          maxColumnas: 2,
+                          hijos: [
+                            for (var i = 0; i < deportes.length; i++)
+                              Revelar(
+                                key: ValueKey(deportes[i].codigo),
+                                orden: (i + 2).clamp(0, 6),
+                                child: _TarjetaDisciplina(deporte: deportes[i]),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),

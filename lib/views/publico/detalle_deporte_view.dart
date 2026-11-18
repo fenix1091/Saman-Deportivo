@@ -24,23 +24,26 @@ class DetalleDeporteView extends StatelessWidget {
     final usuario = context.watch<AuthViewModel>().usuario;
     // Los visitantes también ven el botón: la guardia los manda al login y vuelven aquí (CU-06, A1).
     final puedeInscribirse = deporte != null && !vm.noDisponible && (usuario == null || usuario.rol == Rol.estudiante);
+    // En pantallas anchas la ficha va en dos columnas y el botón queda en la
+    // tarjeta de reserva de la derecha; en el teléfono, fijo abajo.
+    final ancha = MediaQuery.sizeOf(context).width >= anchoDosColumnas;
+    Widget? boton() => !puedeInscribirse
+        ? null
+        : FilledButton(
+            onPressed: deporte.hayCupo()
+                ? () => context.push('/estudiante/inscribir/${Uri.encodeComponent(deporte.codigo)}')
+                : null,
+            child: Text(deporte.hayCupo() ? 'Inscribirme' : 'Sin cupos'),
+          );
     return PanelConMenu(
-      bottomNavigationBar: !puedeInscribirse
+      bottomNavigationBar: !puedeInscribirse || ancha
           ? null
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: Align(
                   heightFactor: 1,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 688),
-                    child: FilledButton(
-                      onPressed: deporte.hayCupo()
-                          ? () => context.push('/estudiante/inscribir/${Uri.encodeComponent(deporte.codigo)}')
-                          : null,
-                      child: Text(deporte.hayCupo() ? 'Inscribirme' : 'Sin cupos'),
-                    ),
-                  ),
+                  child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 688), child: boton()),
                 ),
               ),
             ),
@@ -50,47 +53,79 @@ class DetalleDeporteView extends StatelessWidget {
         if (vm.cargando) return const Center(child: CircularProgressIndicator());
         if (vm.error != null) return _Mensaje(vm.error!);
         if (vm.noDisponible || deporte == null) return const _Mensaje('Esta disciplina no está disponible.');
+        final cupos = _Seccion(
+          titulo: 'Cupos y costo',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BarraCupos(deporte: deporte),
+              const SizedBox(height: 12),
+              _Dato(
+                icono: Icons.payments_outlined,
+                texto: deporte.costoReserva == 0
+                    ? 'Reserva gratuita'
+                    : 'Reserva del cupo: \$${deporte.costoReserva.toStringAsFixed(2)}',
+              ),
+            ],
+          ),
+        );
+        final entrenador = _Seccion(titulo: 'Entrenador', child: _Entrenador(entrenador: deporte.entrenador));
+        final horarios = _Seccion(
+          titulo: 'Horarios',
+          child: vm.horarios.isEmpty
+              ? const Text('Los horarios aún no se han publicado.')
+              : Column(
+                  children: [
+                    for (final h in vm.horarios)
+                      _Dato(
+                        icono: Icons.schedule,
+                        texto: h.etiqueta,
+                        detalle: h.lugar.isEmpty ? null : h.lugar,
+                      ),
+                  ],
+                ),
+        );
+        final resenas = _Seccion(titulo: 'Reseñas', child: _Resenas(vm: vm));
+        if (!ancha) {
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [_Encabezado(deporte: deporte), cupos, entrenador, horarios, resenas],
+              ),
+            ),
+          );
+        }
+        final b = boton();
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            constraints: const BoxConstraints(maxWidth: 1240),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Encabezado(deporte: deporte),
-                _Seccion(
-                  titulo: 'Cupos y costo',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      BarraCupos(deporte: deporte),
-                      const SizedBox(height: 12),
-                      _Dato(
-                        icono: Icons.payments_outlined,
-                        texto: deporte.costoReserva == 0
-                            ? 'Reserva gratuita'
-                            : 'Reserva del cupo: \$${deporte.costoReserva.toStringAsFixed(2)}',
-                      ),
-                    ],
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 12, 24),
+                    children: [_Encabezado(deporte: deporte), horarios, resenas],
                   ),
                 ),
-                _Seccion(titulo: 'Entrenador', child: _Entrenador(entrenador: deporte.entrenador)),
-                _Seccion(
-                  titulo: 'Horarios',
-                  child: vm.horarios.isEmpty
-                      ? const Text('Los horarios aún no se han publicado.')
-                      : Column(
-                          children: [
-                            for (final h in vm.horarios)
-                              _Dato(
-                                icono: Icons.schedule,
-                                texto: h.etiqueta,
-                                detalle: h.lugar.isEmpty ? null : h.lugar,
-                              ),
-                          ],
-                        ),
+                SizedBox(
+                  width: 380,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        cupos,
+                        entrenador,
+                        if (b != null) ...[const SizedBox(height: 16), b],
+                      ],
+                    ),
+                  ),
                 ),
-                _Seccion(titulo: 'Reseñas', child: _Resenas(vm: vm)),
               ],
             ),
           ),
@@ -99,6 +134,9 @@ class DetalleDeporteView extends StatelessWidget {
     );
   }
 }
+
+/// Ancho de ventana desde el que la ficha se reparte en dos columnas.
+const anchoDosColumnas = 1100.0;
 
 class _Encabezado extends StatelessWidget {
   const _Encabezado({required this.deporte});

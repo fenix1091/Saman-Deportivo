@@ -6,6 +6,7 @@ import '../../models/deporte.dart';
 import '../../models/inscripcion.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/animaciones.dart';
 
 /// Revisión de reservas (Hito 3): el administrador valida el pago de cada reserva
@@ -120,13 +121,19 @@ class _ReservasTabState extends State<ReservasTab> {
                                   ? 'No hay reservas pendientes de revisión.'
                                   : 'No hay reservas con ese filtro.',
                         )
-                      : ListView.builder(
+                      : SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                          itemCount: visibles.length,
-                          itemBuilder: (context, i) => Revelar(
-                            key: ValueKey(visibles[i].id),
-                            orden: i.clamp(0, 5),
-                            child: _tarjeta(context, visibles[i], usuarios[visibles[i].estudianteId], todas),
+                          child: CuadriculaAdaptable(
+                            anchoMinimo: 480,
+                            maxColumnas: 2,
+                            hijos: [
+                              for (var i = 0; i < visibles.length; i++)
+                                Revelar(
+                                  key: ValueKey(visibles[i].id),
+                                  orden: i.clamp(0, 5),
+                                  child: _tarjeta(context, visibles[i], usuarios[visibles[i].estudianteId], todas),
+                                ),
+                            ],
                           ),
                         ),
                 ),
@@ -164,67 +171,63 @@ class _ReservasTabState extends State<ReservasTab> {
       EstadoInscripcion.rechazada => AppColors.rojo,
       _ => AppColors.gris,
     };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Elevable(
-        radio: 16,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      r.nombreDeporte.isEmpty ? r.deporteCodigo : '${r.nombreDeporte} (${r.deporteCodigo})',
-                      style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                    ),
+    return Elevable(
+      radio: 16,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    r.nombreDeporte.isEmpty ? r.deporteCodigo : '${r.nombreDeporte} (${r.deporteCodigo})',
+                    style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                   ),
-                  if (ausente) ...[
-                    const EtiquetaEstado('No se presenta', color: AppColors.rojo),
-                    const SizedBox(width: 6),
-                  ],
-                  EtiquetaEstado(r.estado.etiqueta, color: color),
+                ),
+                if (ausente) ...[
+                  const EtiquetaEstado('No se presenta', color: AppColors.rojo),
+                  const SizedBox(width: 6),
+                ],
+                EtiquetaEstado(r.estado.etiqueta, color: color),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(quien, style: estudiante == null ? textos.bodyMedium?.copyWith(color: AppColors.gris) : null),
+            Text(
+                'Reservada el $fecha · ${r.monto == 0 ? 'gratuita' : '\$${r.monto.toStringAsFixed(2)}'}'
+                '${r.pagoId.isEmpty ? '' : ' · pago ${r.pagoId.split('_').last}'}',
+                style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+            if (r.horarios.isNotEmpty) Text(r.horarios, style: textos.bodySmall),
+            if (r.estado == EstadoInscripcion.confirmada && r.sesiones > 0)
+              Text('Asistencia: ${r.sesionesAsistidas} de ${r.sesiones} sesiones',
+                  style: textos.bodySmall?.copyWith(
+                      color: ausente ? AppColors.rojo : AppColors.gris, fontWeight: ausente ? FontWeight.w700 : null)),
+            if (r.motivo.isNotEmpty)
+              Text('Motivo: ${r.motivo}', style: textos.bodySmall?.copyWith(color: AppColors.rojo)),
+            if (r.estaVigente()) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (r.estado == EstadoInscripcion.enRevision) ..._botonesRevision(r, ocupado),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.swap_horiz),
+                    label: const Text('Cambiar disciplina'),
+                    onPressed: ocupado ? null : () => _cambiar(r, todas),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
+                    icon: const Icon(Icons.event_busy_outlined),
+                    label: const Text('Cancelar reserva'),
+                    onPressed: ocupado ? null : () => _cancelar(r, ausente: ausente),
+                  ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(quien, style: estudiante == null ? textos.bodyMedium?.copyWith(color: AppColors.gris) : null),
-              Text(
-                  'Reservada el $fecha · ${r.monto == 0 ? 'gratuita' : '\$${r.monto.toStringAsFixed(2)}'}'
-                  '${r.pagoId.isEmpty ? '' : ' · pago ${r.pagoId.split('_').last}'}',
-                  style: textos.bodySmall?.copyWith(color: AppColors.gris)),
-              if (r.horarios.isNotEmpty) Text(r.horarios, style: textos.bodySmall),
-              if (r.estado == EstadoInscripcion.confirmada && r.sesiones > 0)
-                Text('Asistencia: ${r.sesionesAsistidas} de ${r.sesiones} sesiones',
-                    style: textos.bodySmall?.copyWith(
-                        color: ausente ? AppColors.rojo : AppColors.gris,
-                        fontWeight: ausente ? FontWeight.w700 : null)),
-              if (r.motivo.isNotEmpty)
-                Text('Motivo: ${r.motivo}', style: textos.bodySmall?.copyWith(color: AppColors.rojo)),
-              if (r.estaVigente()) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (r.estado == EstadoInscripcion.enRevision) ..._botonesRevision(r, ocupado),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.swap_horiz),
-                      label: const Text('Cambiar disciplina'),
-                      onPressed: ocupado ? null : () => _cambiar(r, todas),
-                    ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
-                      icon: const Icon(Icons.event_busy_outlined),
-                      label: const Text('Cancelar reserva'),
-                      onPressed: ocupado ? null : () => _cancelar(r, ausente: ausente),
-                    ),
-                  ],
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -232,6 +235,7 @@ class _ReservasTabState extends State<ReservasTab> {
 
   List<Widget> _botonesRevision(Inscripcion r, bool ocupado) => [
         FilledButton.icon(
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
           icon: const Icon(Icons.check),
           label: const Text('Confirmar'),
           onPressed: ocupado ? null : () => _resolver(r, confirmar: true),

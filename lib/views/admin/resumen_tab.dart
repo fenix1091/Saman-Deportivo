@@ -8,6 +8,7 @@ import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/boton_exportar.dart';
+import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/grafico_barras.dart';
 
 /// Dashboard del administrador (RF-21, CU-20): cifras y gráficos con los datos
@@ -92,7 +93,7 @@ class _Resumen extends StatelessWidget {
     Widget seccion(String titulo, String subtitulo, Widget hijo, {int orden = 0}) => Revelar(
           orden: orden,
           child: Container(
-            margin: const EdgeInsets.only(top: 16),
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -114,7 +115,7 @@ class _Resumen extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1000),
+        constraints: const BoxConstraints(maxWidth: 1320),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
@@ -142,14 +143,8 @@ class _Resumen extends StatelessWidget {
             const SizedBox(height: 12),
             Revelar(
               orden: 2,
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final columnas = c.maxWidth >= 900
-                      ? 4
-                      : c.maxWidth >= 560
-                          ? 3
-                          : 2;
-                  final ancho = (c.maxWidth - 12 * (columnas - 1)) / columnas;
+              child: Builder(
+                builder: (context) {
                   final tarjetas = [
                     TarjetaCifra(
                         icono: Icons.sports_outlined, valor: '${activos.length}', etiqueta: 'disciplinas activas'),
@@ -186,30 +181,45 @@ class _Resumen extends StatelessWidget {
                       color: AppColors.verdeSaman,
                     ),
                   ];
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [for (final t in tarjetas) SizedBox(width: ancho, child: t)],
-                  );
+                  return CuadriculaAdaptable(anchoMinimo: 160, maxColumnas: 4, hijos: tarjetas);
                 },
               ),
             ),
-            seccion(
-              'Deportes más buscados',
-              'Consultas al detalle de cada disciplina desde el catálogo (RF-21).',
-              GraficoBarras(
-                datos: [
-                  for (final d in masBuscados.take(6))
-                    DatoBarra(
-                        etiqueta: d.nombre, valor: d.vecesBuscado.toDouble(), detalle: '${d.vecesBuscado} consultas'),
-                ],
-              ),
-              orden: 3,
+            const SizedBox(height: 16),
+            CuadriculaAdaptable(
+              anchoMinimo: 440,
+              maxColumnas: 2,
+              espacio: 16,
+              hijos: [
+                seccion(
+                  'Deportes más buscados',
+                  'Consultas al detalle de cada disciplina desde el catálogo (RF-21).',
+                  GraficoBarras(
+                    altoBarra: 14,
+                    datos: [
+                      for (final d in masBuscados.take(6))
+                        DatoBarra(
+                            etiqueta: d.nombre,
+                            valor: d.vecesBuscado.toDouble(),
+                            detalle: '${d.vecesBuscado} consultas'),
+                    ],
+                  ),
+                  orden: 3,
+                ),
+                seccion(
+                  'Reservas por estado',
+                  'Todas las inscripciones registradas en la plataforma.',
+                  GraficoBarras(altoBarra: 14, datos: porEstado),
+                  orden: 4,
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
             seccion(
               'Ocupación de cupos',
               'Inscritos sobre el cupo máximo de cada disciplina activa.',
               GraficoBarras(
+                altoBarra: 14,
                 maximo: 100,
                 datos: [
                   for (final d in ocupacion)
@@ -225,12 +235,6 @@ class _Resumen extends StatelessWidget {
                     ),
                 ],
               ),
-              orden: 4,
-            ),
-            seccion(
-              'Reservas por estado',
-              'Todas las inscripciones registradas en la plataforma.',
-              GraficoBarras(datos: porEstado),
               orden: 5,
             ),
           ],

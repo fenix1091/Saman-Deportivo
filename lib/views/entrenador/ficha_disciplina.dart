@@ -22,7 +22,7 @@ class _Ficha extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: const BoxConstraints(maxWidth: 1200),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
