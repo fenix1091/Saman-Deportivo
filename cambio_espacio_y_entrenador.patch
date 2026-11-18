@@ -1,0 +1,1905 @@
+diff --git a/lib/core/novedades.dart b/lib/core/novedades.dart
+index 7eae2ff..36e90d4 100644
+--- a/lib/core/novedades.dart
++++ b/lib/core/novedades.dart
+@@ -13,6 +13,20 @@ class Novedad {
+ /// Solo lo ve el administrador, desde su perfil. Al publicar una versión nueva se
+ /// agrega su entrada al principio de esta lista.
+ final novedades = <Novedad>[
++  Novedad(
++    version: '1.9',
++    fecha: DateTime(2026, 11, 18),
++    titulo: 'Mejor uso del espacio y datos del entrenador validados',
++    cambios: const [
++      'El resumen del administrador cabe en una pantalla: cifras compactas y gráficos de dos en dos.',
++      'Toda la web aprovecha las pantallas anchas: el detalle de cada deporte, el perfil y la inscripción van en dos '
++          'columnas; el catálogo llega a cuatro; clases, entrenadores, reservas, usuarios, Mis inscripciones, Mis '
++          'entrenamientos, las disciplinas del entrenador y la toma de asistencia se reparten en columnas.',
++      'Al registrar un entrenador, el correo tiene que ser de la UNIMET.',
++      'La especialidad del entrenador solo admite letras (sin números), al registrarlo y al editarlo.',
++      'Una reserva cancelada por la Coordinación muestra al estudiante el motivo de la cancelación.',
++    ],
++  ),
+   Novedad(
+     version: '1.8',
+     fecha: DateTime(2026, 11, 17),
+diff --git a/lib/core/validadores.dart b/lib/core/validadores.dart
+index d0da3a5..cee3c94 100644
+--- a/lib/core/validadores.dart
++++ b/lib/core/validadores.dart
+@@ -52,6 +52,42 @@ class Validadores {
+     return null;
+   }
+ 
++  /// Correo institucional de un entrenador que registra el administrador: solo
++  /// cuentas de la UNIMET, para que nadie de fuera reciba el enlace de acceso.
++  static String? correoEntrenador(String? valor) {
++    final error = correo(valor);
++    if (error != null) return error;
++    final v = valor!.trim().toLowerCase();
++    if (!dominiosUnimet.any(v.endsWith)) {
++      return 'El entrenador debe tener correo de la UNIMET (${dominiosUnimet.join(' o ')}).';
++    }
++    return null;
++  }
++
++  static final _especialidad = RegExp(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ ,/()'-]*$");
++
++  /// Especialidad del entrenador: un deporte o área, solo letras (se admiten
++  /// espacios, comas, barras y guiones: "Fútbol / Futsal"). Sin números.
++  static String? especialidad(String? valor) {
++    final v = (valor ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
++    if (v.isEmpty) return 'Ingresa la especialidad, por ejemplo Natación.';
++    if (RegExp(r'\d').hasMatch(v)) return 'La especialidad no lleva números: escribe el deporte, por ejemplo Natación.';
++    if (!_especialidad.hasMatch(v)) return 'Escribe la especialidad solo con letras, por ejemplo Fútbol / Futsal.';
++    if (v.replaceAll(RegExp(r'[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]'), '').length < 3) {
++      return 'La especialidad debe tener al menos 3 letras.';
++    }
++    if (v.length > 60) return 'La especialidad no puede pasar de 60 caracteres.';
++    return null;
++  }
++
++  /// Años de experiencia: número entero de 0 a 60.
++  static String? aniosExperiencia(String? valor) {
++    final anios = int.tryParse((valor ?? '').trim());
++    if (anios == null || anios < 0) return 'Ingresa un número igual o mayor que cero.';
++    if (anios > 60) return 'Revisa los años de experiencia (máximo 60).';
++    return null;
++  }
++
+   /// Letras de cédula admitidas: venezolano o extranjero.
+   static const nacionalidades = ['V', 'E'];
+ 
+diff --git a/lib/repositories/admin_repository_firebase.dart b/lib/repositories/admin_repository_firebase.dart
+index d4fe2b4..d4d720b 100644
+--- a/lib/repositories/admin_repository_firebase.dart
++++ b/lib/repositories/admin_repository_firebase.dart
+@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
+ import 'package:firebase_core/firebase_core.dart';
+ 
+ import '../core/validacion_admin.dart';
++import '../core/validadores.dart';
+ import '../models/deporte.dart';
+ import '../models/inscripcion.dart';
+ import '../models/notificacion.dart';
+@@ -233,6 +234,9 @@ class AdminRepositoryFirebase implements AdminRepository {
+     required String especialidad,
+     required int aniosExperiencia,
+   }) async {
++    // Las mismas reglas del formulario, por si se llama sin pasar por él.
++    final invalido = Validadores.correoEntrenador(correo) ?? Validadores.especialidad(especialidad);
++    if (invalido != null) throw OperacionNoPermitidaException(invalido);
+     final cedulaRef = _db.collection('cedulas').doc('$nacionalidad-$cedula');
+     if ((await cedulaRef.get()).exists) {
+       throw StateError('Ya existe una cuenta con esa cédula.');
+diff --git a/lib/views/admin/admin_dashboard_view.dart b/lib/views/admin/admin_dashboard_view.dart
+index eb680db..21c225a 100644
+--- a/lib/views/admin/admin_dashboard_view.dart
++++ b/lib/views/admin/admin_dashboard_view.dart
+@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart';
+ 
++import '../../core/theme.dart';
+ import '../../core/validacion_admin.dart';
+ import '../../core/validadores.dart';
+ import '../../models/deporte.dart';
+@@ -11,6 +12,7 @@ import 'inscritos_dialog.dart';
+ import 'reservas_tab.dart';
+ import 'resumen_tab.dart';
+ import 'usuarios_tab.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/panel_con_menu.dart';
+ 
+ /// Secciones del panel de administración; cada una tiene su ruta (/admin/{seccion})
+@@ -71,37 +73,27 @@ class _ClasesTab extends StatelessWidget {
+             final deportes = deportesSnapshot.data!;
+             return Column(
+               children: [
+-                Padding(
+-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+-                  child: Column(
+-                    crossAxisAlignment: CrossAxisAlignment.start,
+-                    children: [
+-                      const Text('Oferta deportiva', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+-                      const SizedBox(height: 8),
+-                      Align(
+-                        alignment: Alignment.centerRight,
+-                        child: SizedBox(
+-                          width: 160,
+-                          child: FilledButton.icon(
+-                            onPressed: () => _editarDeporte(context, repositorio, null, deportes),
+-                            icon: const Icon(Icons.add),
+-                            label: const Text('Nueva clase'),
+-                          ),
+-                        ),
+-                      ),
+-                    ],
++                _Encabezado(
++                  titulo: 'Oferta deportiva',
++                  detalle: '${deportes.length} ${deportes.length == 1 ? 'disciplina' : 'disciplinas'} · '
++                      '${deportes.where((d) => d.activo).length} activas',
++                  accion: FilledButton.icon(
++                    onPressed: () => _editarDeporte(context, repositorio, null, deportes),
++                    icon: const Icon(Icons.add),
++                    label: const Text('Nueva clase'),
+                   ),
+                 ),
+                 Expanded(
+                   child: deportes.isEmpty
+                       ? const _Vacio(icono: Icons.sports, mensaje: 'Aún no hay clases. Crea la primera.')
+-                      : ListView.builder(
+-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+-                          itemCount: deportes.length,
+-                          itemBuilder: (context, index) => _TarjetaDeporte(
+-                            deporte: deportes[index],
+-                            entrenadores: entrenadores,
+-                            repositorio: repositorio,
++                      : _Contenido(
++                          child: CuadriculaAdaptable(
++                            anchoMinimo: 460,
++                            maxColumnas: 2,
++                            hijos: [
++                              for (final d in deportes)
++                                _TarjetaDeporte(deporte: d, entrenadores: entrenadores, repositorio: repositorio),
++                            ],
+                           ),
+                         ),
+                 ),
+@@ -130,7 +122,7 @@ class _TarjetaDeporte extends StatelessWidget {
+     final entrenadorIds = entrenadores.map((entrenador) => entrenador.uid).toSet();
+     final entrenadorActual = entrenadorIds.contains(deporte.entrenadorId) ? deporte.entrenadorId : '';
+     return Card(
+-      margin: const EdgeInsets.only(bottom: 12),
++      margin: EdgeInsets.zero,
+       child: Padding(
+         padding: const EdgeInsets.all(16),
+         child: Column(
+@@ -142,7 +134,8 @@ class _TarjetaDeporte extends StatelessWidget {
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+-                      Text(deporte.nombre, style: Theme.of(context).textTheme.titleLarge),
++                      Text(deporte.nombre,
++                          style: Theme.of(context).textTheme.titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+                       if (deporte.categoria.isNotEmpty) Text(deporte.categoria),
+                     ],
+                   ),
+@@ -268,62 +261,57 @@ class _EntrenadoresTab extends StatelessWidget {
+         final entrenadores = snapshot.data!;
+         return Column(
+           children: [
+-            Padding(
+-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+-              child: Column(
+-                crossAxisAlignment: CrossAxisAlignment.start,
+-                children: [
+-                  const Text('Equipo de entrenadores', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+-                  const SizedBox(height: 8),
+-                  Align(
+-                    alignment: Alignment.centerRight,
+-                    child: SizedBox(
+-                      width: 220,
+-                      child: FilledButton.icon(
+-                        onPressed: () => _crearEntrenador(context, repositorio),
+-                        icon: const Icon(Icons.person_add_alt_1),
+-                        label: const Text('Nuevo entrenador'),
+-                      ),
+-                    ),
+-                  ),
+-                ],
++            _Encabezado(
++              titulo: 'Equipo de entrenadores',
++              detalle: '${entrenadores.length} ${entrenadores.length == 1 ? 'entrenador' : 'entrenadores'}',
++              accion: FilledButton.icon(
++                onPressed: () => _crearEntrenador(context, repositorio),
++                icon: const Icon(Icons.person_add_alt_1),
++                label: const Text('Nuevo entrenador'),
+               ),
+             ),
+             Expanded(
+               child: entrenadores.isEmpty
+                   ? const _Vacio(icono: Icons.groups_outlined, mensaje: 'Aún no hay entrenadores registrados.')
+-                  : ListView.builder(
+-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+-                      itemCount: entrenadores.length,
+-                      itemBuilder: (context, index) {
+-                        final entrenador = entrenadores[index];
+-                        return Card(
+-                          child: ListTile(
+-                            leading: const CircleAvatar(child: Icon(Icons.sports_handball_outlined)),
+-                            title: Text(entrenador.nombreCompleto),
+-                            subtitle: Text(
+-                              '${entrenador.especialidad}\n${entrenador.correo}',
+-                              maxLines: 2,
+-                              overflow: TextOverflow.ellipsis,
++                  : _Contenido(
++                      child: CuadriculaAdaptable(
++                        anchoMinimo: 320,
++                        maxColumnas: 3,
++                        hijos: [
++                          for (final entrenador in entrenadores)
++                            Card(
++                              margin: EdgeInsets.zero,
++                              child: ListTile(
++                                contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
++                                leading: const CircleAvatar(child: Icon(Icons.sports_handball_outlined)),
++                                title: Text(entrenador.nombreCompleto, maxLines: 1, overflow: TextOverflow.ellipsis),
++                                subtitle: Text(
++                                  '${entrenador.especialidad.isEmpty ? 'Sin especialidad' : entrenador.especialidad}'
++                                  '${entrenador.aniosExperiencia > 0 ? ' · ${entrenador.aniosExperiencia} años' : ''}'
++                                  '\n${entrenador.correo}',
++                                  maxLines: 2,
++                                  overflow: TextOverflow.ellipsis,
++                                ),
++                                isThreeLine: true,
++                                trailing: IconButton(
++                                  tooltip: 'Reenviar enlace para configurar contraseña',
++                                  icon: const Icon(Icons.mark_email_unread_outlined),
++                                  onPressed: () async {
++                                    try {
++                                      await repositorio.reenviarEnlace(entrenador.correo);
++                                      if (context.mounted) _mensaje(context, 'Enlace enviado a ${entrenador.correo}.');
++                                    } on FirebaseAuthException catch (error) {
++                                      if (context.mounted) {
++                                        _mensaje(
++                                            context, 'No se pudo enviar el enlace: ${error.message ?? error.code}');
++                                      }
++                                    }
++                                  },
++                                ),
++                              ),
+                             ),
+-                            isThreeLine: true,
+-                            trailing: IconButton(
+-                              tooltip: 'Reenviar enlace para configurar contraseña',
+-                              icon: const Icon(Icons.mark_email_unread_outlined),
+-                              onPressed: () async {
+-                                try {
+-                                  await repositorio.reenviarEnlace(entrenador.correo);
+-                                  if (context.mounted) _mensaje(context, 'Enlace enviado a ${entrenador.correo}.');
+-                                } on FirebaseAuthException catch (error) {
+-                                  if (context.mounted) {
+-                                    _mensaje(context, 'No se pudo enviar el enlace: ${error.message ?? error.code}');
+-                                  }
+-                                }
+-                              },
+-                            ),
+-                          ),
+-                        );
+-                      },
++                        ],
++                      ),
+                     ),
+             ),
+           ],
+@@ -333,6 +321,67 @@ class _EntrenadoresTab extends StatelessWidget {
+   }
+ }
+ 
++/// Encabezado de una sección del panel: título y resumen a la izquierda, la
++/// acción principal a la derecha, en la misma fila (en el teléfono se apilan).
++class _Encabezado extends StatelessWidget {
++  const _Encabezado({required this.titulo, required this.detalle, required this.accion});
++
++  final String titulo;
++  final String detalle;
++  final Widget accion;
++
++  @override
++  Widget build(BuildContext context) {
++    final textos = Theme.of(context).textTheme;
++    final texto = Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      mainAxisSize: MainAxisSize.min,
++      children: [
++        Text(titulo, style: textos.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
++        Text(detalle, style: textos.bodySmall?.copyWith(color: AppColors.gris)),
++      ],
++    );
++    return Center(
++      child: ConstrainedBox(
++        constraints: const BoxConstraints(maxWidth: _anchoPanel),
++        child: Padding(
++          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
++          child: LayoutBuilder(
++            builder: (context, c) => c.maxWidth < 480
++                ? Column(
++                    crossAxisAlignment: CrossAxisAlignment.start,
++                    children: [texto, const SizedBox(height: 10), accion],
++                  )
++                : Row(
++                    children: [Expanded(child: texto), const SizedBox(width: 12), SizedBox(width: 230, child: accion)]),
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++/// Ancho máximo del contenido del panel: aprovecha pantallas grandes sin que
++/// las líneas queden larguísimas.
++const _anchoPanel = 1320.0;
++
++/// Contenido desplazable y centrado de una sección del panel.
++class _Contenido extends StatelessWidget {
++  const _Contenido({required this.child});
++
++  final Widget child;
++
++  @override
++  Widget build(BuildContext context) {
++    return SingleChildScrollView(
++      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
++      child: Center(
++        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: _anchoPanel), child: child),
++      ),
++    );
++  }
++}
++
+ class _DeporteDialog extends StatefulWidget {
+   const _DeporteDialog({required this.repositorio, this.deporte, this.existentes = const []});
+ 
+@@ -860,9 +909,11 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
+                 const SizedBox(height: 12),
+                 TextFormField(
+                   controller: _correo,
+-                  decoration: const InputDecoration(labelText: 'Correo electrónico *'),
++                  decoration:
++                      const InputDecoration(labelText: 'Correo de la UNIMET *', hintText: 'nombre@unimet.edu.ve'),
+                   keyboardType: TextInputType.emailAddress,
+-                  validator: Validadores.correo,
++                  autovalidateMode: AutovalidateMode.onUserInteraction,
++                  validator: Validadores.correoEntrenador,
+                 ),
+                 const SizedBox(height: 12),
+                 TextFormField(
+@@ -873,18 +924,22 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
+                 const SizedBox(height: 12),
+                 TextFormField(
+                   controller: _especialidad,
+-                  decoration: const InputDecoration(labelText: 'Especialidad *'),
+-                  validator: (value) => Validadores.requerido(value, 'la especialidad'),
++                  decoration: const InputDecoration(labelText: 'Especialidad *', hintText: 'Ej. Natación'),
++                  textCapitalization: TextCapitalization.sentences,
++                  inputFormatters: [
++                    FilteringTextInputFormatter.deny(RegExp(r'\d')),
++                    LengthLimitingTextInputFormatter(60)
++                  ],
++                  autovalidateMode: AutovalidateMode.onUserInteraction,
++                  validator: Validadores.especialidad,
+                 ),
+                 const SizedBox(height: 12),
+                 TextFormField(
+                   controller: _experiencia,
+                   decoration: const InputDecoration(labelText: 'Años de experiencia'),
+                   keyboardType: TextInputType.number,
+-                  validator: (value) {
+-                    final anios = int.tryParse(value ?? '');
+-                    return anios == null || anios < 0 ? 'Ingresa un número igual o mayor que cero.' : null;
+-                  },
++                  inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
++                  validator: Validadores.aniosExperiencia,
+                 ),
+                 const SizedBox(height: 8),
+                 const Text('Se enviará un enlace al correo para que configure su contraseña.'),
+@@ -970,6 +1025,8 @@ Future<void> _crearEntrenador(BuildContext context, AdminRepository repositorio)
+     if (context.mounted) _mensaje(context, 'No se pudo guardar el entrenador: ${error.message ?? error.code}');
+   } on StateError catch (error) {
+     if (context.mounted) _mensaje(context, error.message);
++  } on OperacionNoPermitidaException catch (error) {
++    if (context.mounted) _mensaje(context, error.mensaje);
+   }
+ }
+ 
+diff --git a/lib/views/admin/reservas_tab.dart b/lib/views/admin/reservas_tab.dart
+index 5401967..b18479c 100644
+--- a/lib/views/admin/reservas_tab.dart
++++ b/lib/views/admin/reservas_tab.dart
+@@ -6,6 +6,7 @@ import '../../models/deporte.dart';
+ import '../../models/inscripcion.dart';
+ import '../../models/persona.dart';
+ import '../../repositories/admin_repository_firebase.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/animaciones.dart';
+ 
+ /// Revisión de reservas (Hito 3): el administrador valida el pago de cada reserva
+@@ -120,13 +121,19 @@ class _ReservasTabState extends State<ReservasTab> {
+                                   ? 'No hay reservas pendientes de revisión.'
+                                   : 'No hay reservas con ese filtro.',
+                         )
+-                      : ListView.builder(
++                      : SingleChildScrollView(
+                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+-                          itemCount: visibles.length,
+-                          itemBuilder: (context, i) => Revelar(
+-                            key: ValueKey(visibles[i].id),
+-                            orden: i.clamp(0, 5),
+-                            child: _tarjeta(context, visibles[i], usuarios[visibles[i].estudianteId], todas),
++                          child: CuadriculaAdaptable(
++                            anchoMinimo: 480,
++                            maxColumnas: 2,
++                            hijos: [
++                              for (var i = 0; i < visibles.length; i++)
++                                Revelar(
++                                  key: ValueKey(visibles[i].id),
++                                  orden: i.clamp(0, 5),
++                                  child: _tarjeta(context, visibles[i], usuarios[visibles[i].estudianteId], todas),
++                                ),
++                            ],
+                           ),
+                         ),
+                 ),
+@@ -164,67 +171,63 @@ class _ReservasTabState extends State<ReservasTab> {
+       EstadoInscripcion.rechazada => AppColors.rojo,
+       _ => AppColors.gris,
+     };
+-    return Padding(
+-      padding: const EdgeInsets.only(bottom: 12),
+-      child: Elevable(
+-        radio: 16,
+-        child: Padding(
+-          padding: const EdgeInsets.all(16),
+-          child: Column(
+-            crossAxisAlignment: CrossAxisAlignment.start,
+-            children: [
+-              Row(
++    return Elevable(
++      radio: 16,
++      child: Padding(
++        padding: const EdgeInsets.all(16),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Row(
++              children: [
++                Expanded(
++                  child: Text(
++                    r.nombreDeporte.isEmpty ? r.deporteCodigo : '${r.nombreDeporte} (${r.deporteCodigo})',
++                    style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
++                  ),
++                ),
++                if (ausente) ...[
++                  const EtiquetaEstado('No se presenta', color: AppColors.rojo),
++                  const SizedBox(width: 6),
++                ],
++                EtiquetaEstado(r.estado.etiqueta, color: color),
++              ],
++            ),
++            const SizedBox(height: 6),
++            Text(quien, style: estudiante == null ? textos.bodyMedium?.copyWith(color: AppColors.gris) : null),
++            Text(
++                'Reservada el $fecha · ${r.monto == 0 ? 'gratuita' : '\$${r.monto.toStringAsFixed(2)}'}'
++                '${r.pagoId.isEmpty ? '' : ' · pago ${r.pagoId.split('_').last}'}',
++                style: textos.bodySmall?.copyWith(color: AppColors.gris)),
++            if (r.horarios.isNotEmpty) Text(r.horarios, style: textos.bodySmall),
++            if (r.estado == EstadoInscripcion.confirmada && r.sesiones > 0)
++              Text('Asistencia: ${r.sesionesAsistidas} de ${r.sesiones} sesiones',
++                  style: textos.bodySmall?.copyWith(
++                      color: ausente ? AppColors.rojo : AppColors.gris, fontWeight: ausente ? FontWeight.w700 : null)),
++            if (r.motivo.isNotEmpty)
++              Text('Motivo: ${r.motivo}', style: textos.bodySmall?.copyWith(color: AppColors.rojo)),
++            if (r.estaVigente()) ...[
++              const SizedBox(height: 12),
++              Wrap(
++                spacing: 8,
++                runSpacing: 8,
+                 children: [
+-                  Expanded(
+-                    child: Text(
+-                      r.nombreDeporte.isEmpty ? r.deporteCodigo : '${r.nombreDeporte} (${r.deporteCodigo})',
+-                      style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+-                    ),
++                  if (r.estado == EstadoInscripcion.enRevision) ..._botonesRevision(r, ocupado),
++                  OutlinedButton.icon(
++                    icon: const Icon(Icons.swap_horiz),
++                    label: const Text('Cambiar disciplina'),
++                    onPressed: ocupado ? null : () => _cambiar(r, todas),
++                  ),
++                  TextButton.icon(
++                    style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
++                    icon: const Icon(Icons.event_busy_outlined),
++                    label: const Text('Cancelar reserva'),
++                    onPressed: ocupado ? null : () => _cancelar(r, ausente: ausente),
+                   ),
+-                  if (ausente) ...[
+-                    const EtiquetaEstado('No se presenta', color: AppColors.rojo),
+-                    const SizedBox(width: 6),
+-                  ],
+-                  EtiquetaEstado(r.estado.etiqueta, color: color),
+                 ],
+               ),
+-              const SizedBox(height: 6),
+-              Text(quien, style: estudiante == null ? textos.bodyMedium?.copyWith(color: AppColors.gris) : null),
+-              Text(
+-                  'Reservada el $fecha · ${r.monto == 0 ? 'gratuita' : '\$${r.monto.toStringAsFixed(2)}'}'
+-                  '${r.pagoId.isEmpty ? '' : ' · pago ${r.pagoId.split('_').last}'}',
+-                  style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+-              if (r.horarios.isNotEmpty) Text(r.horarios, style: textos.bodySmall),
+-              if (r.estado == EstadoInscripcion.confirmada && r.sesiones > 0)
+-                Text('Asistencia: ${r.sesionesAsistidas} de ${r.sesiones} sesiones',
+-                    style: textos.bodySmall?.copyWith(
+-                        color: ausente ? AppColors.rojo : AppColors.gris,
+-                        fontWeight: ausente ? FontWeight.w700 : null)),
+-              if (r.motivo.isNotEmpty)
+-                Text('Motivo: ${r.motivo}', style: textos.bodySmall?.copyWith(color: AppColors.rojo)),
+-              if (r.estaVigente()) ...[
+-                const SizedBox(height: 12),
+-                Wrap(
+-                  spacing: 8,
+-                  runSpacing: 8,
+-                  children: [
+-                    if (r.estado == EstadoInscripcion.enRevision) ..._botonesRevision(r, ocupado),
+-                    OutlinedButton.icon(
+-                      icon: const Icon(Icons.swap_horiz),
+-                      label: const Text('Cambiar disciplina'),
+-                      onPressed: ocupado ? null : () => _cambiar(r, todas),
+-                    ),
+-                    TextButton.icon(
+-                      style: TextButton.styleFrom(foregroundColor: AppColors.rojo),
+-                      icon: const Icon(Icons.event_busy_outlined),
+-                      label: const Text('Cancelar reserva'),
+-                      onPressed: ocupado ? null : () => _cancelar(r, ausente: ausente),
+-                    ),
+-                  ],
+-                ),
+-              ],
+             ],
+-          ),
++          ],
+         ),
+       ),
+     );
+@@ -232,6 +235,7 @@ class _ReservasTabState extends State<ReservasTab> {
+ 
+   List<Widget> _botonesRevision(Inscripcion r, bool ocupado) => [
+         FilledButton.icon(
++          style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+           icon: const Icon(Icons.check),
+           label: const Text('Confirmar'),
+           onPressed: ocupado ? null : () => _resolver(r, confirmar: true),
+diff --git a/lib/views/admin/resumen_tab.dart b/lib/views/admin/resumen_tab.dart
+index 6ed9b20..55ba547 100644
+--- a/lib/views/admin/resumen_tab.dart
++++ b/lib/views/admin/resumen_tab.dart
+@@ -8,6 +8,7 @@ import '../../models/persona.dart';
+ import '../../repositories/admin_repository_firebase.dart';
+ import '../../widgets/animaciones.dart';
+ import '../../widgets/boton_exportar.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/grafico_barras.dart';
+ 
+ /// Dashboard del administrador (RF-21, CU-20): cifras y gráficos con los datos
+@@ -92,7 +93,7 @@ class _Resumen extends StatelessWidget {
+     Widget seccion(String titulo, String subtitulo, Widget hijo, {int orden = 0}) => Revelar(
+           orden: orden,
+           child: Container(
+-            margin: const EdgeInsets.only(top: 16),
++            width: double.infinity,
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(
+               color: Colors.white,
+@@ -114,7 +115,7 @@ class _Resumen extends StatelessWidget {
+     return Align(
+       alignment: Alignment.topCenter,
+       child: ConstrainedBox(
+-        constraints: const BoxConstraints(maxWidth: 1000),
++        constraints: const BoxConstraints(maxWidth: 1320),
+         child: ListView(
+           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+           children: [
+@@ -142,14 +143,8 @@ class _Resumen extends StatelessWidget {
+             const SizedBox(height: 12),
+             Revelar(
+               orden: 2,
+-              child: LayoutBuilder(
+-                builder: (context, c) {
+-                  final columnas = c.maxWidth >= 900
+-                      ? 4
+-                      : c.maxWidth >= 560
+-                          ? 3
+-                          : 2;
+-                  final ancho = (c.maxWidth - 12 * (columnas - 1)) / columnas;
++              child: Builder(
++                builder: (context) {
+                   final tarjetas = [
+                     TarjetaCifra(
+                         icono: Icons.sports_outlined, valor: '${activos.length}', etiqueta: 'disciplinas activas'),
+@@ -186,30 +181,45 @@ class _Resumen extends StatelessWidget {
+                       color: AppColors.verdeSaman,
+                     ),
+                   ];
+-                  return Wrap(
+-                    spacing: 12,
+-                    runSpacing: 12,
+-                    children: [for (final t in tarjetas) SizedBox(width: ancho, child: t)],
+-                  );
++                  return CuadriculaAdaptable(anchoMinimo: 160, maxColumnas: 4, hijos: tarjetas);
+                 },
+               ),
+             ),
+-            seccion(
+-              'Deportes más buscados',
+-              'Consultas al detalle de cada disciplina desde el catálogo (RF-21).',
+-              GraficoBarras(
+-                datos: [
+-                  for (final d in masBuscados.take(6))
+-                    DatoBarra(
+-                        etiqueta: d.nombre, valor: d.vecesBuscado.toDouble(), detalle: '${d.vecesBuscado} consultas'),
+-                ],
+-              ),
+-              orden: 3,
++            const SizedBox(height: 16),
++            CuadriculaAdaptable(
++              anchoMinimo: 440,
++              maxColumnas: 2,
++              espacio: 16,
++              hijos: [
++                seccion(
++                  'Deportes más buscados',
++                  'Consultas al detalle de cada disciplina desde el catálogo (RF-21).',
++                  GraficoBarras(
++                    altoBarra: 14,
++                    datos: [
++                      for (final d in masBuscados.take(6))
++                        DatoBarra(
++                            etiqueta: d.nombre,
++                            valor: d.vecesBuscado.toDouble(),
++                            detalle: '${d.vecesBuscado} consultas'),
++                    ],
++                  ),
++                  orden: 3,
++                ),
++                seccion(
++                  'Reservas por estado',
++                  'Todas las inscripciones registradas en la plataforma.',
++                  GraficoBarras(altoBarra: 14, datos: porEstado),
++                  orden: 4,
++                ),
++              ],
+             ),
++            const SizedBox(height: 16),
+             seccion(
+               'Ocupación de cupos',
+               'Inscritos sobre el cupo máximo de cada disciplina activa.',
+               GraficoBarras(
++                altoBarra: 14,
+                 maximo: 100,
+                 datos: [
+                   for (final d in ocupacion)
+@@ -225,12 +235,6 @@ class _Resumen extends StatelessWidget {
+                     ),
+                 ],
+               ),
+-              orden: 4,
+-            ),
+-            seccion(
+-              'Reservas por estado',
+-              'Todas las inscripciones registradas en la plataforma.',
+-              GraficoBarras(datos: porEstado),
+               orden: 5,
+             ),
+           ],
+diff --git a/lib/views/admin/usuarios_tab.dart b/lib/views/admin/usuarios_tab.dart
+index 8a3fca6..4ef81f6 100644
+--- a/lib/views/admin/usuarios_tab.dart
++++ b/lib/views/admin/usuarios_tab.dart
+@@ -1,10 +1,12 @@
+ import 'package:cloud_firestore/cloud_firestore.dart';
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ 
+ import '../../core/theme.dart';
+ import '../../core/validadores.dart';
+ import '../../models/persona.dart';
+ import '../../repositories/admin_repository_firebase.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/avatar_usuario.dart';
+ 
+ /// Gestión de usuarios para la Coordinación de Deportes (RF-03, edición de perfiles):
+@@ -127,7 +129,7 @@ class _UsuariosTabState extends State<UsuariosTab> {
+ 
+         return Center(
+           child: ConstrainedBox(
+-            constraints: const BoxConstraints(maxWidth: 1000),
++            constraints: const BoxConstraints(maxWidth: 1320),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.stretch,
+               children: [
+@@ -205,13 +207,20 @@ class _UsuariosTabState extends State<UsuariosTab> {
+                 Expanded(
+                   child: lista.isEmpty
+                       ? const Center(child: Text('No hay usuarios con esos filtros.'))
+-                      : ListView.builder(
++                      : SingleChildScrollView(
+                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+-                          itemCount: lista.length,
+-                          itemBuilder: (_, i) => _FilaUsuario(
+-                            usuario: lista[i],
+-                            alEditar: () => _editar(lista[i]),
+-                            alCambiarSolvencia: _cambiarSolvencia,
++                          child: CuadriculaAdaptable(
++                            anchoMinimo: 520,
++                            maxColumnas: 2,
++                            espacio: 8,
++                            hijos: [
++                              for (final u in lista)
++                                _FilaUsuario(
++                                  usuario: u,
++                                  alEditar: () => _editar(u),
++                                  alCambiarSolvencia: _cambiarSolvencia,
++                                ),
++                            ],
+                           ),
+                         ),
+                 ),
+@@ -341,7 +350,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
+         'correoVerificado': _correoVerificado,
+         'estado': _activo ? EstadoEstudiante.activo.name : EstadoEstudiante.inactivo.name,
+       },
+-      if (u is Entrenador) 'especialidad': _especialidad.text.trim(),
++      if (u is Entrenador) 'especialidad': _especialidad.text.trim().replaceAll(RegExp(r'\s+'), ' '),
+     };
+     final actuales = u.aMapa();
+     nuevos.removeWhere((campo, valor) => actuales[campo] == valor);
+@@ -416,7 +425,14 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
+                   const SizedBox(height: 12),
+                   TextFormField(
+                     controller: _especialidad,
+-                    decoration: const InputDecoration(labelText: 'Especialidad'),
++                    decoration: const InputDecoration(labelText: 'Especialidad *', hintText: 'Ej. Natación'),
++                    textCapitalization: TextCapitalization.sentences,
++                    inputFormatters: [
++                      FilteringTextInputFormatter.deny(RegExp(r'\d')),
++                      LengthLimitingTextInputFormatter(60),
++                    ],
++                    autovalidateMode: AutovalidateMode.onUserInteraction,
++                    validator: Validadores.especialidad,
+                   ),
+                 ],
+                 if (u is! Administrador) ...[
+diff --git a/lib/views/comun/perfil_view.dart b/lib/views/comun/perfil_view.dart
+index 15d3984..6b4fb5a 100644
+--- a/lib/views/comun/perfil_view.dart
++++ b/lib/views/comun/perfil_view.dart
+@@ -43,11 +43,8 @@ class _PerfilViewState extends State<PerfilView> {
+   }
+ 
+   Future<void> _cambiarFoto() async {
+-    final archivo = await ImagePicker().pickImage(
+-        source: ImageSource.gallery,
+-        maxWidth: 512,
+-        maxHeight: 512,
+-        imageQuality: 80);
++    final archivo =
++        await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 80);
+     if (archivo == null || !mounted) return;
+     final bytes = await archivo.readAsBytes();
+     if (!mounted) return;
+@@ -56,15 +53,13 @@ class _PerfilViewState extends State<PerfilView> {
+ 
+   Future<void> _guardar() async {
+     if (!_formulario.currentState!.validate()) return;
+-    final ok =
+-        await context.read<PerfilViewModel>().guardar(
++    final ok = await context.read<PerfilViewModel>().guardar(
+           nombre: _nombre.text,
+           apellido: _apellido.text,
+           telefono: _telefono.text,
+         );
+     if (ok && mounted) {
+-      ScaffoldMessenger.of(context)
+-          .showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
++      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
+     }
+   }
+ 
+@@ -74,99 +69,155 @@ class _PerfilViewState extends State<PerfilView> {
+     final usuario = vm.usuario;
+     if (usuario == null) return const Scaffold(body: SizedBox.shrink());
+     final textos = Theme.of(context).textTheme;
++    final identidad = <Widget>[
++      Stack(
++        alignment: Alignment.topCenter,
++        children: [
++          Center(
++            child: AvatarUsuario(nombre: usuario.nombreCompleto, fotoUrl: usuario.fotoUrl, bytes: vm.fotoNueva),
++          ),
++          // Solo el administrador ve el registro de actualizaciones del sistema.
++          if (usuario.rol == Rol.administrador)
++            Align(
++              alignment: Alignment.topLeft,
++              child: IconButton.filledTonal(
++                tooltip: 'Registro de actualizaciones',
++                style: IconButton.styleFrom(
++                  backgroundColor: AppColors.naranjaClaro,
++                  foregroundColor: AppColors.naranjaProfundo,
++                ),
++                onPressed: () => NovedadesDialog.mostrar(context),
++                icon: const Icon(Icons.history),
++              ),
++            ),
++        ],
++      ),
++      Center(
++        child: TextButton.icon(
++          onPressed: vm.guardando ? null : _cambiarFoto,
++          icon: const Icon(Icons.photo_camera_outlined),
++          label: const Text('Cambiar foto'),
++        ),
++      ),
++      Text(usuario.nombreCompleto, style: textos.titleLarge, textAlign: TextAlign.center),
++      Text(_nombreRol(usuario.rol), style: textos.bodyMedium, textAlign: TextAlign.center),
++      const SizedBox(height: 24),
++      _Dato(etiqueta: 'Cédula', valor: usuario.cedulaTexto),
++      _Dato(etiqueta: 'Correo', valor: usuario.correo),
++      ..._datosDelRol(usuario),
++    ];
++    final nombre = TextFormField(
++      controller: _nombre,
++      decoration: const InputDecoration(labelText: 'Nombre'),
++      textCapitalization: TextCapitalization.words,
++      textInputAction: TextInputAction.next,
++      validator: Validadores.nombre,
++    );
++    final apellido = TextFormField(
++      controller: _apellido,
++      decoration: const InputDecoration(labelText: 'Apellido'),
++      textCapitalization: TextCapitalization.words,
++      textInputAction: TextInputAction.next,
++      validator: Validadores.apellido,
++    );
++    final resto = <Widget>[
++      TextFormField(
++        controller: _telefono,
++        decoration: const InputDecoration(labelText: 'Teléfono', hintText: '0414-1234567'),
++        keyboardType: TextInputType.phone,
++        validator: Validadores.telefono,
++      ),
++      if (vm.error != null) ...[
++        const SizedBox(height: 16),
++        MensajeError(vm.error!),
++      ],
++      const SizedBox(height: 24),
++      FilledButton(
++        onPressed: vm.guardando ? null : _guardar,
++        child: vm.guardando
++            ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
++            : const Text('Guardar'),
++      ),
++      const SizedBox(height: 8),
++      Text(
++        'La cédula, el correo y los datos de tu rol solo los puede cambiar la Coordinación de Deportes.',
++        style: textos.bodySmall,
++        textAlign: TextAlign.center,
++      ),
++    ];
+     return PanelConMenu(
+       titulo: const Text('Mi perfil'),
+-      body: FormularioCentrado(
+-        child: Form(
+-          key: _formulario,
+-          child: Column(
+-            crossAxisAlignment: CrossAxisAlignment.stretch,
+-            children: [
+-              Stack(
+-                alignment: Alignment.topCenter,
+-                children: [
+-                  Center(
+-                    child: AvatarUsuario(
+-                        nombre: usuario.nombreCompleto,
+-                        fotoUrl: usuario.fotoUrl,
+-                        bytes: vm.fotoNueva),
+-                  ),
+-                  // Solo el administrador ve el registro de actualizaciones del sistema.
+-                  if (usuario.rol == Rol.administrador)
+-                    Align(
+-                      alignment: Alignment.topLeft,
+-                      child: IconButton.filledTonal(
+-                        tooltip: 'Registro de actualizaciones',
+-                        style: IconButton.styleFrom(
+-                          backgroundColor: AppColors.naranjaClaro,
+-                          foregroundColor: AppColors.naranjaProfundo,
++      body: Form(
++        key: _formulario,
++        child: LayoutBuilder(
++          builder: (context, c) {
++            // En el teléfono, una sola columna; en pantallas anchas, la tarjeta de
++            // identidad a la izquierda y los datos que se pueden editar a la derecha.
++            if (c.maxWidth < 860) {
++              return FormularioCentrado(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.stretch,
++                  children: [
++                    ...identidad,
++                    const SizedBox(height: 16),
++                    nombre,
++                    const SizedBox(height: 12),
++                    apellido,
++                    const SizedBox(height: 12),
++                    ...resto,
++                  ],
++                ),
++              );
++            }
++            return SingleChildScrollView(
++              padding: const EdgeInsets.all(24),
++              child: Center(
++                child: ConstrainedBox(
++                  constraints: const BoxConstraints(maxWidth: 1040),
++                  child: Row(
++                    crossAxisAlignment: CrossAxisAlignment.start,
++                    children: [
++                      SizedBox(
++                        width: 360,
++                        child: Card(
++                          child: Padding(
++                            padding: const EdgeInsets.all(24),
++                            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: identidad),
++                          ),
+                         ),
+-                        onPressed: () => NovedadesDialog.mostrar(context),
+-                        icon: const Icon(Icons.history),
+                       ),
+-                    ),
+-                ],
+-              ),
+-              Center(
+-                child: TextButton.icon(
+-                  onPressed: vm.guardando ? null : _cambiarFoto,
+-                  icon: const Icon(Icons.photo_camera_outlined),
+-                  label: const Text('Cambiar foto'),
++                      const SizedBox(width: 20),
++                      Expanded(
++                        child: Card(
++                          child: Padding(
++                            padding: const EdgeInsets.all(24),
++                            child: Column(
++                              crossAxisAlignment: CrossAxisAlignment.stretch,
++                              children: [
++                                Text('Datos que puedes cambiar',
++                                    style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
++                                const SizedBox(height: 16),
++                                Row(
++                                  crossAxisAlignment: CrossAxisAlignment.start,
++                                  children: [
++                                    Expanded(child: nombre),
++                                    const SizedBox(width: 12),
++                                    Expanded(child: apellido),
++                                  ],
++                                ),
++                                const SizedBox(height: 12),
++                                ...resto,
++                              ],
++                            ),
++                          ),
++                        ),
++                      ),
++                    ],
++                  ),
+                 ),
+               ),
+-              Text(usuario.nombreCompleto,
+-                  style: textos.titleLarge, textAlign: TextAlign.center),
+-              Text(_nombreRol(usuario.rol),
+-                  style: textos.bodyMedium, textAlign: TextAlign.center),
+-              const SizedBox(height: 24),
+-              _Dato(etiqueta: 'Cédula', valor: usuario.cedulaTexto),
+-              _Dato(etiqueta: 'Correo', valor: usuario.correo),
+-              ..._datosDelRol(usuario),
+-              const SizedBox(height: 16),
+-              TextFormField(
+-                controller: _nombre,
+-                decoration: const InputDecoration(labelText: 'Nombre'),
+-                textCapitalization: TextCapitalization.words,
+-                textInputAction: TextInputAction.next,
+-                validator: Validadores.nombre,
+-              ),
+-              const SizedBox(height: 12),
+-              TextFormField(
+-                controller: _apellido,
+-                decoration: const InputDecoration(labelText: 'Apellido'),
+-                textCapitalization: TextCapitalization.words,
+-                textInputAction: TextInputAction.next,
+-                validator: Validadores.apellido,
+-              ),
+-              const SizedBox(height: 12),
+-              TextFormField(
+-                controller: _telefono,
+-                decoration: const InputDecoration(
+-                    labelText: 'Teléfono', hintText: '0414-1234567'),
+-                keyboardType: TextInputType.phone,
+-                validator: Validadores.telefono,
+-              ),
+-              if (vm.error != null) ...[
+-                const SizedBox(height: 16),
+-                MensajeError(vm.error!),
+-              ],
+-              const SizedBox(height: 24),
+-              FilledButton(
+-                onPressed: vm.guardando ? null : _guardar,
+-                child: vm.guardando
+-                    ? const SizedBox.square(
+-                        dimension: 22,
+-                        child: CircularProgressIndicator(strokeWidth: 2.5))
+-                    : const Text('Guardar'),
+-              ),
+-              const SizedBox(height: 8),
+-              Text(
+-                'La cédula, el correo y los datos de tu rol solo los puede cambiar la Coordinación de Deportes.',
+-                style: textos.bodySmall,
+-                textAlign: TextAlign.center,
+-              ),
+-            ],
+-          ),
++            );
++          },
+         ),
+       ),
+     );
+@@ -181,17 +232,12 @@ class _PerfilViewState extends State<PerfilView> {
+   static List<Widget> _datosDelRol(Persona usuario) => switch (usuario) {
+         Estudiante e => [
+             _Dato(etiqueta: 'Carnet', valor: e.carnet.isEmpty ? 'No registrado' : e.carnet),
+-            _Dato(
+-                etiqueta: 'Estado',
+-                valor: e.estaActivo() ? 'Activo' : 'Inactivo'),
+-            if (e.carrera.isNotEmpty)
+-              _Dato(etiqueta: 'Carrera', valor: e.carrera),
++            _Dato(etiqueta: 'Estado', valor: e.estaActivo() ? 'Activo' : 'Inactivo'),
++            if (e.carrera.isNotEmpty) _Dato(etiqueta: 'Carrera', valor: e.carrera),
+           ],
+         Entrenador e => [
+             _Dato(etiqueta: 'Especialidad', valor: e.especialidad),
+-            _Dato(
+-                etiqueta: 'Años de experiencia',
+-                valor: '${e.aniosExperiencia}'),
++            _Dato(etiqueta: 'Años de experiencia', valor: '${e.aniosExperiencia}'),
+           ],
+         Administrador a => [
+             if (a.cargo.isNotEmpty) _Dato(etiqueta: 'Cargo', valor: a.cargo),
+@@ -215,11 +261,7 @@ class _Dato extends StatelessWidget {
+       child: Row(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+-          SizedBox(
+-              width: 150,
+-              child: Text(etiqueta,
+-                  style: textos.bodyMedium
+-                      ?.copyWith(fontWeight: FontWeight.w600))),
++          SizedBox(width: 150, child: Text(etiqueta, style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
+           Expanded(child: Text(valor, style: textos.bodyMedium)),
+         ],
+       ),
+diff --git a/lib/views/entrenador/asistencia_view.dart b/lib/views/entrenador/asistencia_view.dart
+index 8f7d2e6..8bb65b3 100644
+--- a/lib/views/entrenador/asistencia_view.dart
++++ b/lib/views/entrenador/asistencia_view.dart
+@@ -11,6 +11,7 @@ import '../../repositories/deporte_repository.dart';
+ import '../../viewmodels/asistencia_view_model.dart';
+ import '../../widgets/animaciones.dart';
+ import '../../widgets/barra_cupos.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/boton_exportar.dart';
+ import '../../widgets/panel_con_menu.dart';
+ import '../../widgets/formulario_centrado.dart';
+@@ -105,7 +106,7 @@ class _TomarAsistencia extends StatelessWidget {
+     return Align(
+       alignment: Alignment.topCenter,
+       child: ConstrainedBox(
+-        constraints: const BoxConstraints(maxWidth: 760),
++        constraints: const BoxConstraints(maxWidth: 1200),
+         child: Column(
+           children: [
+             Padding(
+@@ -146,50 +147,60 @@ class _TomarAsistencia extends StatelessWidget {
+               ),
+             ),
+             Expanded(
+-              child: ListView.builder(
+-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+-                itemCount: vm.nomina.length,
+-                itemBuilder: (context, i) {
+-                  final e = vm.nomina[i];
+-                  final presente = vm.presente(e.uid);
+-                  return Revelar(
+-                    key: ValueKey(e.uid),
+-                    orden: i.clamp(0, 6),
+-                    child: AnimatedContainer(
+-                      duration: const Duration(milliseconds: 200),
+-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+-                      decoration: BoxDecoration(
+-                        color: presente ? AppColors.verdeClaro : Colors.white,
+-                        borderRadius: BorderRadius.circular(12),
+-                        border: Border.all(
+-                            color: presente ? AppColors.verdeHoja.withValues(alpha: 0.5) : const Color(0xFFE3E8EE)),
+-                      ),
+-                      child: Material(
+-                        type: MaterialType.transparency,
+-                        borderRadius: BorderRadius.circular(12),
+-                        child: CheckboxListTile(
+-                          value: presente,
+-                          onChanged: (v) => vm.marcar(e.uid, v ?? false),
+-                          controlAffinity: ListTileControlAffinity.leading,
+-                          activeColor: AppColors.verdeHoja,
+-                          title: Text(e.nombreCompleto, style: textos.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+-                          subtitle: Text(
+-                            [if (e.cedulaTexto.isNotEmpty) e.cedulaTexto, if (e.carnet.isNotEmpty) 'carnet ${e.carnet}']
+-                                .join(' · '),
++              child: SingleChildScrollView(
++                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
++                child: CuadriculaAdaptable(
++                  anchoMinimo: 420,
++                  maxColumnas: 2,
++                  espacio: 8,
++                  hijos: [
++                    for (var i = 0; i < vm.nomina.length; i++)
++                      () {
++                        final e = vm.nomina[i];
++                        final presente = vm.presente(e.uid);
++                        return Revelar(
++                          key: ValueKey(e.uid),
++                          orden: i.clamp(0, 6),
++                          child: AnimatedContainer(
++                            duration: const Duration(milliseconds: 200),
++                            decoration: BoxDecoration(
++                              color: presente ? AppColors.verdeClaro : Colors.white,
++                              borderRadius: BorderRadius.circular(12),
++                              border: Border.all(
++                                  color:
++                                      presente ? AppColors.verdeHoja.withValues(alpha: 0.5) : const Color(0xFFE3E8EE)),
++                            ),
++                            child: Material(
++                              type: MaterialType.transparency,
++                              borderRadius: BorderRadius.circular(12),
++                              child: CheckboxListTile(
++                                value: presente,
++                                onChanged: (v) => vm.marcar(e.uid, v ?? false),
++                                controlAffinity: ListTileControlAffinity.leading,
++                                activeColor: AppColors.verdeHoja,
++                                title: Text(e.nombreCompleto,
++                                    style: textos.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
++                                subtitle: Text(
++                                  [
++                                    if (e.cedulaTexto.isNotEmpty) e.cedulaTexto,
++                                    if (e.carnet.isNotEmpty) 'carnet ${e.carnet}'
++                                  ].join(' · '),
++                                ),
++                                secondary: EtiquetaEstado(presente ? 'Presente' : 'Ausente',
++                                    color: presente ? AppColors.verdeHoja : AppColors.gris),
++                              ),
++                            ),
+                           ),
+-                          secondary: EtiquetaEstado(presente ? 'Presente' : 'Ausente',
+-                              color: presente ? AppColors.verdeHoja : AppColors.gris),
+-                        ),
+-                      ),
+-                    ),
+-                  );
+-                },
++                        );
++                      }(),
++                  ],
++                ),
+               ),
+             ),
+             if (vm.error != null)
+               Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: MensajeError(vm.error!)),
+             Padding(
+-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
++              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+               child: FilledButton.icon(
+                 style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                 onPressed: vm.puedeGuardar ? () => _guardar(context) : null,
+@@ -224,7 +235,7 @@ class _Historial extends StatelessWidget {
+     return Align(
+       alignment: Alignment.topCenter,
+       child: ConstrainedBox(
+-        constraints: const BoxConstraints(maxWidth: 760),
++        constraints: const BoxConstraints(maxWidth: 1000),
+         child: ListView(
+           padding: const EdgeInsets.all(16),
+           children: [
+diff --git a/lib/views/entrenador/ficha_disciplina.dart b/lib/views/entrenador/ficha_disciplina.dart
+index 4b2ff16..77838db 100644
+--- a/lib/views/entrenador/ficha_disciplina.dart
++++ b/lib/views/entrenador/ficha_disciplina.dart
+@@ -22,7 +22,7 @@ class _Ficha extends StatelessWidget {
+     return Align(
+       alignment: Alignment.topCenter,
+       child: ConstrainedBox(
+-        constraints: const BoxConstraints(maxWidth: 900),
++        constraints: const BoxConstraints(maxWidth: 1200),
+         child: ListView(
+           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+           children: [
+diff --git a/lib/views/entrenador/mis_disciplinas_view.dart b/lib/views/entrenador/mis_disciplinas_view.dart
+index c886a48..43d7eaf 100644
+--- a/lib/views/entrenador/mis_disciplinas_view.dart
++++ b/lib/views/entrenador/mis_disciplinas_view.dart
+@@ -6,6 +6,7 @@ import '../../core/theme.dart';
+ import '../../models/deporte.dart';
+ import '../../repositories/asistencia_repository.dart';
+ import '../../viewmodels/auth_view_model.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/animaciones.dart';
+ import '../../widgets/barra_cupos.dart';
+ import '../../widgets/calendario_semanal.dart';
+@@ -69,15 +70,18 @@ class MisDisciplinasView extends StatelessWidget {
+                           ),
+                         ),
+                         const TituloSeccion(antetitulo: 'Asignadas a ti', titulo: 'Disciplinas'),
+-                        for (var i = 0; i < deportes.length; i++)
+-                          Revelar(
+-                            key: ValueKey(deportes[i].codigo),
+-                            orden: (i + 2).clamp(0, 6),
+-                            child: Padding(
+-                              padding: const EdgeInsets.only(bottom: 12),
+-                              child: _TarjetaDisciplina(deporte: deportes[i]),
+-                            ),
+-                          ),
++                        CuadriculaAdaptable(
++                          anchoMinimo: 420,
++                          maxColumnas: 2,
++                          hijos: [
++                            for (var i = 0; i < deportes.length; i++)
++                              Revelar(
++                                key: ValueKey(deportes[i].codigo),
++                                orden: (i + 2).clamp(0, 6),
++                                child: _TarjetaDisciplina(deporte: deportes[i]),
++                              ),
++                          ],
++                        ),
+                       ],
+                     ),
+                   ),
+diff --git a/lib/views/estudiante/estudiante_dashboard_view.dart b/lib/views/estudiante/estudiante_dashboard_view.dart
+index 51b2564..1d9174d 100644
+--- a/lib/views/estudiante/estudiante_dashboard_view.dart
++++ b/lib/views/estudiante/estudiante_dashboard_view.dart
+@@ -8,6 +8,7 @@ import '../../models/inscripcion.dart';
+ import '../../repositories/deporte_repository.dart';
+ import '../../viewmodels/auth_view_model.dart';
+ import '../../viewmodels/mis_inscripciones_view_model.dart';
++import '../../widgets/cuadricula_adaptable.dart';
+ import '../../widgets/animaciones.dart';
+ import '../../widgets/calendario_semanal.dart';
+ import '../../widgets/encabezado_panel.dart';
+@@ -213,12 +214,19 @@ class _EstudianteDashboardViewState extends State<EstudianteDashboardView> {
+                         ),
+                       )
+                     else
+-                      for (var i = 0; i < confirmadas.length; i++)
+-                        Revelar(
+-                          key: ValueKey(confirmadas[i].id),
+-                          orden: (i + 3).clamp(0, 6),
+-                          child: _TarjetaEntrenamiento(inscripcion: confirmadas[i]),
+-                        ),
++                      CuadriculaAdaptable(
++                        anchoMinimo: 420,
++                        maxColumnas: 2,
++                        espacio: 14,
++                        hijos: [
++                          for (var i = 0; i < confirmadas.length; i++)
++                            Revelar(
++                              key: ValueKey(confirmadas[i].id),
++                              orden: (i + 3).clamp(0, 6),
++                              child: _TarjetaEntrenamiento(inscripcion: confirmadas[i]),
++                            ),
++                        ],
++                      ),
+                     const TituloSeccion(antetitulo: 'Atajos', titulo: 'Accesos'),
+                     Revelar(
+                       orden: 4,
+@@ -280,7 +288,7 @@ class _TarjetaEntrenamiento extends StatelessWidget {
+     final textos = Theme.of(context).textTheme;
+     final nombre = inscripcion.nombreDeporte.isEmpty ? inscripcion.deporteCodigo : inscripcion.nombreDeporte;
+     return Padding(
+-      padding: const EdgeInsets.only(bottom: 14),
++      padding: EdgeInsets.zero,
+       child: Elevable(
+         radio: 20,
+         alPulsar: () => context.push('/catalogo/${Uri.encodeComponent(inscripcion.deporteCodigo)}'),
+diff --git a/lib/views/estudiante/inscripcion_view.dart b/lib/views/estudiante/inscripcion_view.dart
+index 3ab6771..c27c0f0 100644
+--- a/lib/views/estudiante/inscripcion_view.dart
++++ b/lib/views/estudiante/inscripcion_view.dart
+@@ -61,45 +61,78 @@ class InscripcionView extends StatelessWidget {
+         if (deporte == null || !deporte.activo) {
+           return const Center(child: Text('Esta disciplina no está disponible.'));
+         }
+-        return Align(
+-          alignment: Alignment.topCenter,
+-          child: ConstrainedBox(
+-            constraints: const BoxConstraints(maxWidth: 640),
+-            child: ListView(
+-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+-              children: vm.pagada
+-                  ? [_Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)]
+-                  : [
+-                      _Resumen(deporte: deporte, horarios: vm.horarios, estudiante: vm.estudiante, dinero: _dinero),
+-                      _Requisitos(resultado: vm.validacion),
+-                      if (vm.reservaPendiente != null) ...[
+-                        const SizedBox(height: 16),
+-                        _Aviso(
+-                          'Tienes este cupo apartado hasta las ${_hora(vm.reservaPendiente!.vencePago)}. '
+-                          'Completa el pago antes de esa hora.',
+-                        ),
+-                      ],
+-                      if (vm.error != null) ...[const SizedBox(height: 16), MensajeError(vm.error!)],
+-                      const SizedBox(height: 20),
+-                      FilledButton.icon(
+-                        onPressed: vm.puedePagar ? () => _pagar(context) : null,
+-                        icon: vm.procesando
+-                            ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+-                            : Icon(vm.monto > 0 ? Icons.lock_outline : Icons.check),
+-                        label: Text(vm.monto > 0 ? 'Pagar ${_dinero(vm.monto)} con PayPal' : 'Confirmar inscripción'),
+-                      ),
+-                      if (vm.monto > 0) ...[
+-                        const SizedBox(height: 8),
+-                        Text(
+-                          'El pago se hace en PayPal; Samán Deportivo solo guarda la referencia de la orden.',
+-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.gris),
+-                          textAlign: TextAlign.center,
+-                        ),
+-                      ],
+-                    ],
++        if (vm.pagada) {
++          return Align(
++            alignment: Alignment.topCenter,
++            child: ConstrainedBox(
++              constraints: const BoxConstraints(maxWidth: 640),
++              child: ListView(
++                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
++                children: [_Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)],
++              ),
+             ),
++          );
++        }
++        final resumen = _Resumen(deporte: deporte, horarios: vm.horarios, estudiante: vm.estudiante, dinero: _dinero);
++        final pago = <Widget>[
++          _Requisitos(resultado: vm.validacion),
++          if (vm.reservaPendiente != null) ...[
++            const SizedBox(height: 16),
++            _Aviso(
++              'Tienes este cupo apartado hasta las ${_hora(vm.reservaPendiente!.vencePago)}. '
++              'Completa el pago antes de esa hora.',
++            ),
++          ],
++          if (vm.error != null) ...[const SizedBox(height: 16), MensajeError(vm.error!)],
++          const SizedBox(height: 20),
++          FilledButton.icon(
++            onPressed: vm.puedePagar ? () => _pagar(context) : null,
++            icon: vm.procesando
++                ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
++                : Icon(vm.monto > 0 ? Icons.lock_outline : Icons.check),
++            label: Text(vm.monto > 0 ? 'Pagar ${_dinero(vm.monto)} con PayPal' : 'Confirmar inscripción'),
+           ),
+-        );
++          if (vm.monto > 0) ...[
++            const SizedBox(height: 8),
++            Text(
++              'El pago se hace en PayPal; Samán Deportivo solo guarda la referencia de la orden.',
++              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.gris),
++              textAlign: TextAlign.center,
++            ),
++          ],
++        ];
++        return LayoutBuilder(builder: (context, c) {
++          // En pantallas anchas: el resumen a la izquierda y los requisitos con el
++          // pago a la derecha, para ver todo sin desplazarse.
++          if (c.maxWidth < 900) {
++            return Align(
++              alignment: Alignment.topCenter,
++              child: ConstrainedBox(
++                constraints: const BoxConstraints(maxWidth: 640),
++                child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [resumen, ...pago]),
++              ),
++            );
++          }
++          return SingleChildScrollView(
++            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
++            child: Center(
++              child: ConstrainedBox(
++                constraints: const BoxConstraints(maxWidth: 1180),
++                child: Row(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    // El primer bloque de la derecha trae un margen arriba: se iguala.
++                    Expanded(child: Padding(padding: const EdgeInsets.only(top: 16), child: resumen)),
++                    const SizedBox(width: 20),
++                    Expanded(
++                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: pago),
++                    ),
++                  ],
++                ),
++              ),
++            ),
++          );
++        });
+       }(),
+     );
+   }
+@@ -149,11 +182,14 @@ class _Resumen extends StatelessWidget {
+                   ? 'Por definir'
+                   : [for (final h in horarios) h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}'].join('\n'),
+             ),
+-            dato(Icons.groups_outlined, 'Personas', '${deporte.cuposOcupados} inscritos de ${deporte.cupoMaximo} cupos'),
++            dato(
++                Icons.groups_outlined, 'Personas', '${deporte.cuposOcupados} inscritos de ${deporte.cupoMaximo} cupos'),
+             dato(Icons.person_outline, 'Reserva', '${estudiante.nombreCompleto} · ${estudiante.cedulaTexto}'),
+-            dato(Icons.payments_outlined, 'Monto', deporte.costoReserva == 0 ? 'Gratuita' : dinero(deporte.costoReserva)),
++            dato(Icons.payments_outlined, 'Monto',
++                deporte.costoReserva == 0 ? 'Gratuita' : dinero(deporte.costoReserva)),
+             if (deporte.descripcion.isNotEmpty) dato(Icons.notes_outlined, 'Descripción', deporte.descripcion),
+-            dato(Icons.calendar_month_outlined, 'Duración', deporte.duracion.isEmpty ? 'Todo el período académico' : deporte.duracion),
++            dato(Icons.calendar_month_outlined, 'Duración',
++                deporte.duracion.isEmpty ? 'Todo el período académico' : deporte.duracion),
+             const SizedBox(height: 4),
+             BarraCupos(deporte: deporte),
+             const SizedBox(height: 12),
+@@ -257,8 +293,8 @@ class _Comprobante extends StatelessWidget {
+             Icon(confirmada ? Icons.verified : Icons.hourglass_top,
+                 size: 56, color: confirmada ? AppColors.verdeHoja : AppColors.naranja),
+             const SizedBox(height: 8),
+-            Text(confirmada ? '¡Inscripción confirmada!' : 'Pago recibido, reserva en revisión', style: textos.titleLarge,
+-                textAlign: TextAlign.center),
++            Text(confirmada ? '¡Inscripción confirmada!' : 'Pago recibido, reserva en revisión',
++                style: textos.titleLarge, textAlign: TextAlign.center),
+             const SizedBox(height: 4),
+             Text(
+               confirmada
+diff --git a/lib/views/mis_inscripciones_view.dart b/lib/views/mis_inscripciones_view.dart
+index 3ae8350..c408698 100644
+--- a/lib/views/mis_inscripciones_view.dart
++++ b/lib/views/mis_inscripciones_view.dart
+@@ -6,6 +6,7 @@ import '../core/theme.dart';
+ import '../models/inscripcion.dart';
+ import '../viewmodels/auth_view_model.dart';
+ import '../viewmodels/mis_inscripciones_view_model.dart';
++import '../widgets/cuadricula_adaptable.dart';
+ import '../widgets/animaciones.dart';
+ import '../widgets/panel_con_menu.dart';
+ import 'dialogs/publicar_resena_dialog.dart';
+@@ -78,14 +79,20 @@ class _ListaInscripciones extends StatelessWidget {
+     return Align(
+       alignment: Alignment.topCenter,
+       child: ConstrainedBox(
+-        constraints: const BoxConstraints(maxWidth: 760),
+-        child: ListView.builder(
+-          itemCount: inscripciones.length,
++        constraints: const BoxConstraints(maxWidth: 1200),
++        child: SingleChildScrollView(
+           padding: const EdgeInsets.all(16),
+-          itemBuilder: (context, index) => Revelar(
+-            key: ValueKey(inscripciones[index].id),
+-            orden: index.clamp(0, 5),
+-            child: _TarjetaInscripcion(inscripcion: inscripciones[index], esVigente: esVigente),
++          child: CuadriculaAdaptable(
++            anchoMinimo: 460,
++            maxColumnas: 2,
++            hijos: [
++              for (var index = 0; index < inscripciones.length; index++)
++                Revelar(
++                  key: ValueKey(inscripciones[index].id),
++                  orden: index.clamp(0, 5),
++                  child: _TarjetaInscripcion(inscripcion: inscripciones[index], esVigente: esVigente),
++                ),
++            ],
+           ),
+         ),
+       ),
+@@ -114,7 +121,7 @@ class _TarjetaInscripcion extends StatelessWidget {
+           'Pago recibido. Tu cupo está apartado mientras la Coordinación de Deportes valida el pago.',
+         EstadoInscripcion.confirmada =>
+           'Tu cupo está confirmado. Asiste a los entrenamientos para poder dejar tu reseña.',
+-        EstadoInscripcion.cancelada => 'Cancelaste esta inscripción.',
++        EstadoInscripcion.cancelada => inscripcion.motivo.isEmpty ? 'Cancelaste esta inscripción.' : inscripcion.motivo,
+         EstadoInscripcion.rechazada => inscripcion.motivo.isEmpty ? 'La reserva fue rechazada.' : inscripcion.motivo,
+         EstadoInscripcion.expirada => 'La reserva venció sin completar el pago.',
+       };
+@@ -142,7 +149,7 @@ class _TarjetaInscripcion extends StatelessWidget {
+         );
+ 
+     return Padding(
+-      padding: const EdgeInsets.only(bottom: 12),
++      padding: EdgeInsets.zero,
+       child: Elevable(
+         radio: 16,
+         child: Padding(
+diff --git a/lib/views/publico/catalogo_view.dart b/lib/views/publico/catalogo_view.dart
+index 14c3651..5675074 100644
+--- a/lib/views/publico/catalogo_view.dart
++++ b/lib/views/publico/catalogo_view.dart
+@@ -54,7 +54,7 @@ class _CatalogoViewState extends State<CatalogoView> {
+       titulo: const Text('Catálogo de deportes'),
+       body: Center(
+         child: ConstrainedBox(
+-          constraints: const BoxConstraints(maxWidth: 1100),
++          constraints: const BoxConstraints(maxWidth: 1400),
+           child: Column(
+             crossAxisAlignment: CrossAxisAlignment.stretch,
+             children: [
+@@ -165,11 +165,13 @@ class _Contenido extends StatelessWidget {
+       );
+     }
+     return LayoutBuilder(builder: (context, medidas) {
+-      final columnas = medidas.maxWidth >= 1000
+-          ? 3
+-          : medidas.maxWidth >= 600
+-              ? 2
+-              : 1;
++      final columnas = medidas.maxWidth >= 1280
++          ? 4
++          : medidas.maxWidth >= 900
++              ? 3
++              : medidas.maxWidth >= 600
++                  ? 2
++                  : 1;
+       return GridView.builder(
+         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+diff --git a/lib/views/publico/detalle_deporte_view.dart b/lib/views/publico/detalle_deporte_view.dart
+index 7a870f7..ec2a7bf 100644
+--- a/lib/views/publico/detalle_deporte_view.dart
++++ b/lib/views/publico/detalle_deporte_view.dart
+@@ -24,23 +24,26 @@ class DetalleDeporteView extends StatelessWidget {
+     final usuario = context.watch<AuthViewModel>().usuario;
+     // Los visitantes también ven el botón: la guardia los manda al login y vuelven aquí (CU-06, A1).
+     final puedeInscribirse = deporte != null && !vm.noDisponible && (usuario == null || usuario.rol == Rol.estudiante);
++    // En pantallas anchas la ficha va en dos columnas y el botón queda en la
++    // tarjeta de reserva de la derecha; en el teléfono, fijo abajo.
++    final ancha = MediaQuery.sizeOf(context).width >= anchoDosColumnas;
++    Widget? boton() => !puedeInscribirse
++        ? null
++        : FilledButton(
++            onPressed: deporte.hayCupo()
++                ? () => context.push('/estudiante/inscribir/${Uri.encodeComponent(deporte.codigo)}')
++                : null,
++            child: Text(deporte.hayCupo() ? 'Inscribirme' : 'Sin cupos'),
++          );
+     return PanelConMenu(
+-      bottomNavigationBar: !puedeInscribirse
++      bottomNavigationBar: !puedeInscribirse || ancha
+           ? null
+           : SafeArea(
+               child: Padding(
+                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                 child: Align(
+                   heightFactor: 1,
+-                  child: ConstrainedBox(
+-                    constraints: const BoxConstraints(maxWidth: 688),
+-                    child: FilledButton(
+-                      onPressed: deporte.hayCupo()
+-                          ? () => context.push('/estudiante/inscribir/${Uri.encodeComponent(deporte.codigo)}')
+-                          : null,
+-                      child: Text(deporte.hayCupo() ? 'Inscribirme' : 'Sin cupos'),
+-                    ),
+-                  ),
++                  child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 688), child: boton()),
+                 ),
+               ),
+             ),
+@@ -50,47 +53,79 @@ class DetalleDeporteView extends StatelessWidget {
+         if (vm.cargando) return const Center(child: CircularProgressIndicator());
+         if (vm.error != null) return _Mensaje(vm.error!);
+         if (vm.noDisponible || deporte == null) return const _Mensaje('Esta disciplina no está disponible.');
++        final cupos = _Seccion(
++          titulo: 'Cupos y costo',
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              BarraCupos(deporte: deporte),
++              const SizedBox(height: 12),
++              _Dato(
++                icono: Icons.payments_outlined,
++                texto: deporte.costoReserva == 0
++                    ? 'Reserva gratuita'
++                    : 'Reserva del cupo: \$${deporte.costoReserva.toStringAsFixed(2)}',
++              ),
++            ],
++          ),
++        );
++        final entrenador = _Seccion(titulo: 'Entrenador', child: _Entrenador(entrenador: deporte.entrenador));
++        final horarios = _Seccion(
++          titulo: 'Horarios',
++          child: vm.horarios.isEmpty
++              ? const Text('Los horarios aún no se han publicado.')
++              : Column(
++                  children: [
++                    for (final h in vm.horarios)
++                      _Dato(
++                        icono: Icons.schedule,
++                        texto: h.etiqueta,
++                        detalle: h.lugar.isEmpty ? null : h.lugar,
++                      ),
++                  ],
++                ),
++        );
++        final resenas = _Seccion(titulo: 'Reseñas', child: _Resenas(vm: vm));
++        if (!ancha) {
++          return Align(
++            alignment: Alignment.topCenter,
++            child: ConstrainedBox(
++              constraints: const BoxConstraints(maxWidth: 720),
++              child: ListView(
++                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
++                children: [_Encabezado(deporte: deporte), cupos, entrenador, horarios, resenas],
++              ),
++            ),
++          );
++        }
++        final b = boton();
+         return Align(
+           alignment: Alignment.topCenter,
+           child: ConstrainedBox(
+-            constraints: const BoxConstraints(maxWidth: 720),
+-            child: ListView(
+-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
++            constraints: const BoxConstraints(maxWidth: 1240),
++            child: Row(
++              crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+-                _Encabezado(deporte: deporte),
+-                _Seccion(
+-                  titulo: 'Cupos y costo',
+-                  child: Column(
+-                    crossAxisAlignment: CrossAxisAlignment.start,
+-                    children: [
+-                      BarraCupos(deporte: deporte),
+-                      const SizedBox(height: 12),
+-                      _Dato(
+-                        icono: Icons.payments_outlined,
+-                        texto: deporte.costoReserva == 0
+-                            ? 'Reserva gratuita'
+-                            : 'Reserva del cupo: \$${deporte.costoReserva.toStringAsFixed(2)}',
+-                      ),
+-                    ],
++                Expanded(
++                  child: ListView(
++                    padding: const EdgeInsets.fromLTRB(16, 8, 12, 24),
++                    children: [_Encabezado(deporte: deporte), horarios, resenas],
+                   ),
+                 ),
+-                _Seccion(titulo: 'Entrenador', child: _Entrenador(entrenador: deporte.entrenador)),
+-                _Seccion(
+-                  titulo: 'Horarios',
+-                  child: vm.horarios.isEmpty
+-                      ? const Text('Los horarios aún no se han publicado.')
+-                      : Column(
+-                          children: [
+-                            for (final h in vm.horarios)
+-                              _Dato(
+-                                icono: Icons.schedule,
+-                                texto: h.etiqueta,
+-                                detalle: h.lugar.isEmpty ? null : h.lugar,
+-                              ),
+-                          ],
+-                        ),
++                SizedBox(
++                  width: 380,
++                  child: SingleChildScrollView(
++                    padding: const EdgeInsets.fromLTRB(12, 8, 16, 24),
++                    child: Column(
++                      crossAxisAlignment: CrossAxisAlignment.stretch,
++                      children: [
++                        cupos,
++                        entrenador,
++                        if (b != null) ...[const SizedBox(height: 16), b],
++                      ],
++                    ),
++                  ),
+                 ),
+-                _Seccion(titulo: 'Reseñas', child: _Resenas(vm: vm)),
+               ],
+             ),
+           ),
+@@ -100,6 +135,9 @@ class DetalleDeporteView extends StatelessWidget {
+   }
+ }
+ 
++/// Ancho de ventana desde el que la ficha se reparte en dos columnas.
++const anchoDosColumnas = 1100.0;
++
+ class _Encabezado extends StatelessWidget {
+   const _Encabezado({required this.deporte});
+ 
+diff --git a/lib/widgets/cuadricula_adaptable.dart b/lib/widgets/cuadricula_adaptable.dart
+new file mode 100644
+index 0000000..1b8f31a
+--- /dev/null
++++ b/lib/widgets/cuadricula_adaptable.dart
+@@ -0,0 +1,43 @@
++import 'package:flutter/material.dart';
++
++/// Reparte [hijos] en columnas del mismo ancho según el espacio disponible: en
++/// una pantalla ancha caben varias tarjetas por fila y en el teléfono, una.
++///
++/// [anchoMinimo] es lo menos que puede medir cada tarjeta; con él se calcula
++/// cuántas columnas entran, hasta [maxColumnas].
++class CuadriculaAdaptable extends StatelessWidget {
++  const CuadriculaAdaptable({
++    super.key,
++    required this.hijos,
++    this.anchoMinimo = 340,
++    this.maxColumnas = 3,
++    this.espacio = 12,
++  });
++
++  final List<Widget> hijos;
++  final double anchoMinimo;
++  final int maxColumnas;
++  final double espacio;
++
++  /// Columnas que caben en [ancho].
++  static int columnasPara(double ancho, {double anchoMinimo = 340, int maxColumnas = 3, double espacio = 12}) =>
++      ((ancho + espacio) ~/ (anchoMinimo + espacio)).clamp(1, maxColumnas);
++
++  @override
++  Widget build(BuildContext context) {
++    return LayoutBuilder(builder: (context, c) {
++      final columnas = columnasPara(c.maxWidth, anchoMinimo: anchoMinimo, maxColumnas: maxColumnas, espacio: espacio);
++      final ancho = (c.maxWidth - espacio * (columnas - 1)) / columnas;
++      // Ocupa todo el ancho aunque haya una sola tarjeta (dentro de un
++      // desplazamiento el ancho es libre y el Wrap se encogería al centro).
++      return SizedBox(
++        width: c.maxWidth,
++        child: Wrap(
++          spacing: espacio,
++          runSpacing: espacio,
++          children: [for (final h in hijos) SizedBox(width: ancho, child: h)],
++        ),
++      );
++    });
++  }
++}
+diff --git a/lib/widgets/grafico_barras.dart b/lib/widgets/grafico_barras.dart
+index 901c4e3..64b9a7f 100644
+--- a/lib/widgets/grafico_barras.dart
++++ b/lib/widgets/grafico_barras.dart
+@@ -141,26 +141,39 @@ class TarjetaCifra extends StatelessWidget {
+   Widget build(BuildContext context) {
+     final textos = Theme.of(context).textTheme;
+     return Container(
+-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
++      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+       decoration: BoxDecoration(
+         color: Colors.white,
+-        borderRadius: BorderRadius.circular(20),
++        borderRadius: BorderRadius.circular(16),
+         border: Border.all(color: const Color(0xFFE3E8EE)),
+-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6))],
++        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
+       ),
+-      child: Column(
+-        crossAxisAlignment: CrossAxisAlignment.start,
++      child: Row(
+         children: [
+           Container(
+-            width: 46,
+-            height: 46,
+-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+-            child: Icon(icono, color: color, size: 24),
++            width: 44,
++            height: 44,
++            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
++            child: Icon(icono, color: color, size: 22),
++          ),
++          const SizedBox(width: 14),
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              mainAxisSize: MainAxisSize.min,
++              children: [
++                Text(valor,
++                    style: textos.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: color, height: 1.05),
++                    maxLines: 1,
++                    overflow: TextOverflow.ellipsis),
++                const SizedBox(height: 2),
++                Text(etiqueta,
++                    style: textos.bodySmall?.copyWith(color: AppColors.gris),
++                    maxLines: 2,
++                    overflow: TextOverflow.ellipsis),
++              ],
++            ),
+           ),
+-          const SizedBox(height: 14),
+-          Text(valor, style: textos.displaySmall?.copyWith(fontWeight: FontWeight.w800, color: color, height: 1)),
+-          const SizedBox(height: 6),
+-          Text(etiqueta, style: textos.bodyMedium?.copyWith(color: AppColors.gris)),
+         ],
+       ),
+     );
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 4d295b9..27e5a94 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -1,7 +1,7 @@
+ name: saman_deportivo
+ description: "Samán Deportivo: plataforma de gestión de clubes deportivos de la UNIMET."
+ publish_to: 'none'
+-version: 1.8.0+1
++version: 1.9.0+1
+ 
+ environment:
+   sdk: ">=3.3.0 <4.0.0"
+diff --git a/test/entrenador_flujo_test.dart b/test/entrenador_flujo_test.dart
+index e960435..9de9ef4 100644
+--- a/test/entrenador_flujo_test.dart
++++ b/test/entrenador_flujo_test.dart
+@@ -54,7 +54,10 @@ void main() {
+ 
+   testWidgets('al pulsar una disciplina ve su ficha: lugar, horarios, cupos y estudiantes', (tester) async {
+     await entrarComoEntrenador(tester);
+-    await tester.tap(find.widgetWithText(OutlinedButton, 'Ver disciplina').first);
++    final ver = find.widgetWithText(OutlinedButton, 'Ver disciplina').first;
++    await tester.ensureVisible(ver);
++    await tester.pumpAndSettle();
++    await tester.tap(ver);
+     await tester.pumpAndSettle();
+     expect(find.text('Horarios y lugar'), findsOneWidget);
+     expect(find.text('Cancha 1'), findsNWidgets(2), reason: 'martes y jueves');
+diff --git a/test/validadores_test.dart b/test/validadores_test.dart
+index a94257a..b6971fe 100644
+--- a/test/validadores_test.dart
++++ b/test/validadores_test.dart
+@@ -66,4 +66,38 @@ void main() {
+       expect(Validadores.normalizarNombre('  maría   JOSÉ '), 'María José');
+     });
+   });
++
++  group('Entrenador (lo registra el administrador)', () {
++    test('el correo tiene que ser de la UNIMET', () {
++      expect(Validadores.correoEntrenador('cmora@unimet.edu.ve'), isNull);
++      expect(Validadores.correoEntrenador('cmora@correo.unimet.edu.ve'), isNull);
++      expect(Validadores.correoEntrenador(' CMora@UNIMET.edu.ve '), isNull);
++      expect(Validadores.correoEntrenador('arroba@correo.com'),
++          'El entrenador debe tener correo de la UNIMET (@correo.unimet.edu.ve o @unimet.edu.ve).');
++      expect(Validadores.correoEntrenador('carlos@gmail.com'), isNotNull);
++      expect(Validadores.correoEntrenador('cmora@unimet.edu.ve.com'), isNotNull);
++      expect(Validadores.correoEntrenador(''), 'Ingresa tu correo.');
++    });
++
++    test('la especialidad es un deporte escrito con letras, sin números', () {
++      for (final v in ['Natación', 'Fútbol / Futsal', 'Voleibol de playa', 'Tenis, pádel', 'Artes marciales (Judo)']) {
++        expect(Validadores.especialidad(v), isNull, reason: v);
++      }
++      expect(Validadores.especialidad('12345'),
++          'La especialidad no lleva números: escribe el deporte, por ejemplo Natación.');
++      expect(Validadores.especialidad('Fútbol 5'), isNotNull);
++      expect(Validadores.especialidad('Natación!!'), 'Escribe la especialidad solo con letras, por ejemplo Fútbol / Futsal.');
++      expect(Validadores.especialidad('ab'), 'La especialidad debe tener al menos 3 letras.');
++      expect(Validadores.especialidad('   '), 'Ingresa la especialidad, por ejemplo Natación.');
++      expect(Validadores.especialidad('a' * 61), isNotNull);
++    });
++
++    test('los años de experiencia van de 0 a 60', () {
++      expect(Validadores.aniosExperiencia('0'), isNull);
++      expect(Validadores.aniosExperiencia('12'), isNull);
++      expect(Validadores.aniosExperiencia('-1'), isNotNull);
++      expect(Validadores.aniosExperiencia('61'), 'Revisa los años de experiencia (máximo 60).');
++      expect(Validadores.aniosExperiencia('diez'), isNotNull);
++    });
++  });
+ }
