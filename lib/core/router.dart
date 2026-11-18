@@ -119,13 +119,14 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository, Stri
           path: '/mis-inscripciones',
           builder: (_, __) => const MisInscripcionesView()),
       GoRoute(path: '/entrenador/mis-deportes', builder: (_, __) => const MisDisciplinasView()),
+      // Página de una disciplina del entrenador: ficha, asistencia e historial.
+      GoRoute(
+        path: '/entrenador/disciplina/:codigo',
+        builder: (context, state) => _paginaDisciplina(context, state, PestanaDisciplina.ficha),
+      ),
       GoRoute(
         path: '/entrenador/asistencia/:codigo',
-        builder: (context, state) => ChangeNotifierProvider(
-          key: ValueKey(state.pathParameters['codigo']),
-          create: (_) => AsistenciaViewModel(context.read<AsistenciaRepository>(), state.pathParameters['codigo']!),
-          child: const AsistenciaView(),
-        ),
+        builder: (context, state) => _paginaDisciplina(context, state, PestanaDisciplina.asistencia),
       ),
       GoRoute(
         path: '/admin/dashboard',
@@ -183,4 +184,13 @@ String? redirigir(Persona? usuario, Uri uri, {bool listo = true}) {
   if (ruta.startsWith('/admin') && usuario.rol != Rol.administrador) return inicio;
   if (ruta == '/mis-inscripciones' && usuario.rol != Rol.estudiante) return inicio;
   return null;
+}
+
+Widget _paginaDisciplina(BuildContext context, GoRouterState state, PestanaDisciplina pestana) {
+  final codigo = state.pathParameters['codigo']!;
+  return ChangeNotifierProvider(
+    key: ValueKey('$codigo-${pestana.name}'),
+    create: (_) => AsistenciaViewModel(context.read<AsistenciaRepository>(), codigo),
+    child: AsistenciaView(pestanaInicial: pestana),
+  );
 }

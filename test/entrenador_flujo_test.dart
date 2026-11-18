@@ -52,6 +52,31 @@ void main() {
     expect(find.text('20 inscritos'), findsOneWidget);
   });
 
+  testWidgets('al pulsar una disciplina ve su ficha: lugar, horarios, cupos y estudiantes', (tester) async {
+    await entrarComoEntrenador(tester);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Ver disciplina').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Horarios y lugar'), findsOneWidget);
+    expect(find.text('Cancha 1'), findsNWidgets(2), reason: 'martes y jueves');
+    expect(find.text('Sobre la disciplina'), findsOneWidget);
+    expect(find.text('Estudiantes inscritos (2)'), findsOneWidget);
+    expect(find.text('Ana Pérez'), findsOneWidget);
+    expect(find.text('V-28555123'), findsOneWidget);
+    expect(find.text('Sin sesiones'), findsNWidgets(2));
+
+    await tester.tap(find.text('Pasar asistencia'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 de 2 marcados presentes'), findsOneWidget);
+  });
+
+  testWidgets('cada bloque del calendario abre su disciplina', (tester) async {
+    await entrarComoEntrenador(tester);
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^Ver Tenis')).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Canchas de tenis'), findsOneWidget);
+    expect(find.text('Estudiantes inscritos (0)'), findsOneWidget);
+  });
+
   testWidgets('toma la asistencia de la nómina real y la guarda', (tester) async {
     final repo = await entrarComoEntrenador(tester);
     await tester.tap(find.widgetWithText(FilledButton, 'Tomar asistencia').first);

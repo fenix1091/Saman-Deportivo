@@ -2,17 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/apariencia_deporte.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
+import '../../repositories/asistencia_repository.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/asistencia_view_model.dart';
 import '../../widgets/animaciones.dart';
+import '../../widgets/barra_cupos.dart';
 import '../../widgets/panel_con_menu.dart';
 import '../../widgets/formulario_centrado.dart';
 
-/// Toma de asistencia e historial de una disciplina (CU-14, CU-15).
+part 'ficha_disciplina.dart';
+
+/// Pestañas de la página de una disciplina del entrenador.
+enum PestanaDisciplina { ficha, asistencia, historial }
+
+/// Todo sobre una disciplina del entrenador (CU-13, CU-14, CU-15): la ficha con
+/// lugar, horarios, cupos y estudiantes inscritos, la toma de asistencia y el historial.
 class AsistenciaView extends StatelessWidget {
-  const AsistenciaView({super.key});
+  const AsistenciaView({super.key, this.pestanaInicial = PestanaDisciplina.ficha});
+
+  final PestanaDisciplina pestanaInicial;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +33,8 @@ class AsistenciaView extends StatelessWidget {
       builder: (context, snap) {
         final deporte = snap.data;
         return DefaultTabController(
-          length: 2,
+          length: 3,
+          initialIndex: pestanaInicial.index,
           child: PanelConMenu(
             titulo: Text(deporte?.nombre ?? vm.codigo),
             leading: BackButton(
@@ -30,13 +42,18 @@ class AsistenciaView extends StatelessWidget {
             ),
             bottom: const TabBar(
               tabs: [
+                Tab(icon: Icon(Icons.info_outline), text: 'Disciplina'),
                 Tab(icon: Icon(Icons.fact_check_outlined), text: 'Tomar asistencia'),
                 Tab(icon: Icon(Icons.insights_outlined), text: 'Historial'),
               ],
             ),
             body: vm.cargando
                 ? const Esqueleto(filas: 4, alto: 64)
-                : TabBarView(children: [_TomarAsistencia(vm: vm), _Historial(vm: vm)]),
+                : TabBarView(children: [
+                    _Ficha(vm: vm, deporte: deporte, cargandoDeporte: !snap.hasData && !snap.hasError),
+                    _TomarAsistencia(vm: vm),
+                    _Historial(vm: vm),
+                  ]),
           ),
         );
       },
@@ -250,7 +267,7 @@ class _Historial extends StatelessWidget {
                     style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                 onTap: () {
                   vm.cambiarFecha(s.fecha);
-                  DefaultTabController.of(context).animateTo(0);
+                  DefaultTabController.of(context).animateTo(PestanaDisciplina.asistencia.index);
                 },
               ),
           ],

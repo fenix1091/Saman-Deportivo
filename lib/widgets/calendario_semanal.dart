@@ -25,10 +25,13 @@ class BloqueSemana {
 /// Resalta el día de hoy y anuncia el próximo entrenamiento. En pantallas
 /// angostas se vuelve una lista por día.
 class CalendarioSemanal extends StatelessWidget {
-  const CalendarioSemanal({super.key, required this.bloques, this.ahora});
+  const CalendarioSemanal({super.key, required this.bloques, this.ahora, this.alPulsar});
 
   final List<BloqueSemana> bloques;
   final DateTime? ahora;
+
+  /// Si se indica, cada bloque se puede pulsar para abrir su disciplina.
+  final void Function(Deporte deporte)? alPulsar;
 
   static const _dias = DiaSemana.values;
 
@@ -109,7 +112,7 @@ class CalendarioSemanal extends StatelessWidget {
                 return Column(
                   children: [
                     for (final d in _dias)
-                      if (porDia[d] != null) _DiaLista(dia: d, bloques: porDia[d]!, esHoy: d.index == diaHoy),
+                      if (porDia[d] != null) _DiaLista(dia: d, bloques: porDia[d]!, esHoy: d.index == diaHoy, alPulsar: alPulsar),
                     if (porDia.isEmpty)
                       Text('Sin horarios publicados.', style: textos.bodySmall?.copyWith(color: AppColors.gris)),
                   ],
@@ -119,7 +122,8 @@ class CalendarioSemanal extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final d in _dias) ...[
-                    Expanded(child: _DiaColumna(dia: d, bloques: porDia[d] ?? const [], esHoy: d.index == diaHoy)),
+                    Expanded(child: _DiaColumna(
+                        dia: d, bloques: porDia[d] ?? const [], esHoy: d.index == diaHoy, alPulsar: alPulsar)),
                     if (d != _dias.last) const SizedBox(width: 6),
                   ],
                 ],
@@ -133,11 +137,12 @@ class CalendarioSemanal extends StatelessWidget {
 }
 
 class _DiaColumna extends StatelessWidget {
-  const _DiaColumna({required this.dia, required this.bloques, required this.esHoy});
+  const _DiaColumna({required this.dia, required this.bloques, required this.esHoy, this.alPulsar});
 
   final DiaSemana dia;
   final List<BloqueSemana> bloques;
   final bool esHoy;
+  final void Function(Deporte deporte)? alPulsar;
 
   @override
   Widget build(BuildContext context) {
@@ -168,18 +173,19 @@ class _DiaColumna extends StatelessWidget {
             ),
           )
         else
-          for (final b in bloques) _Bloque(bloque: b),
+          for (final b in bloques) _Bloque(bloque: b, alPulsar: alPulsar),
       ],
     );
   }
 }
 
 class _DiaLista extends StatelessWidget {
-  const _DiaLista({required this.dia, required this.bloques, required this.esHoy});
+  const _DiaLista({required this.dia, required this.bloques, required this.esHoy, this.alPulsar});
 
   final DiaSemana dia;
   final List<BloqueSemana> bloques;
   final bool esHoy;
+  final void Function(Deporte deporte)? alPulsar;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +204,7 @@ class _DiaLista extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          for (final b in bloques) _Bloque(bloque: b, ancho: true),
+          for (final b in bloques) _Bloque(bloque: b, ancho: true, alPulsar: alPulsar),
         ],
       ),
     );
@@ -206,18 +212,19 @@ class _DiaLista extends StatelessWidget {
 }
 
 class _Bloque extends StatelessWidget {
-  const _Bloque({required this.bloque, this.ancho = false});
+  const _Bloque({required this.bloque, this.ancho = false, this.alPulsar});
 
   final BloqueSemana bloque;
   final bool ancho;
+  final void Function(Deporte deporte)? alPulsar;
 
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final color = AparienciaDeporte.colorPrincipal(bloque.deporte);
     final h = bloque.horario;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+    // Ink (y no Container) para que el resaltado al pasar el ratón se vea encima del color.
+    final contenido = Ink(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
@@ -239,15 +246,37 @@ class _Bloque extends StatelessWidget {
         ],
       ),
     );
+    final pulsar = alPulsar;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: pulsar == null
+          ? Material(type: MaterialType.transparency, child: contenido)
+          : Semantics(
+              button: true,
+              label: 'Ver ${bloque.deporte.nombre}, ${h.dia.etiqueta} ${h.horaInicio}',
+              excludeSemantics: true,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  hoverColor: color.withValues(alpha: 0.08),
+                  mouseCursor: SystemMouseCursors.click,
+                  onTap: () => pulsar(bloque.deporte),
+                  child: Tooltip(message: 'Ver la disciplina', waitDuration: const Duration(milliseconds: 500), child: contenido),
+                ),
+              ),
+            ),
+    );
   }
 }
 
 /// Carga los horarios de varias disciplinas desde el [DeporteRepository] y los
 /// pinta en el [CalendarioSemanal]. Mientras carga, reserva el espacio.
 class CalendarioDeDisciplinas extends StatelessWidget {
-  const CalendarioDeDisciplinas({super.key, required this.deportes});
+  const CalendarioDeDisciplinas({super.key, required this.deportes, this.alPulsar});
 
   final List<Deporte> deportes;
+  final void Function(Deporte deporte)? alPulsar;
 
   Future<List<BloqueSemana>> _cargar(DeporteRepository repo) async {
     final bloques = <BloqueSemana>[];
@@ -271,7 +300,7 @@ class CalendarioDeDisciplinas extends StatelessWidget {
       builder: (context, snap) {
         // Dentro de otra lista: altura fija para que el esqueleto no pida espacio infinito.
         if (!snap.hasData) return const SizedBox(height: 212, child: Esqueleto(filas: 1, alto: 180));
-        return CalendarioSemanal(bloques: snap.data!);
+        return CalendarioSemanal(bloques: snap.data!, alPulsar: alPulsar);
       },
     );
   }

@@ -58,11 +58,17 @@ class MisDisciplinasView extends StatelessWidget {
                           mensaje:
                               'Tienes ${deportes.length} ${deportes.length == 1 ? 'disciplina asignada' : 'disciplinas asignadas'} y '
                               '$inscritos ${inscritos == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}. '
-                              'Elige una para pasar la asistencia de hoy o revisar el historial.',
+                              'Elige una para ver su lugar, horarios y estudiantes, o para pasar la asistencia de hoy.',
                         ),
                         const TituloSeccion(antetitulo: 'Esta semana', titulo: 'Calendario'),
-                        Revelar(orden: 1, child: CalendarioDeDisciplinas(deportes: deportes)),
-                        const TituloSeccion(antetitulo: 'Mis disciplinas', titulo: 'Toma de asistencia'),
+                        Revelar(
+                          orden: 1,
+                          child: CalendarioDeDisciplinas(
+                            deportes: deportes,
+                            alPulsar: (d) => context.push(rutaDisciplina(d.codigo)),
+                          ),
+                        ),
+                        const TituloSeccion(antetitulo: 'Asignadas a ti', titulo: 'Disciplinas'),
                         for (var i = 0; i < deportes.length; i++)
                           Revelar(
                             key: ValueKey(deportes[i].codigo),
@@ -82,6 +88,9 @@ class MisDisciplinasView extends StatelessWidget {
   }
 }
 
+/// Página de una disciplina del entrenador (abre en la ficha).
+String rutaDisciplina(String codigo) => '/entrenador/disciplina/${Uri.encodeComponent(codigo)}';
+
 class _TarjetaDisciplina extends StatelessWidget {
   const _TarjetaDisciplina({required this.deporte});
 
@@ -92,7 +101,7 @@ class _TarjetaDisciplina extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
     return Elevable(
       radio: 16,
-      alPulsar: () => context.push('/entrenador/asistencia/${Uri.encodeComponent(deporte.codigo)}'),
+      alPulsar: () => context.push(rutaDisciplina(deporte.codigo)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -123,11 +132,23 @@ class _TarjetaDisciplina extends StatelessWidget {
             const SizedBox(height: 6),
             BarraCupos(deporte: deporte),
             const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-              onPressed: () => context.push('/entrenador/asistencia/${Uri.encodeComponent(deporte.codigo)}'),
-              icon: const Icon(Icons.fact_check_outlined),
-              label: const Text('Tomar asistencia'),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                  onPressed: () => context.push('/entrenador/asistencia/${Uri.encodeComponent(deporte.codigo)}'),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('Tomar asistencia'),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  onPressed: () => context.push(rutaDisciplina(deporte.codigo)),
+                  icon: const Icon(Icons.info_outline),
+                  label: const Text('Ver disciplina'),
+                ),
+              ],
             ),
           ],
         ),

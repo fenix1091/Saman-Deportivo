@@ -14,6 +14,16 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.6',
+    fecha: DateTime(2026, 11, 17),
+    titulo: 'Página de cada disciplina para el entrenador',
+    cambios: const [
+      'El entrenador puede abrir cualquiera de sus disciplinas desde su tarjeta o desde el calendario de la semana.',
+      'La página de la disciplina reúne horarios y lugar, descripción, cupos, estudiantes inscritos con su asistencia, '
+          'la toma de asistencia y el historial.',
+    ],
+  ),
+  Novedad(
     version: '1.5',
     fecha: DateTime(2026, 11, 9),
     titulo: 'Verificación del correo al registrarse',
