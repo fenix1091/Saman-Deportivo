@@ -84,4 +84,31 @@ class ValidacionAdmin {
     if (repetida) return '${estudiante.nombreCompleto} ya tiene una inscripción vigente en ${deporte.nombre}.';
     return null;
   }
+
+  /// El administrador puede cancelar a mano cualquier reserva vigente (por ejemplo,
+  /// si el estudiante no se presenta). Las que ya terminaron no se tocan.
+  static String? cancelarReserva(Inscripcion reserva) =>
+      reserva.estaVigente() ? null : 'Esta reserva ya no está vigente (${reserva.estado.etiqueta.toLowerCase()}).';
+
+  /// Mover una reserva vigente a otra disciplina: la nueva debe estar activa, con
+  /// entrenador, con cupo si la reserva lo ocupa, y el estudiante no puede tener ya
+  /// una reserva vigente en ella.
+  static String? cambiarReserva(Inscripcion reserva, Deporte destino, Iterable<Inscripcion> inscripciones) {
+    final vigente = cancelarReserva(reserva);
+    if (vigente != null) return vigente;
+    if (destino.codigo == reserva.deporteCodigo) return 'La reserva ya es de ${destino.nombre}.';
+    if (!destino.activo) return '${destino.nombre} está dada de baja.';
+    if (destino.entrenadorId.isEmpty) return '${destino.nombre} no tiene entrenador asignado.';
+    if (reserva.ocupaCupo && destino.cuposDisponibles() == 0) return '${destino.nombre} no tiene cupos disponibles.';
+    final repetida = inscripciones.any(
+      (i) => i.estudianteId == reserva.estudianteId && i.deporteCodigo == destino.codigo && i.estaVigente(),
+    );
+    if (repetida) return 'El estudiante ya tiene una reserva vigente en ${destino.nombre}.';
+    return null;
+  }
+
+  /// No se presenta: con la reserva confirmada, ya hubo al menos 2 sesiones y no
+  /// asistió a ninguna. Sirve para avisar al administrador.
+  static bool noSePresenta(Inscripcion reserva) =>
+      reserva.estado == EstadoInscripcion.confirmada && reserva.sesiones >= 2 && reserva.sesionesAsistidas == 0;
 }

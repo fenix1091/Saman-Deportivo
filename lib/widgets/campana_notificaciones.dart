@@ -73,6 +73,7 @@ class _ListaNotificaciones extends StatelessWidget {
         TipoNotificacion.reservaRechazada => (Icons.cancel_outlined, AppColors.rojo),
         TipoNotificacion.inscripcionDirecta => (Icons.how_to_reg_outlined, AppColors.verdeHoja),
         TipoNotificacion.retiro => (Icons.person_remove_outlined, AppColors.gris),
+        TipoNotificacion.cambioReserva => (Icons.swap_horiz, AppColors.naranja),
         TipoNotificacion.aviso => (Icons.info_outline, AppColors.azul),
       };
 

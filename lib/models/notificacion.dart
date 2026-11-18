@@ -7,6 +7,7 @@ enum TipoNotificacion {
   reservaRechazada('Reserva rechazada'),
   inscripcionDirecta('Inscripción realizada'),
   retiro('Retiro de una disciplina'),
+  cambioReserva('Cambio de disciplina'),
   aviso('Aviso');
 
   const TipoNotificacion(this.titulo);

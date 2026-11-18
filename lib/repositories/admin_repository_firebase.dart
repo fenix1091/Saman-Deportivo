@@ -65,6 +65,16 @@ abstract interface class AdminRepository {
   /// libera el cupo si lo ocupaba.
   Future<void> retirarEstudiante(String inscripcionId);
 
+  /// Cancela a mano una reserva vigente (por ejemplo, si el estudiante no se
+  /// presenta): pasa a CANCELADA con [motivo], libera el cupo si lo ocupaba y, si
+  /// [reembolsar], marca su pago como reembolsado. Avisa al estudiante.
+  Future<void> cancelarReserva(String inscripcionId, {required String motivo, bool reembolsar = false});
+
+  /// Cambia una reserva vigente a otra disciplina ([ValidacionAdmin.cambiarReserva]):
+  /// la anterior queda CANCELADA y la nueva conserva el estado, el pago y el monto.
+  /// Mueve el cupo de una disciplina a la otra y avisa al estudiante.
+  Future<void> cambiarReserva(String inscripcionId, String nuevoCodigo);
+
   /// Elimina el perfil de un usuario y sus índices de cédula y carnet, previa
   /// [ValidacionAdmin.eliminarUsuario]. La cuenta de acceso queda sin perfil y no
   /// puede entrar (borrar la cuenta de Auth exige Cloud Functions).
@@ -405,24 +415,86 @@ class AdminRepositoryFirebase implements AdminRepository {
   }
 
   @override
-  Future<void> retirarEstudiante(String inscripcionId) async {
+  Future<void> retirarEstudiante(String inscripcionId) =>
+      cancelarReserva(inscripcionId, motivo: 'Retirado por la Coordinación de Deportes.');
+
+  @override
+  Future<void> cancelarReserva(String inscripcionId, {required String motivo, bool reembolsar = false}) async {
     final ref = _db.collection('inscripciones').doc(inscripcionId);
-    await _db.runTransaction((tx) async {
+    final inscripcion = await _db.runTransaction((tx) async {
       final doc = await tx.get(ref);
-      if (doc.data() == null) throw const OperacionNoPermitidaException('La inscripción ya no existe.');
+      if (doc.data() == null) throw const OperacionNoPermitidaException('La reserva ya no existe.');
       final inscripcion = Inscripcion.desdeMapa(doc.id, doc.data()!);
-      if (!inscripcion.estaVigente()) {
-        throw const OperacionNoPermitidaException('Esa inscripción ya no estaba vigente.');
-      }
+      final error = ValidacionAdmin.cancelarReserva(inscripcion);
+      if (error != null) throw OperacionNoPermitidaException(error);
       final refDeporte = _db.collection('deportes').doc(inscripcion.deporteCodigo);
       final deporte = await tx.get(refDeporte);
       final ocupados = (deporte.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
       if (inscripcion.ocupaCupo && ocupados > 0) tx.update(refDeporte, {'cuposOcupados': ocupados - 1});
-      tx.update(
-          ref, {'estado': EstadoInscripcion.cancelada.name, 'motivo': 'Retirado por la Coordinación de Deportes.'});
+      if (reembolsar && inscripcion.pagoId.isNotEmpty) {
+        tx.update(_db.collection('pagos').doc(inscripcion.pagoId), {'estado': EstadoPago.reembolsado.name});
+      }
+      tx.update(ref, {'estado': EstadoInscripcion.cancelada.name, 'motivo': motivo});
       return inscripcion;
-    }).then((inscripcion) => _avisar(inscripcion.estudianteId, TipoNotificacion.retiro,
-        'La Coordinación de Deportes te retiró de ${_nombre(inscripcion)}. Si crees que es un error, acércate a la Coordinación.'));
+    });
+    final reembolso = reembolsar && inscripcion.pagoId.isNotEmpty ? ' El pago quedó marcado como reembolsado.' : '';
+    await _avisar(inscripcion.estudianteId, TipoNotificacion.retiro,
+        'La Coordinación de Deportes canceló tu reserva en ${_nombre(inscripcion)}. Motivo: $motivo$reembolso');
+  }
+
+  @override
+  Future<void> cambiarReserva(String inscripcionId, String nuevoCodigo) async {
+    final ref = _db.collection('inscripciones').doc(inscripcionId);
+    final refDestino = _db.collection('deportes').doc(nuevoCodigo);
+    final horarios = await refDestino.collection('horarios').get();
+    final textoHorarios = [for (final h in horarios.docs) Horario.desdeMapa(h.id, h.data())]
+        .map((h) => h.lugar.isEmpty ? h.etiqueta : '${h.etiqueta} · ${h.lugar}')
+        .join('\n');
+    final (anterior, destino) = await _db.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      if (doc.data() == null) throw const OperacionNoPermitidaException('La reserva ya no existe.');
+      final reserva = Inscripcion.desdeMapa(doc.id, doc.data()!);
+      final refNueva = _db.collection('inscripciones').doc(Inscripcion.idPara(nuevoCodigo, reserva.estudianteId));
+      final refOrigen = _db.collection('deportes').doc(reserva.deporteCodigo);
+      final origenDoc = await tx.get(refOrigen);
+      final destinoDoc = await tx.get(refDestino);
+      final previa = await tx.get(refNueva);
+      if (destinoDoc.data() == null) throw const OperacionNoPermitidaException('La disciplina elegida ya no existe.');
+      final destino = Deporte.desdeMapa(nuevoCodigo, destinoDoc.data()!);
+      final error = ValidacionAdmin.cambiarReserva(
+          reserva, destino, [if (previa.data() != null) Inscripcion.desdeMapa(previa.id, previa.data()!)]);
+      if (error != null) throw OperacionNoPermitidaException(error);
+      final origen = reserva.nombreDeporte.isEmpty ? reserva.deporteCodigo : reserva.nombreDeporte;
+      if (reserva.ocupaCupo) {
+        final ocupados = (origenDoc.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
+        if (ocupados > 0) tx.update(refOrigen, {'cuposOcupados': ocupados - 1});
+        tx.update(refDestino, {'cuposOcupados': destino.cuposOcupados + 1});
+      }
+      tx.update(ref, {
+        'estado': EstadoInscripcion.cancelada.name,
+        'motivo': 'Cambiada a ${destino.nombre} por la Coordinación de Deportes.',
+      });
+      tx.set(refNueva, {
+        'estudianteId': reserva.estudianteId,
+        'deporteCodigo': nuevoCodigo,
+        'fechaInscripcion': FieldValue.serverTimestamp(),
+        'estado': reserva.estado.name,
+        'motivo': 'Cambiada desde $origen por la Coordinación de Deportes.',
+        'pagoId': reserva.pagoId,
+        'nombreDeporte': destino.nombre,
+        'horarios': textoHorarios,
+        'monto': reserva.monto,
+        'descripcion': destino.descripcion,
+        'duracion': destino.duracion,
+        'cupoMaximo': destino.cupoMaximo,
+        'sesiones': 0,
+        'sesionesAsistidas': 0,
+      });
+      return (reserva, destino);
+    });
+    await _avisar(anterior.estudianteId, TipoNotificacion.cambioReserva,
+        'La Coordinación de Deportes cambió tu reserva de ${_nombre(anterior)} a ${destino.nombre}. '
+        'Revisa tus nuevos horarios en Mis inscripciones.');
   }
 
   @override

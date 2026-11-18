@@ -14,10 +14,23 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.8',
+    fecha: DateTime(2026, 11, 17),
+    titulo: 'Cancelar o cambiar reservas desde la administración',
+    cambios: const [
+      'En Revisión de reservas, cualquier reserva vigente se puede cancelar a mano con un motivo (por ejemplo, si el '
+          'estudiante no se presenta) y decidir si el pago se marca como reembolsado.',
+      'También se puede cambiar una reserva a otra disciplina: conserva el estado y el pago, y el cupo pasa de una a otra.',
+      'Nuevo filtro "No se presentan": reservas confirmadas de estudiantes que faltaron a todas sus sesiones.',
+      'El estudiante recibe un aviso en la campana con el motivo o la nueva disciplina.',
+    ],
+  ),
+  Novedad(
     version: '1.7',
     fecha: DateTime(2026, 11, 17),
-    titulo: 'Reportes en PDF y Excel y códigos únicos',
+    titulo: 'Mi progreso, reportes en PDF y Excel y códigos únicos',
     cambios: const [
+      'Estudiantes: nueva sección "Mi progreso" con su asistencia, racha, nivel e insignias que se ganan al entrenar.',
       'Entrenadores: la lista de inscritos y la asistencia de cada disciplina se descargan en PDF o Excel.',
       'Administración: lista de inscritos por disciplina y reporte general descargables en PDF o Excel.',
       'Al crear una disciplina, el formulario avisa al momento si el código ya existe y no deja guardarla.',

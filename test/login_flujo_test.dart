@@ -71,6 +71,12 @@ class _AdminRepositoryFalso implements AdminRepository {
   Future<void> retirarEstudiante(String inscripcionId) async {}
 
   @override
+  Future<void> cancelarReserva(String inscripcionId, {required String motivo, bool reembolsar = false}) async {}
+
+  @override
+  Future<void> cambiarReserva(String inscripcionId, String nuevoCodigo) async {}
+
+  @override
   Future<void> eliminarUsuario(String uid) async {}
 
   @override
