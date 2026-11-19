@@ -6,6 +6,7 @@ import '../../core/apariencia_deporte.dart';
 import '../../core/exportar/reportes_saman.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
+import '../../models/resena.dart';
 import '../../repositories/asistencia_repository.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/asistencia_view_model.dart';
@@ -24,7 +25,8 @@ enum PestanaDisciplina { ficha, asistencia, historial }
 /// Todo sobre una disciplina del entrenador (CU-13, CU-14, CU-15): la ficha con
 /// lugar, horarios, cupos y estudiantes inscritos, la toma de asistencia y el historial.
 class AsistenciaView extends StatelessWidget {
-  const AsistenciaView({super.key, this.pestanaInicial = PestanaDisciplina.ficha});
+  const AsistenciaView(
+      {super.key, this.pestanaInicial = PestanaDisciplina.ficha});
 
   final PestanaDisciplina pestanaInicial;
 
@@ -41,19 +43,26 @@ class AsistenciaView extends StatelessWidget {
           child: PanelConMenu(
             titulo: Text(deporte?.nombre ?? vm.codigo),
             leading: BackButton(
-              onPressed: () => context.canPop() ? context.pop() : context.go('/entrenador/mis-deportes'),
+              onPressed: () => context.canPop()
+                  ? context.pop()
+                  : context.go('/entrenador/mis-deportes'),
             ),
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.info_outline), text: 'Disciplina'),
-                Tab(icon: Icon(Icons.fact_check_outlined), text: 'Tomar asistencia'),
+                Tab(
+                    icon: Icon(Icons.fact_check_outlined),
+                    text: 'Tomar asistencia'),
                 Tab(icon: Icon(Icons.insights_outlined), text: 'Historial'),
               ],
             ),
             body: vm.cargando
                 ? const Esqueleto(filas: 4, alto: 64)
                 : TabBarView(children: [
-                    _Ficha(vm: vm, deporte: deporte, cargandoDeporte: !snap.hasData && !snap.hasError),
+                    _Ficha(
+                        vm: vm,
+                        deporte: deporte,
+                        cargandoDeporte: !snap.hasData && !snap.hasError),
                     _TomarAsistencia(vm: vm),
                     _Historial(vm: vm),
                   ]),
@@ -64,7 +73,8 @@ class AsistenciaView extends StatelessWidget {
   }
 }
 
-String _fecha(DateTime f) => '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}/${f.year}';
+String _fecha(DateTime f) =>
+    '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}/${f.year}';
 
 class _TomarAsistencia extends StatelessWidget {
   const _TomarAsistencia({required this.vm});
@@ -100,7 +110,8 @@ class _TomarAsistencia extends StatelessWidget {
     if (vm.nomina.isEmpty) {
       return EstadoVacio(
         icono: Icons.group_off_outlined,
-        mensaje: vm.error ?? 'Todavía no hay estudiantes con inscripción confirmada en esta disciplina.',
+        mensaje: vm.error ??
+            'Todavía no hay estudiantes con inscripción confirmada en esta disciplina.',
       );
     }
     return Align(
@@ -118,18 +129,21 @@ class _TomarAsistencia extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Entrenamiento del ${_fecha(vm.fecha)}',
-                            style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                            style: textos.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700)),
                         Text(
                           vm.fechaRegistrada
                               ? 'Ya registrada: puedes corregirla y volver a guardar.'
                               : '${vm.totalPresentes} de ${vm.nomina.length} marcados presentes',
-                          style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                          style:
+                              textos.bodySmall?.copyWith(color: AppColors.gris),
                         ),
                       ],
                     ),
                   ),
                   OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44)),
                     onPressed: () => _elegirFecha(context),
                     icon: const Icon(Icons.calendar_today_outlined, size: 18),
                     label: const Text('Cambiar fecha'),
@@ -141,8 +155,12 @@ class _TomarAsistencia extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
-                  TextButton(onPressed: () => vm.marcarTodos(true), child: const Text('Marcar todos')),
-                  TextButton(onPressed: () => vm.marcarTodos(false), child: const Text('Desmarcar todos')),
+                  TextButton(
+                      onPressed: () => vm.marcarTodos(true),
+                      child: const Text('Marcar todos')),
+                  TextButton(
+                      onPressed: () => vm.marcarTodos(false),
+                      child: const Text('Desmarcar todos')),
                 ],
               ),
             ),
@@ -164,11 +182,15 @@ class _TomarAsistencia extends StatelessWidget {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
-                              color: presente ? AppColors.verdeClaro : Colors.white,
+                              color: presente
+                                  ? AppColors.verdeClaro
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color:
-                                      presente ? AppColors.verdeHoja.withValues(alpha: 0.5) : const Color(0xFFE3E8EE)),
+                                  color: presente
+                                      ? AppColors.verdeHoja
+                                          .withValues(alpha: 0.5)
+                                      : const Color(0xFFE3E8EE)),
                             ),
                             child: Material(
                               type: MaterialType.transparency,
@@ -176,18 +198,24 @@ class _TomarAsistencia extends StatelessWidget {
                               child: CheckboxListTile(
                                 value: presente,
                                 onChanged: (v) => vm.marcar(e.uid, v ?? false),
-                                controlAffinity: ListTileControlAffinity.leading,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
                                 activeColor: AppColors.verdeHoja,
                                 title: Text(e.nombreCompleto,
-                                    style: textos.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                                    style: textos.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600)),
                                 subtitle: Text(
                                   [
                                     if (e.cedulaTexto.isNotEmpty) e.cedulaTexto,
-                                    if (e.carnet.isNotEmpty) 'carnet ${e.carnet}'
+                                    if (e.carnet.isNotEmpty)
+                                      'carnet ${e.carnet}'
                                   ].join(' · '),
                                 ),
-                                secondary: EtiquetaEstado(presente ? 'Presente' : 'Ausente',
-                                    color: presente ? AppColors.verdeHoja : AppColors.gris),
+                                secondary: EtiquetaEstado(
+                                    presente ? 'Presente' : 'Ausente',
+                                    color: presente
+                                        ? AppColors.verdeHoja
+                                        : AppColors.gris),
                               ),
                             ),
                           ),
@@ -198,16 +226,23 @@ class _TomarAsistencia extends StatelessWidget {
               ),
             ),
             if (vm.error != null)
-              Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: MensajeError(vm.error!)),
+              Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: MensajeError(vm.error!)),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: FilledButton.icon(
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52)),
                 onPressed: vm.puedeGuardar ? () => _guardar(context) : null,
                 icon: vm.guardando
-                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.save_outlined),
-                label: Text(vm.fechaRegistrada ? 'Actualizar asistencia' : 'Guardar asistencia'),
+                label: Text(vm.fechaRegistrada
+                    ? 'Actualizar asistencia'
+                    : 'Guardar asistencia'),
               ),
             ),
           ],
@@ -229,7 +264,8 @@ class _Historial extends StatelessWidget {
     if (sesiones.isEmpty) {
       return const EstadoVacio(
         icono: Icons.insights_outlined,
-        mensaje: 'Aún no hay sesiones registradas. Toma la asistencia del primer entrenamiento para ver el historial.',
+        mensaje:
+            'Aún no hay sesiones registradas. Toma la asistencia del primer entrenamiento para ver el historial.',
       );
     }
     return Align(
@@ -242,9 +278,13 @@ class _Historial extends StatelessWidget {
             Revelar(
               child: Row(
                 children: [
-                  _Cifra(valor: '${sesiones.length}', etiqueta: sesiones.length == 1 ? 'sesión' : 'sesiones'),
+                  _Cifra(
+                      valor: '${sesiones.length}',
+                      etiqueta: sesiones.length == 1 ? 'sesión' : 'sesiones'),
                   const SizedBox(width: 12),
-                  _Cifra(valor: '${vm.promedio.round()} %', etiqueta: 'asistencia promedio'),
+                  _Cifra(
+                      valor: '${vm.promedio.round()} %',
+                      etiqueta: 'asistencia promedio'),
                   const SizedBox(width: 12),
                   _Cifra(valor: '${vm.nomina.length}', etiqueta: 'inscritos'),
                 ],
@@ -253,7 +293,9 @@ class _Historial extends StatelessWidget {
             const SizedBox(height: 20),
             Revelar(
                 orden: 1,
-                child: Text('Por estudiante', style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
+                child: Text('Por estudiante',
+                    style: textos.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700))),
             const SizedBox(height: 8),
             for (var i = 0; i < vm.nomina.length; i++)
               Revelar(
@@ -267,20 +309,25 @@ class _Historial extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 20),
-            Text('Sesiones', style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text('Sesiones',
+                style:
+                    textos.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             for (final s in sesiones)
               ListTile(
                 key: ValueKey('s-${s.fecha}'),
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.event_available_outlined, color: AppColors.naranja),
+                leading: const Icon(Icons.event_available_outlined,
+                    color: AppColors.naranja),
                 title: Text(_fecha(s.fecha)),
                 trailing: Text('${s.presentes} de ${s.total} presentes',
-                    style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    style: textos.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600)),
                 onTap: () {
                   vm.cambiarFecha(s.fecha);
-                  DefaultTabController.of(context).animateTo(PestanaDisciplina.asistencia.index);
+                  DefaultTabController.of(context)
+                      .animateTo(PestanaDisciplina.asistencia.index);
                 },
               ),
           ],
@@ -309,8 +356,11 @@ class _Cifra extends StatelessWidget {
         child: Column(
           children: [
             Text(valor,
-                style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.verdeSaman)),
-            Text(etiqueta, style: textos.bodySmall?.copyWith(color: AppColors.gris), textAlign: TextAlign.center),
+                style: textos.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800, color: AppColors.verdeSaman)),
+            Text(etiqueta,
+                style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -320,7 +370,10 @@ class _Cifra extends StatelessWidget {
 
 class _FilaEstudiante extends StatelessWidget {
   const _FilaEstudiante(
-      {required this.nombre, required this.porcentaje, required this.asistidas, required this.sesiones});
+      {required this.nombre,
+      required this.porcentaje,
+      required this.asistidas,
+      required this.sesiones});
 
   final String nombre;
   final double porcentaje;
@@ -346,8 +399,11 @@ class _FilaEstudiante extends StatelessWidget {
             children: [
               Expanded(child: Text(nombre, style: textos.bodyLarge)),
               Text(
-                sesiones == 0 ? 'Sin sesiones' : '$asistidas de $sesiones · ${porcentaje.round()} %',
-                style: textos.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w700),
+                sesiones == 0
+                    ? 'Sin sesiones'
+                    : '$asistidas de $sesiones · ${porcentaje.round()} %',
+                style: textos.bodyMedium
+                    ?.copyWith(color: color, fontWeight: FontWeight.w700),
               ),
             ],
           ),

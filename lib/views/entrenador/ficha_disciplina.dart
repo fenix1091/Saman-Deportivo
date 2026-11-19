@@ -1,9 +1,10 @@
 part of 'asistencia_view.dart';
 
-/// Ficha de la disciplina: portada, cifras, horarios con su lugar, datos, cupos
-/// y la lista de estudiantes inscritos con su asistencia.
+/// Ficha de la disciplina: portada, cifras, horarios con su lugar, datos, cupos,
+/// lista de estudiantes inscritos con su asistencia y reseñas.
 class _Ficha extends StatelessWidget {
-  const _Ficha({required this.vm, required this.deporte, required this.cargandoDeporte});
+  const _Ficha(
+      {required this.vm, required this.deporte, required this.cargandoDeporte});
 
   final AsistenciaViewModel vm;
   final Deporte? deporte;
@@ -14,7 +15,9 @@ class _Ficha extends StatelessWidget {
     final d = deporte;
     if (d == null) {
       if (cargandoDeporte) return const Esqueleto(filas: 3, alto: 120);
-      return const EstadoVacio(icono: Icons.search_off_outlined, mensaje: 'No se encontró esta disciplina.');
+      return const EstadoVacio(
+          icono: Icons.search_off_outlined,
+          mensaje: 'No se encontró esta disciplina.');
     }
     final textos = Theme.of(context).textTheme;
     final pestanas = DefaultTabController.of(context);
@@ -39,10 +42,17 @@ class _Ficha extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(d.nombre,
-                          style: textos.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                          style: textos.headlineSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800)),
                       Text(
-                        [d.codigo, if (d.categoria.isNotEmpty) d.categoria, if (!d.activo) 'Inactiva'].join(' · '),
-                        style: textos.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.92)),
+                        [
+                          d.codigo,
+                          if (d.categoria.isNotEmpty) d.categoria,
+                          if (!d.activo) 'Inactiva'
+                        ].join(' · '),
+                        style: textos.bodyMedium?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.92)),
                       ),
                     ],
                   ),
@@ -54,11 +64,18 @@ class _Ficha extends StatelessWidget {
               orden: 1,
               child: Row(
                 children: [
-                  _Cifra(valor: '${vm.nomina.length}', etiqueta: vm.nomina.length == 1 ? 'inscrito' : 'inscritos'),
+                  _Cifra(
+                      valor: '${vm.nomina.length}',
+                      etiqueta:
+                          vm.nomina.length == 1 ? 'inscrito' : 'inscritos'),
                   const SizedBox(width: 12),
-                  _Cifra(valor: '$sesiones', etiqueta: sesiones == 1 ? 'sesión' : 'sesiones'),
+                  _Cifra(
+                      valor: '$sesiones',
+                      etiqueta: sesiones == 1 ? 'sesión' : 'sesiones'),
                   const SizedBox(width: 12),
-                  _Cifra(valor: sesiones == 0 ? '—' : '${vm.promedio.round()} %', etiqueta: 'asistencia promedio'),
+                  _Cifra(
+                      valor: sesiones == 0 ? '—' : '${vm.promedio.round()} %',
+                      etiqueta: 'asistencia promedio'),
                 ],
               ),
             ),
@@ -70,20 +87,25 @@ class _Ficha extends StatelessWidget {
                 runSpacing: 10,
                 children: [
                   FilledButton.icon(
-                    style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-                    onPressed: () => pestanas.animateTo(PestanaDisciplina.asistencia.index),
+                    style:
+                        FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                    onPressed: () =>
+                        pestanas.animateTo(PestanaDisciplina.asistencia.index),
                     icon: const Icon(Icons.fact_check_outlined),
                     label: const Text('Pasar asistencia'),
                   ),
                   OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-                    onPressed: () => pestanas.animateTo(PestanaDisciplina.historial.index),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44)),
+                    onPressed: () =>
+                        pestanas.animateTo(PestanaDisciplina.historial.index),
                     icon: const Icon(Icons.insights_outlined),
                     label: const Text('Ver historial'),
                   ),
                   BotonExportar(
                     etiqueta: 'Exportar lista',
-                    reporte: () => ReportesSaman.asistenciaDisciplina(d, vm.nomina, vm.asistencias),
+                    reporte: () => ReportesSaman.asistenciaDisciplina(
+                        d, vm.nomina, vm.asistencias),
                   ),
                 ],
               ),
@@ -97,12 +119,21 @@ class _Ficha extends StatelessWidget {
                   titulo: 'Horarios y lugar',
                   child: _Horarios(codigo: d.codigo),
                 );
-                final datos =
-                    _Tarjeta(icono: Icons.info_outline, titulo: 'Sobre la disciplina', child: _Datos(deporte: d));
-                if (c.maxWidth < 640) return Column(children: [horarios, const SizedBox(height: 12), datos]);
+                final datos = _Tarjeta(
+                    icono: Icons.info_outline,
+                    titulo: 'Sobre la disciplina',
+                    child: _Datos(deporte: d));
+                if (c.maxWidth < 640) {
+                  return Column(
+                      children: [horarios, const SizedBox(height: 12), datos]);
+                }
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [Expanded(child: horarios), const SizedBox(width: 12), Expanded(child: datos)],
+                  children: [
+                    Expanded(child: horarios),
+                    const SizedBox(width: 12),
+                    Expanded(child: datos)
+                  ],
                 );
               }),
             ),
@@ -113,16 +144,30 @@ class _Ficha extends StatelessWidget {
                 icono: Icons.groups_outlined,
                 titulo: 'Estudiantes inscritos (${vm.nomina.length})',
                 child: vm.nomina.isEmpty
-                    ? Text(vm.error ?? 'Todavía no hay estudiantes con inscripción confirmada.',
-                        style: textos.bodyMedium?.copyWith(color: AppColors.gris))
+                    ? Text(
+                        vm.error ??
+                            'Todavía no hay estudiantes con inscripción confirmada.',
+                        style:
+                            textos.bodyMedium?.copyWith(color: AppColors.gris))
                     : Column(
                         children: [
                           for (var i = 0; i < vm.nomina.length; i++) ...[
-                            if (i > 0) const Divider(height: 1, color: Color(0xFFEDF1EE)),
+                            if (i > 0)
+                              const Divider(
+                                  height: 1, color: Color(0xFFEDF1EE)),
                             _FilaInscrito(vm: vm, estudiante: vm.nomina[i]),
                           ],
                         ],
                       ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Revelar(
+              orden: 5,
+              child: _Tarjeta(
+                icono: Icons.star_outline_rounded,
+                titulo: 'Reseñas',
+                child: _Resenas(codigo: d.codigo),
               ),
             ),
           ],
@@ -133,7 +178,8 @@ class _Ficha extends StatelessWidget {
 }
 
 class _Tarjeta extends StatelessWidget {
-  const _Tarjeta({required this.icono, required this.titulo, required this.child});
+  const _Tarjeta(
+      {required this.icono, required this.titulo, required this.child});
 
   final IconData icono;
   final String titulo;
@@ -157,7 +203,10 @@ class _Tarjeta extends StatelessWidget {
             children: [
               Icon(icono, color: AppColors.verdeSaman, size: 22),
               const SizedBox(width: 8),
-              Expanded(child: Text(titulo, style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
+              Expanded(
+                  child: Text(titulo,
+                      style: textos.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700))),
             ],
           ),
           const SizedBox(height: 12),
@@ -179,7 +228,8 @@ class _Horarios extends StatefulWidget {
 }
 
 class _HorariosState extends State<_Horarios> {
-  late final Future<List<Horario>> _horarios = context.read<DeporteRepository>().horarios(widget.codigo);
+  late final Future<List<Horario>> _horarios =
+      context.read<DeporteRepository>().horarios(widget.codigo);
 
   @override
   Widget build(BuildContext context) {
@@ -188,12 +238,17 @@ class _HorariosState extends State<_Horarios> {
       future: _horarios,
       builder: (context, snap) {
         if (snap.hasError) {
-          return Text('No se pudieron cargar los horarios.', style: textos.bodyMedium?.copyWith(color: AppColors.gris));
+          return Text('No se pudieron cargar los horarios.',
+              style: textos.bodyMedium?.copyWith(color: AppColors.gris));
         }
-        if (!snap.hasData) return const SizedBox(height: 60, child: Esqueleto(filas: 1, alto: 48));
+        if (!snap.hasData) {
+          return const SizedBox(
+              height: 60, child: Esqueleto(filas: 1, alto: 48));
+        }
         final horarios = snap.data!;
         if (horarios.isEmpty) {
-          return Text('Sin horarios publicados.', style: textos.bodyMedium?.copyWith(color: AppColors.gris));
+          return Text('Sin horarios publicados.',
+              style: textos.bodyMedium?.copyWith(color: AppColors.gris));
         }
         return Column(
           children: [
@@ -206,10 +261,14 @@ class _HorariosState extends State<_Horarios> {
                     Container(
                       width: 44,
                       padding: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(color: AppColors.verdeClaro, borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(
+                          color: AppColors.verdeClaro,
+                          borderRadius: BorderRadius.circular(8)),
                       child: Text(h.dia.etiqueta.substring(0, 3),
                           textAlign: TextAlign.center,
-                          style: textos.labelMedium?.copyWith(color: AppColors.verdeSaman, fontWeight: FontWeight.w800)),
+                          style: textos.labelMedium?.copyWith(
+                              color: AppColors.verdeSaman,
+                              fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -217,9 +276,12 @@ class _HorariosState extends State<_Horarios> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('${h.horaInicio} – ${h.horaFin}',
-                              style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                          Text(h.lugar.isEmpty ? 'Lugar por confirmar' : h.lugar,
-                              style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+                              style: textos.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700)),
+                          Text(
+                              h.lugar.isEmpty ? 'Lugar por confirmar' : h.lugar,
+                              style: textos.bodySmall
+                                  ?.copyWith(color: AppColors.gris)),
                         ],
                       ),
                     ),
@@ -246,8 +308,15 @@ class _Datos extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 96, child: Text(etiqueta, style: textos.bodyMedium?.copyWith(color: AppColors.gris))),
-              Expanded(child: Text(valor, style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
+              SizedBox(
+                  width: 96,
+                  child: Text(etiqueta,
+                      style:
+                          textos.bodyMedium?.copyWith(color: AppColors.gris))),
+              Expanded(
+                  child: Text(valor,
+                      style: textos.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600))),
             ],
           ),
         );
@@ -261,7 +330,8 @@ class _Datos extends StatelessWidget {
         if (deporte.categoria.isNotEmpty) fila('Categoría', deporte.categoria),
         if (deporte.duracion.isNotEmpty) fila('Duración', deporte.duracion),
         fila('Estado', deporte.activo ? 'Activa' : 'Inactiva'),
-        fila('Cupos', '${deporte.cuposOcupados} de ${deporte.cupoMaximo} ocupados'),
+        fila('Cupos',
+            '${deporte.cuposOcupados} de ${deporte.cupoMaximo} ocupados'),
         const SizedBox(height: 4),
         BarraCupos(deporte: deporte),
       ],
@@ -307,21 +377,148 @@ class _FilaInscrito extends StatelessWidget {
             radius: 20,
             backgroundColor: AppColors.verdeClaro,
             child: Text(iniciales,
-                style: textos.labelLarge?.copyWith(color: AppColors.verdeSaman, fontWeight: FontWeight.w800)),
+                style: textos.labelLarge?.copyWith(
+                    color: AppColors.verdeSaman, fontWeight: FontWeight.w800)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(estudiante.nombreCompleto, style: textos.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
-                if (datos.isNotEmpty) Text(datos, style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+                Text(estudiante.nombreCompleto,
+                    style: textos.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w600)),
+                if (datos.isNotEmpty)
+                  Text(datos,
+                      style: textos.bodySmall?.copyWith(color: AppColors.gris)),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          EtiquetaEstado(sesiones == 0 ? 'Sin sesiones' : '${porcentaje.round()} %', color: color),
+          EtiquetaEstado(
+              sesiones == 0 ? 'Sin sesiones' : '${porcentaje.round()} %',
+              color: color),
         ],
+      ),
+    );
+  }
+}
+
+/// Reseñas de la disciplina: promedio de estrellas y comentarios (igual al detalle del estudiante).
+class _Resenas extends StatelessWidget {
+  const _Resenas({required this.codigo});
+
+  final String codigo;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return StreamBuilder<List<Resena>>(
+      stream: context.read<DeporteRepository>().resenas(codigo),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Text('No se pudieron cargar las reseñas.',
+              style: textos.bodyMedium?.copyWith(color: AppColors.gris));
+        }
+        if (!snap.hasData) {
+          return const SizedBox(
+              height: 60, child: Esqueleto(filas: 1, alto: 48));
+        }
+        final resenas = snap.data!;
+        if (resenas.isEmpty) {
+          return Text('Todavía no hay reseñas de esta disciplina.',
+              style: textos.bodyMedium?.copyWith(color: AppColors.gris));
+        }
+        final suma = resenas.fold<int>(0, (total, r) => total + r.calificacion);
+        final promedio = suma / resenas.length;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(promedio.toStringAsFixed(1),
+                    style: textos.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                _Estrellas(valor: promedio),
+                const SizedBox(width: 8),
+                Text(
+                  resenas.length == 1
+                      ? '(1 reseña)'
+                      : '(${resenas.length} reseñas)',
+                  style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                ),
+              ],
+            ),
+            for (final r in resenas) _ResenaItem(resena: r),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ResenaItem extends StatelessWidget {
+  const _ResenaItem({required this.resena});
+
+  final Resena resena;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final fecha = _fecha(resena.fecha);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _Estrellas(valor: resena.calificacion.toDouble(), tamano: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${resena.autor.isEmpty ? 'Estudiante' : resena.autor} · $fecha',
+                  style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          if (resena.comentario.isNotEmpty)
+            Text(resena.comentario, style: textos.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _Estrellas extends StatelessWidget {
+  const _Estrellas({required this.valor, this.tamano = 20});
+
+  final double valor;
+  final double tamano;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '${valor.toStringAsFixed(1)} de 5 estrellas',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 1; i <= 5; i++)
+              Icon(
+                valor >= i
+                    ? Icons.star
+                    : valor >= i - 0.5
+                        ? Icons.star_half
+                        : Icons.star_border,
+                size: tamano,
+                color: AppColors.naranja,
+              ),
+          ],
+        ),
       ),
     );
   }
