@@ -73,8 +73,13 @@ List<DestinoMenu> destinosDe(Rol rol) => switch (rol) {
               icono: Icons.space_dashboard_outlined,
               iconoActivo: Icons.space_dashboard,
               ruta: '/entrenador/mis-deportes',
-              prefijos: ['/entrenador/asistencia', '/entrenador/disciplina']),
-          DestinoMenu(etiqueta: 'Catálogo', icono: Icons.search, iconoActivo: Icons.search, ruta: '/catalogo'),
+              prefijos: ['/entrenador/asistencia']),
+          DestinoMenu(
+              etiqueta: 'Disciplinas',
+              icono: Icons.sports_outlined,
+              iconoActivo: Icons.sports,
+              ruta: '/entrenador/disciplinas',
+              prefijos: ['/entrenador/disciplina']),
           DestinoMenu(
               etiqueta: 'Perfil',
               icono: Icons.account_circle_outlined,
@@ -108,7 +113,11 @@ List<DestinoMenu> destinosDe(Rol rol) => switch (rol) {
               icono: Icons.manage_accounts_outlined,
               iconoActivo: Icons.manage_accounts,
               ruta: '/admin/usuarios'),
-          DestinoMenu(etiqueta: 'Catálogo', icono: Icons.search, iconoActivo: Icons.search, ruta: '/catalogo'),
+          DestinoMenu(
+              etiqueta: 'Catálogo',
+              icono: Icons.search,
+              iconoActivo: Icons.search,
+              ruta: '/catalogo'),
           DestinoMenu(
               etiqueta: 'Perfil',
               icono: Icons.account_circle_outlined,
@@ -186,11 +195,11 @@ class PanelConMenu extends StatelessWidget {
       final principales = destinos.take(5).toList();
       final indice = principales.indexWhere((d) => d.activo(rutaActual));
       return Scaffold(
-        appBar: AppBar(
-            title: titulo,
-            leading: atras,
-            bottom: bottom,
-            actions: [...acciones, const CampanaNotificaciones(), const AccionesSesion()]),
+        appBar: AppBar(title: titulo, leading: atras, bottom: bottom, actions: [
+          ...acciones,
+          const CampanaNotificaciones(),
+          const AccionesSesion()
+        ]),
         body: body,
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,
@@ -204,7 +213,8 @@ class PanelConMenu extends StatelessWidget {
                 for (final d in principales)
                   NavigationDestination(
                       icon: Icon(d.icono),
-                      selectedIcon: Icon(d.iconoActivo, color: _naranjaProfundo),
+                      selectedIcon:
+                          Icon(d.iconoActivo, color: _naranjaProfundo),
                       label: d.etiqueta),
               ],
             ),
@@ -217,13 +227,24 @@ class PanelConMenu extends StatelessWidget {
     return Scaffold(
       body: Row(
         children: [
-          _BarraLateral(usuario: usuario, destinos: destinos, rutaActual: rutaActual, extendida: extendido),
+          _BarraLateral(
+              usuario: usuario,
+              destinos: destinos,
+              rutaActual: rutaActual,
+              extendida: extendido),
           Expanded(
             child: Scaffold(
-              appBar: AppBar(title: titulo, leading: atras, automaticallyImplyLeading: false, bottom: bottom, actions: [
-                ...acciones,
-                const Padding(padding: EdgeInsets.only(right: 8), child: CampanaNotificaciones())
-              ]),
+              appBar: AppBar(
+                  title: titulo,
+                  leading: atras,
+                  automaticallyImplyLeading: false,
+                  bottom: bottom,
+                  actions: [
+                    ...acciones,
+                    const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: CampanaNotificaciones())
+                  ]),
               body: body,
               bottomNavigationBar: bottomNavigationBar,
             ),
@@ -236,7 +257,10 @@ class PanelConMenu extends StatelessWidget {
 
 class _BarraLateral extends StatelessWidget {
   const _BarraLateral(
-      {required this.usuario, required this.destinos, required this.rutaActual, required this.extendida});
+      {required this.usuario,
+      required this.destinos,
+      required this.rutaActual,
+      required this.extendida});
 
   final Persona usuario;
   final List<DestinoMenu> destinos;
@@ -266,13 +290,16 @@ class _BarraLateral extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(extendida ? 20 : 14, 18, extendida ? 20 : 14, 10),
+              padding: EdgeInsets.fromLTRB(
+                  extendida ? 20 : 14, 18, extendida ? 20 : 14, 10),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => context.go('/'),
                 child: extendida
                     ? Image.asset('design/marca/logo_horizontal.png',
-                        height: 54, fit: BoxFit.contain, alignment: Alignment.centerLeft)
+                        height: 54,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.centerLeft)
                     : Image.asset('design/marca/logo_icono.png', height: 44),
               ),
             ),
@@ -280,14 +307,21 @@ class _BarraLateral extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 6, 24, 6),
                 child: Text(_rol(usuario.rol).toUpperCase(),
-                    style: textos.labelSmall
-                        ?.copyWith(color: AppColors.gris, letterSpacing: 1.4, fontWeight: FontWeight.w700)),
+                    style: textos.labelSmall?.copyWith(
+                        color: AppColors.gris,
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w700)),
               ),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: extendida ? 12 : 10, vertical: 4),
+                padding: EdgeInsets.symmetric(
+                    horizontal: extendida ? 12 : 10, vertical: 4),
                 children: [
-                  for (final d in destinos) _Item(destino: d, activo: d.activo(rutaActual), extendido: extendida),
+                  for (final d in destinos)
+                    _Item(
+                        destino: d,
+                        activo: d.activo(rutaActual),
+                        extendido: extendida),
                 ],
               ),
             ),
@@ -297,18 +331,23 @@ class _BarraLateral extends StatelessWidget {
               child: extendida
                   ? Row(
                       children: [
-                        AvatarUsuario(nombre: usuario.nombreCompleto, fotoUrl: usuario.fotoUrl, radio: 20),
+                        AvatarUsuario(
+                            nombre: usuario.nombreCompleto,
+                            fotoUrl: usuario.fotoUrl,
+                            radio: 20),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(usuario.nombreCompleto,
-                                  style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                                  style: textos.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis),
                               Text(usuario.correo,
-                                  style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                                  style: textos.bodySmall
+                                      ?.copyWith(color: AppColors.gris),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis),
                             ],
@@ -317,18 +356,23 @@ class _BarraLateral extends StatelessWidget {
                         IconButton(
                           tooltip: 'Cerrar sesión',
                           icon: const Icon(Icons.logout),
-                          onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
+                          onPressed: () =>
+                              context.read<AuthViewModel>().cerrarSesion(),
                         ),
                       ],
                     )
                   : Column(
                       children: [
-                        AvatarUsuario(nombre: usuario.nombreCompleto, fotoUrl: usuario.fotoUrl, radio: 18),
+                        AvatarUsuario(
+                            nombre: usuario.nombreCompleto,
+                            fotoUrl: usuario.fotoUrl,
+                            radio: 18),
                         const SizedBox(height: 6),
                         IconButton(
                           tooltip: 'Cerrar sesión',
                           icon: const Icon(Icons.logout),
-                          onPressed: () => context.read<AuthViewModel>().cerrarSesion(),
+                          onPressed: () =>
+                              context.read<AuthViewModel>().cerrarSesion(),
                         ),
                       ],
                     ),
@@ -341,7 +385,8 @@ class _BarraLateral extends StatelessWidget {
 }
 
 class _Item extends StatefulWidget {
-  const _Item({required this.destino, required this.activo, required this.extendido});
+  const _Item(
+      {required this.destino, required this.activo, required this.extendido});
 
   final DestinoMenu destino;
   final bool activo;
@@ -367,11 +412,16 @@ class _ItemState extends State<_Item> {
     final hijo = AnimatedContainer(
       duration: const Duration(milliseconds: 160),
       margin: const EdgeInsets.symmetric(vertical: 3),
-      padding: EdgeInsets.symmetric(horizontal: widget.extendido ? 14 : 0, vertical: widget.extendido ? 12 : 10),
+      padding: EdgeInsets.symmetric(
+          horizontal: widget.extendido ? 14 : 0,
+          vertical: widget.extendido ? 12 : 10),
       decoration: BoxDecoration(
         color: fondo,
         borderRadius: BorderRadius.circular(14),
-        border: Border(left: BorderSide(color: activo ? AppColors.naranja : Colors.transparent, width: 3)),
+        border: Border(
+            left: BorderSide(
+                color: activo ? AppColors.naranja : Colors.transparent,
+                width: 3)),
       ),
       child: widget.extendido
           ? Row(
@@ -381,10 +431,9 @@ class _ItemState extends State<_Item> {
                 Expanded(
                   child: Text(
                     d.etiqueta,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(color: color, fontWeight: activo ? FontWeight.w700 : FontWeight.w500),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: color,
+                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500),
                   ),
                 ),
               ],
@@ -397,10 +446,10 @@ class _ItemState extends State<_Item> {
                   d.etiqueta,
                   textAlign: TextAlign.center,
                   maxLines: 2,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: color, fontWeight: activo ? FontWeight.w700 : FontWeight.w500, height: 1.1),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: color,
+                      fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                      height: 1.1),
                 ),
               ],
             ),

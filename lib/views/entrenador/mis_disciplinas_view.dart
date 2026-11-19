@@ -32,7 +32,8 @@ class MisDisciplinasView extends StatelessWidget {
                 if (snap.hasError) {
                   return const EstadoVacio(
                     icono: Icons.cloud_off_outlined,
-                    mensaje: 'No se pudieron cargar tus disciplinas. Revisa tu conexión.',
+                    mensaje:
+                        'No se pudieron cargar tus disciplinas. Revisa tu conexión.',
                   );
                 }
                 if (!snap.hasData) return const Esqueleto(filas: 2, alto: 150);
@@ -44,7 +45,8 @@ class MisDisciplinasView extends StatelessWidget {
                         'Aún no tienes disciplinas asignadas.\nLa Coordinación de Deportes te asignará una desde el panel.',
                   );
                 }
-                final inscritos = deportes.fold<int>(0, (s, d) => s + d.cuposOcupados);
+                final inscritos =
+                    deportes.fold<int>(0, (s, d) => s + d.cuposOcupados);
                 return Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
@@ -61,15 +63,19 @@ class MisDisciplinasView extends StatelessWidget {
                               '$inscritos ${inscritos == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}. '
                               'Elige una para ver su lugar, horarios y estudiantes, o para pasar la asistencia de hoy.',
                         ),
-                        const TituloSeccion(antetitulo: 'Esta semana', titulo: 'Calendario'),
+                        const TituloSeccion(
+                            antetitulo: 'Esta semana', titulo: 'Calendario'),
                         Revelar(
                           orden: 1,
                           child: CalendarioDeDisciplinas(
                             deportes: deportes,
-                            alPulsar: (d) => context.push(rutaDisciplina(d.codigo)),
+                            alPulsar: (d) =>
+                                context.push(rutaDisciplina(d.codigo)),
                           ),
                         ),
-                        const TituloSeccion(antetitulo: 'Asignadas a ti', titulo: 'Disciplinas'),
+                        const TituloSeccion(
+                            antetitulo: 'Asignadas a ti',
+                            titulo: 'Disciplinas'),
                         CuadriculaAdaptable(
                           anchoMinimo: 420,
                           maxColumnas: 2,
@@ -93,7 +99,8 @@ class MisDisciplinasView extends StatelessWidget {
 }
 
 /// Página de una disciplina del entrenador (abre en la ficha).
-String rutaDisciplina(String codigo) => '/entrenador/disciplina/${Uri.encodeComponent(codigo)}';
+String rutaDisciplina(String codigo) =>
+    '/entrenador/disciplina/${Uri.encodeComponent(codigo)}';
 
 class _TarjetaDisciplina extends StatelessWidget {
   const _TarjetaDisciplina({required this.deporte});
@@ -117,22 +124,31 @@ class _TarjetaDisciplina extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(deporte.nombre, style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      Text(deporte.nombre,
+                          style: textos.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700)),
                       Text(
-                        [deporte.codigo, if (deporte.categoria.isNotEmpty) deporte.categoria].join(' · '),
-                        style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                        [
+                          deporte.codigo,
+                          if (deporte.categoria.isNotEmpty) deporte.categoria
+                        ].join(' · '),
+                        style:
+                            textos.bodySmall?.copyWith(color: AppColors.gris),
                       ),
                     ],
                   ),
                 ),
-                if (!deporte.activo) const EtiquetaEstado('Inactiva', color: AppColors.gris),
+                if (!deporte.activo)
+                  const EtiquetaEstado('Inactiva', color: AppColors.gris),
                 const SizedBox(width: 8),
                 const Icon(Icons.chevron_right, color: AppColors.gris),
               ],
             ),
             const SizedBox(height: 12),
-            Text('${deporte.cuposOcupados} ${deporte.cuposOcupados == 1 ? 'inscrito' : 'inscritos'}',
-                style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+                '${deporte.cuposOcupados} ${deporte.cuposOcupados == 1 ? 'inscrito' : 'inscritos'}',
+                style:
+                    textos.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             BarraCupos(deporte: deporte),
             const SizedBox(height: 12),
@@ -142,12 +158,14 @@ class _TarjetaDisciplina extends StatelessWidget {
               children: [
                 FilledButton.tonalIcon(
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-                  onPressed: () => context.push('/entrenador/asistencia/${Uri.encodeComponent(deporte.codigo)}'),
+                  onPressed: () => context.push(
+                      '/entrenador/asistencia/${Uri.encodeComponent(deporte.codigo)}'),
                   icon: const Icon(Icons.fact_check_outlined),
                   label: const Text('Tomar asistencia'),
                 ),
                 OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  style:
+                      OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
                   onPressed: () => context.push(rutaDisciplina(deporte.codigo)),
                   icon: const Icon(Icons.info_outline),
                   label: const Text('Ver disciplina'),
