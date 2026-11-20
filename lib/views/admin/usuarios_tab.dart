@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/theme.dart';
 import '../../core/validadores.dart';
+import '../../models/deporte.dart';
 import '../../models/persona.dart';
 import '../../repositories/admin_repository_firebase.dart';
 import '../../widgets/cuadricula_adaptable.dart';
@@ -97,7 +98,7 @@ class _UsuariosTabState extends State<UsuariosTab> {
   Future<void> _editar(Persona usuario) async {
     final cambios = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => _EditarUsuarioDialog(usuario: usuario),
+      builder: (_) => _EditarUsuarioDialog(usuario: usuario, repositorio: widget.repositorio),
     );
     if (cambios != null && cambios['__eliminar'] == true) {
       await _eliminar(usuario);
@@ -308,9 +309,10 @@ class _FilaUsuario extends StatelessWidget {
 
 /// Edita los datos de un perfil. Devuelve solo los campos que cambiaron.
 class _EditarUsuarioDialog extends StatefulWidget {
-  const _EditarUsuarioDialog({required this.usuario});
+  const _EditarUsuarioDialog({required this.usuario, required this.repositorio});
 
   final Persona usuario;
+  final AdminRepository repositorio;
 
   @override
   State<_EditarUsuarioDialog> createState() => _EditarUsuarioDialogState();
@@ -323,23 +325,33 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
   late final _telefono = TextEditingController(text: widget.usuario.telefono);
   late final _carrera =
       TextEditingController(text: widget.usuario is Estudiante ? (widget.usuario as Estudiante).carrera : '');
-  late final _especialidad =
-      TextEditingController(text: widget.usuario is Entrenador ? (widget.usuario as Entrenador).especialidad : '');
+  late final Stream<List<Deporte>> _deportesStream;
+  String? _especialidad;
   late bool _solvente = widget.usuario is Estudiante && (widget.usuario as Estudiante).solvente;
   late bool _activo = widget.usuario is! Estudiante || (widget.usuario as Estudiante).estaActivo();
   late bool _correoVerificado = widget.usuario is Estudiante && (widget.usuario as Estudiante).correoVerificado;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.usuario is Entrenador) {
+      _especialidad = (widget.usuario as Entrenador).especialidad;
+      _deportesStream = widget.repositorio.observarDeportes();
+    }
+  }
+
+  @override
   void dispose() {
-    for (final c in [_nombre, _apellido, _telefono, _carrera, _especialidad]) {
+    for (final c in [_nombre, _apellido, _telefono, _carrera]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  void _guardar() {
+  void _guardar(List<Deporte> deportes) {
     if (!_formulario.currentState!.validate()) return;
     final u = widget.usuario;
+    if (u is Entrenador && !deportes.any((deporte) => deporte.nombre == _especialidad)) return;
     final nuevos = <String, dynamic>{
       'nombre': Validadores.normalizarNombre(_nombre.text),
       'apellido': Validadores.normalizarNombre(_apellido.text),
@@ -350,7 +362,7 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
         'correoVerificado': _correoVerificado,
         'estado': _activo ? EstadoEstudiante.activo.name : EstadoEstudiante.inactivo.name,
       },
-      if (u is Entrenador) 'especialidad': _especialidad.text.trim().replaceAll(RegExp(r'\s+'), ' '),
+      if (u is Entrenador) 'especialidad': _especialidad,
     };
     final actuales = u.aMapa();
     nuevos.removeWhere((campo, valor) => actuales[campo] == valor);
@@ -359,6 +371,27 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final u = widget.usuario;
+    if (u is Entrenador) {
+      return StreamBuilder<List<Deporte>>(
+        stream: _deportesStream,
+        builder: (context, snapshot) => _dialogo(
+          context,
+          deportes: snapshot.data ?? const [],
+          cargandoDeportes: !snapshot.hasData && !snapshot.hasError,
+          errorDeportes: snapshot.error,
+        ),
+      );
+    }
+    return _dialogo(context, deportes: const []);
+  }
+
+  Widget _dialogo(
+    BuildContext context, {
+    required List<Deporte> deportes,
+    bool cargandoDeportes = false,
+    Object? errorDeportes,
+  }) {
     final u = widget.usuario;
     return AlertDialog(
       title: Text('Editar a ${u.nombreCompleto}'),
@@ -423,17 +456,26 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                 ],
                 if (u is Entrenador) ...[
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _especialidad,
-                    decoration: const InputDecoration(labelText: 'Especialidad *', hintText: 'Ej. Natación'),
-                    textCapitalization: TextCapitalization.sentences,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.deny(RegExp(r'\d')),
-                      LengthLimitingTextInputFormatter(60),
-                    ],
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    validator: Validadores.especialidad,
-                  ),
+                  if (errorDeportes != null)
+                    Text('No se pudieron cargar las disciplinas: $errorDeportes')
+                  else if (cargandoDeportes)
+                    const Center(child: CircularProgressIndicator())
+                  else if (deportes.isEmpty)
+                    const Text('No hay disciplinas disponibles para asignar.')
+                  else
+                    DropdownButtonFormField<String>(
+                      initialValue: deportes.any((deporte) => deporte.nombre == _especialidad)
+                          ? _especialidad
+                          : null,
+                      decoration: const InputDecoration(labelText: 'Especialidad *'),
+                      items: [
+                        for (final deporte in deportes)
+                          DropdownMenuItem(value: deporte.nombre, child: Text(deporte.nombre)),
+                      ],
+                      onChanged: (especialidad) => setState(() => _especialidad = especialidad),
+                      validator: (especialidad) =>
+                          especialidad == null ? 'Selecciona una disciplina.' : null,
+                    ),
                 ],
                 if (u is! Administrador) ...[
                   const Divider(height: 32),
@@ -456,7 +498,9 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(110, 44)),
-          onPressed: _guardar,
+          onPressed: u is Entrenador && (cargandoDeportes || errorDeportes != null || deportes.isEmpty)
+              ? null
+              : () => _guardar(deportes),
           child: const Text('Guardar'),
         ),
       ],

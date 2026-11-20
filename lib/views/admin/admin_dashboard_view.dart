@@ -822,7 +822,9 @@ Future<void> _editarHorario(
 }
 
 class _EntrenadorDialog extends StatefulWidget {
-  const _EntrenadorDialog();
+  const _EntrenadorDialog({required this.repositorio});
+
+  final AdminRepository repositorio;
 
   @override
   State<_EntrenadorDialog> createState() => _EntrenadorDialogState();
@@ -830,14 +832,21 @@ class _EntrenadorDialog extends StatefulWidget {
 
 class _EntrenadorDialogState extends State<_EntrenadorDialog> {
   final _formKey = GlobalKey<FormState>();
+  late final Stream<List<Deporte>> _deportesStream;
   final _cedula = TextEditingController();
   final _nombre = TextEditingController();
   final _apellido = TextEditingController();
   final _correo = TextEditingController();
   final _telefono = TextEditingController();
-  final _especialidad = TextEditingController();
   final _experiencia = TextEditingController(text: '0');
   String _nacionalidad = 'V';
+  String? _deporteCodigo;
+
+  @override
+  void initState() {
+    super.initState();
+    _deportesStream = widget.repositorio.observarDeportes();
+  }
 
   @override
   void dispose() {
@@ -846,18 +855,29 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
     _apellido.dispose();
     _correo.dispose();
     _telefono.dispose();
-    _especialidad.dispose();
     _experiencia.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return StreamBuilder<List<Deporte>>(
+      stream: _deportesStream,
+      builder: (context, deportesSnapshot) {
+        final deportes = deportesSnapshot.data ?? const <Deporte>[];
+        final deporteSeleccionado = deportes.where((deporte) => deporte.codigo == _deporteCodigo);
+        final especialidad = deporteSeleccionado.isEmpty ? null : deporteSeleccionado.first.nombre;
+        return AlertDialog(
       title: const Text('Registrar entrenador'),
       content: SizedBox(
         width: 440,
-        child: Form(
+        child: deportesSnapshot.hasError
+            ? Text('No se pudieron cargar las disciplinas: ${deportesSnapshot.error}')
+            : !deportesSnapshot.hasData
+                ? const Center(child: CircularProgressIndicator())
+                : deportes.isEmpty
+                    ? const Text('Crea una disciplina antes de registrar un entrenador.')
+                    : Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
@@ -922,16 +942,15 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
                   validator: Validadores.telefono,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _especialidad,
-                  decoration: const InputDecoration(labelText: 'Especialidad *', hintText: 'Ej. Natación'),
-                  textCapitalization: TextCapitalization.sentences,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.deny(RegExp(r'\d')),
-                    LengthLimitingTextInputFormatter(60)
+                DropdownButtonFormField<String>(
+                  initialValue: deportes.any((deporte) => deporte.codigo == _deporteCodigo) ? _deporteCodigo : null,
+                  decoration: const InputDecoration(labelText: 'Especialidad *'),
+                  items: [
+                    for (final deporte in deportes)
+                      DropdownMenuItem(value: deporte.codigo, child: Text(deporte.nombre)),
                   ],
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: Validadores.especialidad,
+                  onChanged: (codigo) => setState(() => _deporteCodigo = codigo),
+                  validator: (codigo) => codigo == null ? 'Selecciona una disciplina.' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -951,25 +970,29 @@ class _EntrenadorDialogState extends State<_EntrenadorDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
-          onPressed: () {
-            if (!_formKey.currentState!.validate()) return;
-            Navigator.pop(
-              context,
-              _DatosEntrenador(
-                nacionalidad: _nacionalidad,
-                cedula: Validadores.numeroCedula(_cedula.text),
-                nombre: Validadores.normalizarNombre(_nombre.text),
-                apellido: Validadores.normalizarNombre(_apellido.text),
-                correo: _correo.text.trim().toLowerCase(),
-                telefono: _telefono.text.trim(),
-                especialidad: _especialidad.text.trim(),
-                aniosExperiencia: int.parse(_experiencia.text),
-              ),
-            );
-          },
+          onPressed: !deportesSnapshot.hasData || especialidad == null
+              ? null
+              : () {
+                  if (!_formKey.currentState!.validate()) return;
+                  Navigator.pop(
+                    context,
+                    _DatosEntrenador(
+                      nacionalidad: _nacionalidad,
+                      cedula: Validadores.numeroCedula(_cedula.text),
+                      nombre: Validadores.normalizarNombre(_nombre.text),
+                      apellido: Validadores.normalizarNombre(_apellido.text),
+                      correo: _correo.text.trim().toLowerCase(),
+                      telefono: _telefono.text.trim(),
+                      especialidad: especialidad,
+                      aniosExperiencia: int.parse(_experiencia.text),
+                    ),
+                  );
+                },
           child: const Text('Crear cuenta'),
         ),
       ],
+        );
+      },
     );
   }
 }
@@ -999,7 +1022,7 @@ class _DatosEntrenador {
 Future<void> _crearEntrenador(BuildContext context, AdminRepository repositorio) async {
   final datos = await showDialog<_DatosEntrenador>(
     context: context,
-    builder: (_) => const _EntrenadorDialog(),
+    builder: (_) => _EntrenadorDialog(repositorio: repositorio),
   );
   if (datos == null || !context.mounted) return;
   try {
