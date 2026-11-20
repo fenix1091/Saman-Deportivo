@@ -323,6 +323,10 @@ service cloud.firestore {
       allow read: if esAdmin()
         || (autenticado() && resource.data.estudianteId == request.auth.uid)
         || entrenaEse(resource.data.deporteCodigo);
+      // Al guardar, la app primero consulta la asistencia del día, que la primera vez
+      // aún no existe (resource == null): el entrenador de esa disciplina puede hacerlo.
+      // El id es {codigo}_{uid}_{fecha} y el código de una disciplina no lleva "_".
+      allow get: if resource == null && entrenaEse(id.split('_')[0]);
       allow create, update: if entrenaEse(request.resource.data.deporteCodigo) && asistenciaValida();
       allow write: if esAdmin();
     }

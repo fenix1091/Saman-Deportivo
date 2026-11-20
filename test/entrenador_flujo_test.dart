@@ -105,4 +105,25 @@ void main() {
     expect(find.text('1 de 1 · 100 %'), findsOneWidget);
     expect(find.text('0 de 1 · 0 %'), findsOneWidget);
   });
+
+  testWidgets('la página Disciplinas del menú lista solo las suyas y abre la ficha con las reseñas', (tester) async {
+    await entrarComoEntrenador(tester);
+    await tester.tap(find.text('Disciplinas').first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Mis disciplinas'), findsOneWidget);
+    expect(find.text('Fútbol'), findsOneWidget);
+    expect(find.text('Tenis'), findsOneWidget);
+    expect(find.text('Baloncesto'), findsNothing);
+
+    await tester.tap(find.text('Fútbol'));
+    await tester.pumpAndSettle();
+    final resenas = find.text('Reseñas');
+    await tester.dragUntilVisible(resenas, find.text('Horarios y lugar'), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(find.text('4.5'), findsOneWidget);
+    expect(find.text('(2 reseñas)'), findsOneWidget);
+    expect(find.text('Muy buen ambiente.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

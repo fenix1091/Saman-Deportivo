@@ -19,6 +19,7 @@ import '../viewmodels/perfil_view_model.dart';
 import '../views/admin/admin_dashboard_view.dart';
 import '../views/comun/perfil_view.dart';
 import '../views/entrenador/asistencia_view.dart';
+import '../views/entrenador/disciplinas_entrenar_view.dart';
 import '../views/entrenador/mis_disciplinas_view.dart';
 import '../views/estudiante/estudiante_dashboard_view.dart';
 import '../views/estudiante/inscripcion_view.dart';
@@ -119,6 +120,7 @@ GoRouter crearRouter(AuthViewModel auth, {AdminRepository? adminRepository, Stri
           path: '/mis-inscripciones',
           builder: (_, __) => const MisInscripcionesView()),
       GoRoute(path: '/entrenador/mis-deportes', builder: (_, __) => const MisDisciplinasView()),
+      GoRoute(path: '/entrenador/disciplinas', builder: (_, __) => const DisciplinasEntrenadorView()),
       // Página de una disciplina del entrenador: ficha, asistencia e historial.
       GoRoute(
         path: '/entrenador/disciplina/:codigo',

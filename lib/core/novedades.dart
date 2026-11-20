@@ -14,6 +14,17 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.10',
+    fecha: DateTime(2026, 11, 19),
+    titulo: 'Disciplinas y reseñas para el entrenador',
+    cambios: const [
+      'El entrenador tiene en su menú la página Disciplinas, con solo las disciplinas que tiene asignadas.',
+      'La ficha de cada disciplina muestra el promedio de estrellas y las reseñas de los estudiantes.',
+      'Arreglado: el entrenador ya puede guardar la asistencia (antes daba error al guardarla por primera vez en el '
+          'día), también en disciplinas con muchos inscritos.',
+    ],
+  ),
+  Novedad(
     version: '1.9',
     fecha: DateTime(2026, 11, 18),
     titulo: 'Mejor uso del espacio y datos del entrenador validados',

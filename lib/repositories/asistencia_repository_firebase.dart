@@ -78,47 +78,72 @@ class AsistenciaRepositoryFirebase implements AsistenciaRepository {
     final dia = DateTime(fecha.year, fecha.month, fecha.day);
     final asistencias = _db.collection('asistencias');
     final inscripciones = _db.collection('inscripciones');
+    // Por tandas: las reglas de Firestore solo pueden consultar unos 20 documentos
+    // por transacción y cada estudiante suma su inscripción; con una disciplina
+    // grande, guardarlo todo de una vez se rechazaría.
+    final todos = presentes.entries.toList();
     try {
-      await _db.runTransaction((tx) async {
-        // Primero todas las lecturas (lo exige Firestore), después las escrituras.
-        final previas = <String, DocumentSnapshot<Map<String, dynamic>>>{};
-        final fichas = <String, DocumentSnapshot<Map<String, dynamic>>>{};
-        for (final uid in presentes.keys) {
-          previas[uid] = await tx.get(asistencias.doc(idAsistencia(codigo, uid, dia)));
-          fichas[uid] = await tx.get(inscripciones.doc(Inscripcion.idPara(codigo, uid)));
-        }
-        for (final entrada in presentes.entries) {
-          final uid = entrada.key;
-          final presente = entrada.value;
-          final previa = previas[uid]!;
-          final estabaPresente = previa.data()?['estado'] == EstadoAsistencia.presente.name;
-          final asistencia = Asistencia(
-            id: idAsistencia(codigo, uid, dia),
-            inscripcionId: Inscripcion.idPara(codigo, uid),
-            estudianteId: uid,
-            deporteCodigo: codigo,
-            fecha: dia,
-            estado: presente ? EstadoAsistencia.presente : EstadoAsistencia.ausente,
-          );
-          tx.set(asistencias.doc(asistencia.id), asistencia.aMapa());
-
-          // Contadores de la inscripción: una sesión nueva suma 1; cambiar el estado
-          // de una sesión ya registrada solo mueve las asistidas.
-          final ficha = fichas[uid]!.data();
-          if (ficha == null) continue;
-          final sesiones = (ficha['sesiones'] as num?)?.toInt() ?? 0;
-          final asistidas = (ficha['sesionesAsistidas'] as num?)?.toInt() ?? 0;
-          final nuevaSesion = !previa.exists;
-          final deltaAsistidas = (presente ? 1 : 0) - (estabaPresente ? 1 : 0);
-          tx.update(inscripciones.doc(Inscripcion.idPara(codigo, uid)), {
-            'sesiones': sesiones + (nuevaSesion ? 1 : 0),
-            'sesionesAsistidas': (asistidas + deltaAsistidas).clamp(0, sesiones + 1),
-          });
-        }
-      });
+      for (var i = 0; i < todos.length; i += tandaAsistencia) {
+        final tanda = Map.fromEntries(todos.skip(i).take(tandaAsistencia));
+        await _guardarTanda(tanda, codigo, dia, asistencias, inscripciones);
+      }
     } catch (e) {
       throw _traducir(e);
     }
+  }
+
+  /// Estudiantes que se guardan en cada transacción.
+  static const tandaAsistencia = 8;
+
+  Future<void> _guardarTanda(
+    Map<String, bool> presentes,
+    String codigo,
+    DateTime dia,
+    CollectionReference<Map<String, dynamic>> asistencias,
+    CollectionReference<Map<String, dynamic>> inscripciones,
+  ) async {
+    await _db.runTransaction((tx) async {
+      // Primero todas las lecturas (lo exige Firestore), después las escrituras.
+      final previas = <String, DocumentSnapshot<Map<String, dynamic>>>{};
+      final fichas = <String, DocumentSnapshot<Map<String, dynamic>>>{};
+      for (final uid in presentes.keys) {
+        previas[uid] = await tx.get(asistencias.doc(idAsistencia(codigo, uid, dia)));
+        fichas[uid] = await tx.get(inscripciones.doc(Inscripcion.idPara(codigo, uid)));
+      }
+      for (final entrada in presentes.entries) {
+        final uid = entrada.key;
+        final presente = entrada.value;
+        final previa = previas[uid]!;
+        final estabaPresente = previa.data()?['estado'] == EstadoAsistencia.presente.name;
+        final asistencia = Asistencia(
+          id: idAsistencia(codigo, uid, dia),
+          inscripcionId: Inscripcion.idPara(codigo, uid),
+          estudianteId: uid,
+          deporteCodigo: codigo,
+          fecha: dia,
+          estado: presente ? EstadoAsistencia.presente : EstadoAsistencia.ausente,
+        );
+        tx.set(asistencias.doc(asistencia.id), asistencia.aMapa());
+
+        // Contadores de la inscripción: una sesión nueva suma 1; cambiar el estado
+        // de una sesión ya registrada solo mueve las asistidas.
+        final ficha = fichas[uid]!.data();
+        if (ficha == null) continue;
+        final sesiones = (ficha['sesiones'] as num?)?.toInt() ?? 0;
+        final asistidas = (ficha['sesionesAsistidas'] as num?)?.toInt() ?? 0;
+        final nuevaSesion = !previa.exists;
+        final deltaAsistidas = (presente ? 1 : 0) - (estabaPresente ? 1 : 0);
+        var nuevasSesiones = sesiones + (nuevaSesion ? 1 : 0);
+        final nuevasAsistidas = (asistidas + deltaAsistidas).clamp(0, nuevasSesiones + 1).toInt();
+        // Si la inscripción se volvió a crear (contadores en 0) y ya había asistencia
+        // ese día, las asistidas no pueden pasar de las sesiones: lo exigen las reglas.
+        if (nuevasAsistidas > nuevasSesiones) nuevasSesiones = nuevasAsistidas;
+        tx.update(inscripciones.doc(Inscripcion.idPara(codigo, uid)), {
+          'sesiones': nuevasSesiones,
+          'sesionesAsistidas': nuevasAsistidas,
+        });
+      }
+    });
   }
 
   AsistenciaException _traducir(Object e) {

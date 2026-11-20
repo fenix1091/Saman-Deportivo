@@ -612,6 +612,51 @@ describe('Asistencia del entrenador (RF-14 a RF-16)', () => {
     await assertSucceeds(setDoc(doc(db, 'asistencias', ID), asistencia({ estado: 'ausente' })));
   });
 
+  test('guarda como la app: lee la asistencia del día (aún no existe) y la ficha, y luego escribe', async () => {
+    const db = comoEntrenador();
+    await assertSucceeds(runTransaction(db, async (t) => {
+      const previa = await t.get(doc(db, 'asistencias', ID));
+      await t.get(doc(db, 'inscripciones/FUT-01_est1'));
+      t.set(doc(db, 'asistencias', ID), asistencia());
+      t.update(doc(db, 'inscripciones/FUT-01_est1'), { sesiones: previa.exists() ? 0 : 1, sesionesAsistidas: 1 });
+    }));
+    // Y al corregir el mismo día (la asistencia ya existe).
+    await assertSucceeds(runTransaction(db, async (t) => {
+      await t.get(doc(db, 'asistencias', ID));
+      await t.get(doc(db, 'inscripciones/FUT-01_est1'));
+      t.set(doc(db, 'asistencias', ID), asistencia({ estado: 'ausente' }));
+      t.update(doc(db, 'inscripciones/FUT-01_est1'), { sesiones: 1, sesionesAsistidas: 0 });
+    }));
+  });
+
+  test('otro entrenador no puede consultar asistencias de una disciplina ajena, existan o no', async () => {
+    await assertFails(getDoc(doc(comoEntrenador(), 'asistencias/BAS-01_est1_2026-11-08')));
+  });
+
+  test('una disciplina con 25 inscritos se guarda por tandas sin pasar el límite de consultas de las reglas', async () => {
+    const uids = Array.from({ length: 25 }, (_, i) => `e${i}`);
+    await entorno.withSecurityRulesDisabled(async (ctx) => {
+      for (const u of uids) {
+        await setDoc(doc(ctx.firestore(), `inscripciones/FUT-01_${u}`),
+          { estudianteId: u, deporteCodigo: 'FUT-01', estado: 'confirmada', motivo: '', sesiones: 0, sesionesAsistidas: 0 });
+      }
+    });
+    const db = comoEntrenador();
+    const tanda = async (grupo) => runTransaction(db, async (t) => {
+      for (const u of grupo) {
+        await t.get(doc(db, `asistencias/FUT-01_${u}_2026-11-08`));
+        await t.get(doc(db, `inscripciones/FUT-01_${u}`));
+      }
+      for (const u of grupo) {
+        t.set(doc(db, `asistencias/FUT-01_${u}_2026-11-08`),
+          asistencia({ inscripcionId: `FUT-01_${u}`, estudianteId: u }));
+        t.update(doc(db, `inscripciones/FUT-01_${u}`), { sesiones: 1, sesionesAsistidas: 1 });
+      }
+    });
+    // De a 8 estudiantes por transacción (como la app): todas pasan.
+    for (let i = 0; i < uids.length; i += 8) await assertSucceeds(tanda(uids.slice(i, i + 8)));
+  });
+
   test('no registra en una disciplina ajena, ni a quien no está confirmado, ni con datos inválidos', async () => {
     const db = comoEntrenador();
     await assertFails(setDoc(doc(db, 'asistencias/BAS-01_est1_2026-11-08'),
