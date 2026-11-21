@@ -10,6 +10,7 @@ import '../../models/pago.dart';
 import '../../models/persona.dart';
 import '../../viewmodels/inscripcion_view_model.dart';
 import '../../widgets/barra_cupos.dart';
+import '../../widgets/botones_paypal.dart';
 import '../../widgets/formulario_centrado.dart';
 import '../../widgets/panel_con_menu.dart';
 
@@ -22,6 +23,17 @@ class InscripcionView extends StatelessWidget {
   Future<void> _pagar(BuildContext context) async {
     final vm = context.read<InscripcionViewModel>();
     final deporte = vm.deporte!;
+    if (vm.monto > 0 && payPalDisponible) {
+      final aviso = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _VentanaPayPal(vm: vm, monto: _dinero(vm.monto)),
+      );
+      if (aviso != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(aviso)));
+      }
+      return;
+    }
     if (vm.monto > 0) {
       final aprobado = await showDialog<bool>(
         context: context,
@@ -345,6 +357,80 @@ class _Aviso extends StatelessWidget {
           Expanded(child: Text(texto)),
         ],
       ),
+    );
+  }
+}
+
+/// Ventana con los botones oficiales de PayPal (sandbox). Se cierra sola al
+/// terminar; devuelve un aviso para mostrar, o `null` si no hace falta.
+class _VentanaPayPal extends StatefulWidget {
+  const _VentanaPayPal({required this.vm, required this.monto});
+
+  final InscripcionViewModel vm;
+  final String monto;
+
+  @override
+  State<_VentanaPayPal> createState() => _VentanaPayPalState();
+}
+
+class _VentanaPayPalState extends State<_VentanaPayPal> {
+  bool _cerrada = false;
+
+  void _cerrar([String? aviso]) {
+    if (_cerrada || !mounted) return;
+    _cerrada = true;
+    Navigator.of(context).pop(aviso);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm;
+    final textos = Theme.of(context).textTheme;
+    return AlertDialog(
+      icon: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.azul),
+      title: const Text('Pagar con PayPal'),
+      content: SizedBox(
+        width: 380,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Vas a pagar ${widget.monto} a Samán Deportivo por: ${vm.concepto}.'),
+              const SizedBox(height: 16),
+              BotonesPayPal(
+                monto: vm.monto,
+                concepto: vm.concepto,
+                antesDeCobrar: () async {
+                  final id = await vm.reservarParaPagar();
+                  if (id == null) _cerrar();
+                  return id;
+                },
+                alAprobar: (referencia) async {
+                  await vm.registrarPagoPayPal(referencia);
+                  _cerrar();
+                },
+                alFallar: (mensaje) {
+                  // Si fallo al apartar el cupo, el motivo ya esta en la pantalla.
+                  _cerrar(vm.error == null ? mensaje : null);
+                },
+                alCancelar: () {
+                  vm.pagoCancelado();
+                  _cerrar();
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Modo de pruebas (sandbox): se paga con una cuenta de prueba de PayPal y no se cobra dinero real.',
+                style: textos.bodySmall?.copyWith(color: AppColors.gris),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => _cerrar(), child: const Text('Cancelar')),
+      ],
     );
   }
 }

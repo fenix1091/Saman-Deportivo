@@ -47,6 +47,10 @@ abstract interface class AdminRepository {
   /// reciente a la más antigua. Sirve para revisar los pagos y para el resumen.
   Stream<List<Inscripcion>> observarInscripciones();
 
+  /// Número de la transacción de PayPal del pago `pagos/{pagoId}` (para
+  /// comprobarlo en la cuenta de PayPal antes de confirmar la reserva).
+  Future<String?> referenciaDePago(String pagoId);
+
   /// Da por válido el pago de una reserva en revisión: pasa a CONFIRMADA.
   Future<void> confirmarReserva(String id);
 
@@ -308,6 +312,12 @@ class AdminRepositoryFirebase implements AdminRepository {
   Stream<List<Inscripcion>> observarInscripciones() => _db.collection('inscripciones').snapshots().map((snapshot) =>
       snapshot.docs.map((doc) => Inscripcion.desdeMapa(doc.id, doc.data())).toList()
         ..sort((a, b) => b.fechaInscripcion.compareTo(a.fechaInscripcion)));
+
+  @override
+  Future<String?> referenciaDePago(String pagoId) async {
+    final doc = await _db.collection('pagos').doc(pagoId).get();
+    return doc.data()?['referenciaExterna'] as String?;
+  }
 
   @override
   Future<void> confirmarReserva(String id) async {

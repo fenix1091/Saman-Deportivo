@@ -129,28 +129,92 @@ class InscripcionViewModel extends ChangeNotifier {
       _notificar();
       return false;
     }
+    return _conProceso(() async {
+      final reserva = await _reservaVigente(d);
+      final referencia = monto == 0 ? 'GRATUITA' : await _pasarela.cobrar(monto: monto, concepto: concepto);
+      if (reserva.expiro(_reloj())) throw const InscripcionException(ErrorInscripcion.reservaVencida);
+      _pago = await _inscripciones.confirmarPago(reserva, monto: monto, referencia: referencia);
+      return true;
+    }, false);
+  }
+
+  /// Texto de la orden de pago que ve el estudiante en PayPal.
+  String get concepto {
+    final d = _deporte;
+    return d == null ? 'Reserva de cupo $codigo' : 'Reserva de cupo ${d.codigo} - ${d.nombre}';
+  }
+
+  /// Reserva que se está pagando con los botones de PayPal.
+  Inscripcion? _reservaEnPago;
+
+  /// Primer paso del pago con los botones de PayPal: revisa los requisitos y
+  /// aparta el cupo. Devuelve el id de la reserva (va en la orden de PayPal) o
+  /// `null` si no se puede pagar; el motivo queda en [error].
+  Future<String?> reservarParaPagar() async {
+    final d = _deporte;
+    if (d == null || !puedePagar) {
+      _error = ErrorInscripcion.noCumpleRequisitos.mensaje;
+      _notificar();
+      return null;
+    }
+    return _conProceso(() async {
+      final reserva = await _reservaVigente(d);
+      if (reserva.expiro(_reloj())) throw const InscripcionException(ErrorInscripcion.reservaVencida);
+      _reservaEnPago = reserva;
+      return reserva.id;
+    }, null);
+  }
+
+  /// Segundo paso: PayPal ya cobró. Registra el pago con [referencia] (id de la
+  /// transacción de PayPal) y deja la reserva EN REVISIÓN.
+  Future<bool> registrarPagoPayPal(String referencia) async {
+    final reserva = _reservaEnPago ?? reservaPendiente;
+    if (reserva == null) {
+      _error = 'No se encontró tu reserva. Escribe a la Coordinación de Deportes con este número de PayPal: $referencia';
+      _notificar();
+      return false;
+    }
+    final ok = await _conProceso(() async {
+      _pago = await _inscripciones.confirmarPago(reserva, monto: monto, referencia: referencia);
+      _reservaEnPago = null;
+      return true;
+    }, false);
+    if (!ok) {
+      // El dinero ya salió de PayPal: el estudiante necesita el número para reclamarlo.
+      _error = '${_error ?? ErrorInscripcion.desconocido.mensaje} Guarda este número de PayPal para la Coordinación: $referencia';
+      _notificar();
+    }
+    return ok;
+  }
+
+  /// El estudiante cerró la ventana de PayPal: la reserva sigue apartada (A4).
+  void pagoCancelado() {
+    _error = ErrorInscripcion.pagoCancelado.mensaje;
+    _notificar();
+  }
+
+  /// La reserva pendiente vigente, o una nueva si no hay (la vencida se marca expirada).
+  Future<Inscripcion> _reservaVigente(Deporte d) async {
+    final pendiente = reservaPendiente;
+    if (pendiente != null) return pendiente;
+    final vencida = inscripcion;
+    if (vencida != null && vencida.expiro(_reloj())) await _inscripciones.expirar(vencida);
+    return _inscripciones.reservar(estudiante, d, horarios: _horarios);
+  }
+
+  /// Corre [trabajo] marcando [procesando] y traduce los errores a [error].
+  Future<T> _conProceso<T>(Future<T> Function() trabajo, T siFalla) async {
     _procesando = true;
     _error = null;
     _notificar();
     try {
-      var reserva = reservaPendiente;
-      if (reserva == null) {
-        final vencida = inscripcion;
-        if (vencida != null && vencida.expiro(_reloj())) await _inscripciones.expirar(vencida);
-        reserva = await _inscripciones.reservar(estudiante, d, horarios: _horarios);
-      }
-      final referencia = monto == 0
-          ? 'GRATUITA'
-          : await _pasarela.cobrar(monto: monto, concepto: 'Reserva de cupo ${d.codigo} - ${d.nombre}');
-      if (reserva.expiro(_reloj())) throw const InscripcionException(ErrorInscripcion.reservaVencida);
-      _pago = await _inscripciones.confirmarPago(reserva, monto: monto, referencia: referencia);
-      return true;
+      return await trabajo();
     } on InscripcionException catch (e) {
       _error = e.mensaje;
-      return false;
+      return siFalla;
     } catch (_) {
       _error = ErrorInscripcion.desconocido.mensaje;
-      return false;
+      return siFalla;
     } finally {
       _procesando = false;
       _notificar();

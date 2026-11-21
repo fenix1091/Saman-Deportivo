@@ -14,6 +14,16 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.12',
+    fecha: DateTime(2026, 11, 21),
+    titulo: 'Pago con PayPal',
+    cambios: const [
+      'La reserva se paga con los botones oficiales de PayPal (modo de pruebas, sin dinero real): con una cuenta de prueba de PayPal o con tarjeta.',
+      'El cupo se aparta al abrir PayPal y la reserva pasa a revisión en cuanto PayPal confirma el cobro.',
+      'En Revisión de reservas, cada reserva pagada muestra el número de la transacción de PayPal para comprobarlo antes de confirmarla.',
+    ],
+  ),
+  Novedad(
     version: '1.11',
     fecha: DateTime(2026, 11, 21),
     titulo: 'Especialidad del entrenador desde las disciplinas',

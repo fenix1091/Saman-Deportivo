@@ -179,6 +179,53 @@ void main() {
       expect(vm.pago!.referenciaExterna, 'PRUEBA-1');
     });
 
+    test('con los botones de PayPal: aparta el cupo, PayPal cobra y la reserva pasa a revisión con su número', () async {
+      final vm = crear();
+      await esperar();
+      final id = await vm.reservarParaPagar();
+      expect(id, 'FUT-01_est-1', reason: 'va como custom_id en la orden de PayPal');
+      expect(inscripciones.guardadas[id]!.estado, EstadoInscripcion.pendientePago);
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 20, reason: 'apartar no ocupa cupo (RN-06)');
+      expect(await vm.registrarPagoPayPal('8AB12345CD678901E'), isTrue);
+      await esperar();
+      expect(vm.enRevision, isTrue);
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 21);
+      expect(inscripciones.pagos.single.referenciaExterna, '8AB12345CD678901E');
+      expect(pasarela.cobros, 0, reason: 'el cobro lo hace PayPal, no la pasarela simulada');
+    });
+
+    test('con los botones de PayPal: si cierra PayPal la reserva sigue apartada y puede volver a pagar', () async {
+      final vm = crear();
+      await esperar();
+      await vm.reservarParaPagar();
+      vm.pagoCancelado();
+      await esperar();
+      expect(vm.error, ErrorInscripcion.pagoCancelado.mensaje);
+      expect(vm.reservaPendiente, isNotNull);
+      expect(await vm.reservarParaPagar(), 'FUT-01_est-1', reason: 'reutiliza la misma reserva');
+      expect(inscripciones.guardadas.length, 1);
+      expect(await vm.registrarPagoPayPal('9XY'), isTrue);
+    });
+
+    test('con los botones de PayPal: un estudiante no solvente no llega a abrir la orden', () async {
+      const noSolvente = Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1');
+      final vm = crear(estudiante: noSolvente);
+      await esperar();
+      expect(await vm.reservarParaPagar(), isNull);
+      expect(vm.error, isNotNull);
+      expect(inscripciones.guardadas, isEmpty);
+    });
+
+    test('con los botones de PayPal: si el registro falla después del cobro, el error trae el número de PayPal', () async {
+      deportes.cambiarCupos('FUT-01', 24);
+      final vm = crear();
+      await esperar();
+      await vm.reservarParaPagar();
+      deportes.cambiarCupos('FUT-01', 25);
+      expect(await vm.registrarPagoPayPal('7ZZ999'), isFalse);
+      expect(vm.error, contains('7ZZ999'));
+    });
+
     test('un estudiante no solvente no llega a reservar ni a pagar', () async {
       const noSolvente = Estudiante(uid: 'e', cedula: 1, nombre: 'N', correo: 'n@x.com', carnet: '1');
       final vm = crear(estudiante: noSolvente);

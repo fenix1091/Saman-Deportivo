@@ -199,6 +199,7 @@ class _ReservasTabState extends State<ReservasTab> {
                 'Reservada el $fecha · ${r.monto == 0 ? 'gratuita' : '\$${r.monto.toStringAsFixed(2)}'}'
                 '${r.pagoId.isEmpty ? '' : ' · pago ${r.pagoId.split('_').last}'}',
                 style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+            if (r.pagoId.isNotEmpty && r.monto > 0) _ReferenciaPago(key: ValueKey(r.pagoId), repositorio: widget.repositorio, pagoId: r.pagoId),
             if (r.horarios.isNotEmpty) Text(r.horarios, style: textos.bodySmall),
             if (r.estado == EstadoInscripcion.confirmada && r.sesiones > 0)
               Text('Asistencia: ${r.sesionesAsistidas} de ${r.sesiones} sesiones',
@@ -531,6 +532,44 @@ class _CambiarDialogState extends State<_CambiarDialog> {
           label: Text(_elegido == null ? 'Elige una disciplina' : 'Cambiar a ${_elegido!.nombre}'),
         ),
       ],
+    );
+  }
+}
+
+/// Número de PayPal del pago, para buscarlo en la actividad de la cuenta de PayPal.
+class _ReferenciaPago extends StatefulWidget {
+  const _ReferenciaPago({super.key, required this.repositorio, required this.pagoId});
+
+  final AdminRepository repositorio;
+  final String pagoId;
+
+  @override
+  State<_ReferenciaPago> createState() => _ReferenciaPagoState();
+}
+
+class _ReferenciaPagoState extends State<_ReferenciaPago> {
+  late final Future<String?> _referencia = () async {
+    try {
+      return await widget.repositorio.referenciaDePago(widget.pagoId);
+    } catch (_) {
+      return null;
+    }
+  }();
+
+  @override
+  Widget build(BuildContext context) {
+    final estilo = Theme.of(context).textTheme.bodySmall;
+    return FutureBuilder<String?>(
+      future: _referencia,
+      builder: (context, snap) {
+        final ref = snap.data;
+        if (ref == null || ref.isEmpty) return const SizedBox.shrink();
+        final simulado = ref.startsWith('SANDBOX-');
+        return SelectableText(
+          simulado ? 'Pago simulado: $ref' : 'PayPal (transacción): $ref',
+          style: estilo?.copyWith(fontWeight: FontWeight.w600),
+        );
+      },
     );
   }
 }

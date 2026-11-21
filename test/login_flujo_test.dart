@@ -56,6 +56,9 @@ class _AdminRepositoryFalso implements AdminRepository {
   Stream<List<Inscripcion>> observarInscripciones() => Stream.value(const []);
 
   @override
+  Future<String?> referenciaDePago(String pagoId) async => null;
+
+  @override
   Future<void> confirmarReserva(String id) async {}
 
   @override
