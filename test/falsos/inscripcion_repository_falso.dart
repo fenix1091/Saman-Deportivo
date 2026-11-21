@@ -109,16 +109,21 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
   }
 
   @override
-  Future<void> cancelar(String inscripcionId, String deporteCodigo) async {
+  Future<double> cancelar(String inscripcionId, String deporteCodigo) async {
     final actual = guardadas[inscripcionId];
     if (actual == null || !actual.estaVigente(_reloj())) {
       throw const InscripcionException(ErrorInscripcion.noVigente);
     }
-    agregar(actual.copiarCon(estado: EstadoInscripcion.cancelada));
+    agregar(Inscripcion.desdeMapa(actual.id, {
+      ...actual.aMapa(),
+      'estado': EstadoInscripcion.cancelada.name,
+      if (actual.devuelvePagoAlCancelar) 'motivo': Inscripcion.motivoDevolucion,
+    }));
     if (actual.ocupaCupo) {
       final deporte = deportes.leer(deporteCodigo)!;
       deportes.cambiarCupos(deporteCodigo, deporte.cuposOcupados - 1);
     }
+    return actual.devuelvePagoAlCancelar ? actual.monto : 0;
   }
 
   @override

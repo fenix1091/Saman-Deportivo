@@ -8,6 +8,8 @@ enum TipoNotificacion {
   inscripcionDirecta('Inscripción realizada'),
   retiro('Retiro de una disciplina'),
   cambioReserva('Cambio de disciplina'),
+  devolucionPendiente('Devolución de pago pendiente'),
+  pagoDevuelto('Pago devuelto'),
   aviso('Aviso');
 
   const TipoNotificacion(this.titulo);

@@ -257,10 +257,14 @@ service cloud.firestore {
         && request.resource.data.estado == 'expirada';
 
       // CU-10: el estudiante cancela su inscripción vigente.
+      // Si estaba pagada y aún en revisión, queda anotado que se le devolverá el pago.
       allow update: if esDueno()
         && resource.data.estado in ['pendientePago', 'enRevision', 'confirmada']
-        && cambia(['estado'])
-        && request.resource.data.estado == 'cancelada';
+        && cambia(['estado', 'motivo'])
+        && request.resource.data.estado == 'cancelada'
+        && (request.resource.data.get('motivo', '') == resource.data.get('motivo', '')
+          || (resource.data.estado == 'enRevision'
+            && request.resource.data.motivo == 'Cancelada antes de la aprobación: se devolverá el pago.'));
 
       // RF-15: al guardar la asistencia, el entrenador asignado lleva la cuenta de las
       // sesiones y las asistidas en la inscripción (sirven para la reseña estricta).
@@ -341,13 +345,18 @@ service cloud.firestore {
             || (resource.data.paraUid == '' && resource.data.paraRol == rol()));
       }
       allow read: if esDestinatario();
+      // Un estudiante avisa a la Coordinación (reserva pagada o devolución pendiente)
+      // o se deja a sí mismo el aviso de la devolución.
       allow create: if esAdmin()
         || (autenticado()
           && request.resource.data.keys().hasOnly(['paraUid', 'paraRol', 'deUid', 'tipo', 'titulo', 'mensaje', 'ruta', 'fecha', 'leida'])
-          && request.resource.data.paraUid == ''
-          && request.resource.data.paraRol == 'administrador'
+          && ((request.resource.data.paraUid == ''
+              && request.resource.data.paraRol == 'administrador'
+              && request.resource.data.tipo in ['reservaRecibida', 'devolucionPendiente'])
+            || (request.resource.data.paraUid == request.auth.uid
+              && request.resource.data.paraRol == ''
+              && request.resource.data.tipo == 'devolucionPendiente'))
           && request.resource.data.deUid == request.auth.uid
-          && request.resource.data.tipo == 'reservaRecibida'
           && request.resource.data.leida == false
           && request.resource.data.mensaje is string
           && request.resource.data.mensaje.size() <= 300);

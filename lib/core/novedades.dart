@@ -14,6 +14,18 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.14',
+    fecha: DateTime(2026, 11, 21),
+    titulo: 'Devolución al cancelar antes de la aprobación',
+    cambios: const [
+      'Si un estudiante cancela una inscripción pagada que aún no fue aprobada, se le avisa que se le devolverá el '
+          'dinero porque la inscripción no se completó.',
+      'La Coordinación recibe un aviso para hacer la devolución por PayPal, y en Revisión de reservas (filtro '
+          'Cancelada) la reserva muestra "Devolución pendiente" con el botón Marcar como devuelto.',
+      'Al marcarla, el estudiante recibe el aviso de que su pago fue devuelto.',
+    ],
+  ),
+  Novedad(
     version: '1.13',
     fecha: DateTime(2026, 11, 21),
     titulo: 'Pago con animación',

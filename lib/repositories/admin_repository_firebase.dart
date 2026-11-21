@@ -51,6 +51,11 @@ abstract interface class AdminRepository {
   /// comprobarlo en la cuenta de PayPal antes de confirmar la reserva).
   Future<String?> referenciaDePago(String pagoId);
 
+  /// La Coordinación ya devolvió por PayPal el pago de una reserva que el
+  /// estudiante canceló antes de la aprobación: marca el pago como reembolsado
+  /// y le avisa al estudiante.
+  Future<void> marcarDevuelto(String inscripcionId);
+
   /// Da por válido el pago de una reserva en revisión: pasa a CONFIRMADA.
   Future<void> confirmarReserva(String id);
 
@@ -320,6 +325,32 @@ class AdminRepositoryFirebase implements AdminRepository {
   }
 
   @override
+  Future<void> marcarDevuelto(String inscripcionId) async {
+    final ref = _db.collection('inscripciones').doc(inscripcionId);
+    final inscripcion = await _db.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      if (doc.data() == null) throw const OperacionNoPermitidaException('La reserva ya no existe.');
+      final inscripcion = Inscripcion.desdeMapa(doc.id, doc.data()!);
+      if (inscripcion.estado != EstadoInscripcion.cancelada || inscripcion.pagoId.isEmpty) {
+        throw const OperacionNoPermitidaException('Esta reserva no tiene un pago por devolver.');
+      }
+      final refPago = _db.collection('pagos').doc(inscripcion.pagoId);
+      final pago = await tx.get(refPago);
+      if (pago.data()?['estado'] != EstadoPago.completado.name) {
+        throw const OperacionNoPermitidaException('Este pago ya estaba marcado como devuelto.');
+      }
+      tx.update(refPago, {'estado': EstadoPago.reembolsado.name});
+      tx.update(ref, {'motivo': Inscripcion.motivoDevuelto});
+      return inscripcion;
+    });
+    await _avisar(
+        inscripcion.estudianteId,
+        TipoNotificacion.pagoDevuelto,
+        'La Coordinación de Deportes te devolvió \$${inscripcion.monto.toStringAsFixed(2)} de tu reserva en '
+        '${_nombre(inscripcion)}. Lo verás en la cuenta de PayPal con la que pagaste.');
+  }
+
+  @override
   Future<void> confirmarReserva(String id) async {
     final ref = _db.collection('inscripciones').doc(id);
     final reserva = await _db.runTransaction((tx) async {
@@ -506,7 +537,9 @@ class AdminRepositoryFirebase implements AdminRepository {
       });
       return (reserva, destino);
     });
-    await _avisar(anterior.estudianteId, TipoNotificacion.cambioReserva,
+    await _avisar(
+        anterior.estudianteId,
+        TipoNotificacion.cambioReserva,
         'La Coordinación de Deportes cambió tu reserva de ${_nombre(anterior)} a ${destino.nombre}. '
         'Revisa tus nuevos horarios en Mis inscripciones.');
   }

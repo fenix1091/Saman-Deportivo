@@ -232,9 +232,13 @@ class _TarjetaInscripcion extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Cancelar inscripción'),
         content: Text(
-          inscripcion.ocupaCupo
-              ? '¿Seguro que quieres cancelar tu inscripción en $nombre? Se liberará tu cupo.'
-              : '¿Seguro que quieres cancelar tu reserva en $nombre?',
+          inscripcion.devuelvePagoAlCancelar
+              ? 'Tu inscripción en $nombre aún no ha sido aprobada, así que si la cancelas se te devolverán '
+                  '\$${inscripcion.monto.toStringAsFixed(2)} a la cuenta de PayPal con la que pagaste. '
+                  '¿Quieres cancelarla?'
+              : inscripcion.ocupaCupo
+                  ? '¿Seguro que quieres cancelar tu inscripción en $nombre? Se liberará tu cupo.'
+                  : '¿Seguro que quieres cancelar tu reserva en $nombre?',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Atrás')),
@@ -243,12 +247,35 @@ class _TarjetaInscripcion extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(dialogContext);
               final vm = context.read<MisInscripcionesViewModel>();
-              final exito = await vm.cancelarInscripcion(inscripcion.id, inscripcion.deporteCodigo);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(exito ? 'Inscripción cancelada' : vm.error ?? 'No se pudo cancelar')),
+              final devolucion = await vm.cancelarInscripcion(inscripcion.id, inscripcion.deporteCodigo);
+              if (!context.mounted) return;
+              if (devolucion != null && devolucion > 0) {
+                await showDialog<void>(
+                  context: context,
+                  builder: (contexto) => AlertDialog(
+                    icon: const Icon(Icons.currency_exchange, color: AppColors.verdeHoja, size: 40),
+                    title: const Text('Se te devolverá el dinero'),
+                    content: Text(
+                      'Cancelaste tu inscripción en $nombre. Como todavía no estaba aprobada, la inscripción no '
+                      'se completó y se te devolverán \$${devolucion.toStringAsFixed(2)} a la cuenta de PayPal con '
+                      'la que pagaste.\n\nLa Coordinación de Deportes ya recibió el aviso; te avisaremos cuando la '
+                      'devolución esté hecha.',
+                    ),
+                    actions: [
+                      FilledButton(
+                        style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                        onPressed: () => Navigator.pop(contexto),
+                        child: const Text('Entendido'),
+                      ),
+                    ],
+                  ),
                 );
+                return;
               }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text(devolucion != null ? 'Inscripción cancelada' : vm.error ?? 'No se pudo cancelar')),
+              );
             },
             child: const Text('Confirmar cancelación'),
           ),

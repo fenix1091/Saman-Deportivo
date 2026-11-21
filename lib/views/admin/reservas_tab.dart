@@ -199,7 +199,8 @@ class _ReservasTabState extends State<ReservasTab> {
                 'Reservada el $fecha · ${r.monto == 0 ? 'gratuita' : '\$${r.monto.toStringAsFixed(2)}'}'
                 '${r.pagoId.isEmpty ? '' : ' · pago ${r.pagoId.split('_').last}'}',
                 style: textos.bodySmall?.copyWith(color: AppColors.gris)),
-            if (r.pagoId.isNotEmpty && r.monto > 0) _ReferenciaPago(key: ValueKey(r.pagoId), repositorio: widget.repositorio, pagoId: r.pagoId),
+            if (r.pagoId.isNotEmpty && r.monto > 0)
+              _ReferenciaPago(key: ValueKey(r.pagoId), repositorio: widget.repositorio, pagoId: r.pagoId),
             if (r.horarios.isNotEmpty) Text(r.horarios, style: textos.bodySmall),
             if (r.estado == EstadoInscripcion.confirmada && r.sesiones > 0)
               Text('Asistencia: ${r.sesionesAsistidas} de ${r.sesiones} sesiones',
@@ -207,6 +208,8 @@ class _ReservasTabState extends State<ReservasTab> {
                       color: ausente ? AppColors.rojo : AppColors.gris, fontWeight: ausente ? FontWeight.w700 : null)),
             if (r.motivo.isNotEmpty)
               Text('Motivo: ${r.motivo}', style: textos.bodySmall?.copyWith(color: AppColors.rojo)),
+            if (r.estado == EstadoInscripcion.cancelada && r.motivo == Inscripcion.motivoDevolucion)
+              _Devolucion(key: ValueKey('dev-${r.pagoId}'), repositorio: widget.repositorio, reserva: r),
             if (r.estaVigente()) ...[
               const SizedBox(height: 12),
               Wrap(
@@ -532,6 +535,98 @@ class _CambiarDialogState extends State<_CambiarDialog> {
           label: Text(_elegido == null ? 'Elige una disciplina' : 'Cambiar a ${_elegido!.nombre}'),
         ),
       ],
+    );
+  }
+}
+
+/// Reserva cancelada con un pago que aún no se devolvió (el estudiante la
+/// canceló antes de la aprobación): avisa y deja marcarla como devuelta.
+class _Devolucion extends StatefulWidget {
+  const _Devolucion({super.key, required this.repositorio, required this.reserva});
+
+  final AdminRepository repositorio;
+  final Inscripcion reserva;
+
+  @override
+  State<_Devolucion> createState() => _DevolucionState();
+}
+
+class _DevolucionState extends State<_Devolucion> {
+  bool _guardando = false;
+
+  Future<void> _marcar() async {
+    final monto = '\$${widget.reserva.monto.toStringAsFixed(2)}';
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text('Marcar como devuelto'),
+        content: Text(
+          'Confirma que ya devolviste $monto desde PayPal (Actividad > el pago de esta reserva > Reembolsar). '
+          'Se le avisará al estudiante.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Atrás')),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text('Ya lo devolví'),
+          ),
+        ],
+      ),
+    );
+    if (si != true || !mounted) return;
+    setState(() => _guardando = true);
+    String mensaje;
+    var ok = false;
+    try {
+      await widget.repositorio.marcarDevuelto(widget.reserva.id);
+      mensaje = 'Pago marcado como devuelto. Se le avisó al estudiante.';
+      ok = true;
+    } on OperacionNoPermitidaException catch (e) {
+      mensaje = e.mensaje;
+    } catch (_) {
+      mensaje = 'No se pudo marcar la devolución. Inténtalo de nuevo.';
+    }
+    if (!mounted) return;
+    setState(() => _guardando = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensaje), backgroundColor: ok ? AppColors.verdeHoja : AppColors.rojo));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final monto = '\$${widget.reserva.monto.toStringAsFixed(2)}';
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.naranjaClaro, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.currency_exchange, color: AppColors.naranjaProfundo, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Devolución pendiente: $monto',
+                    style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            const SizedBox(height: 4),
+            Text('Devuélvelo desde PayPal y después márcalo aquí.', style: textos.bodySmall),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+              icon: _guardando
+                  ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.check),
+              label: const Text('Marcar como devuelto'),
+              onPressed: _guardando ? null : _marcar,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

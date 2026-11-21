@@ -48,16 +48,15 @@ class MisInscripcionesViewModel extends ChangeNotifier {
     );
   }
 
-  /// Cancela la inscripción mediante la transacción de Firestore
-  Future<bool> cancelarInscripcion(
-      String inscripcionId, String deporteCodigo) async {
+  /// Cancela la inscripción mediante la transacción de Firestore. Devuelve el
+  /// monto que se le devolverá al estudiante (0 si nada), o `null` si falló.
+  Future<double?> cancelarInscripcion(String inscripcionId, String deporteCodigo) async {
     try {
-      await _repository.cancelar(inscripcionId, deporteCodigo);
-      return true;
+      return await _repository.cancelar(inscripcionId, deporteCodigo);
     } catch (e) {
       _error = _mensaje(e, 'No se pudo cancelar la inscripción.');
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

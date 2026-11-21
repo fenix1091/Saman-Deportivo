@@ -423,6 +423,29 @@ describe('Revisión de reservas por el administrador (Hito 3, punto 4)', () => {
     }));
   });
 
+  test('al cancelar pagada y sin aprobar queda anotada la devolución; con otro motivo o ya confirmada, no', async () => {
+    const MOTIVO = 'Cancelada antes de la aprobación: se devolverá el pago.';
+    const cancelar = (db, motivo) => runTransaction(db, async (t) => {
+      t.update(doc(db, 'inscripciones', ID), { estado: 'cancelada', motivo });
+      t.update(doc(db, 'deportes/FUT-01'), { cuposOcupados: 20 });
+    });
+    await sembrar('enRevision', `${ID}_1`);
+    await assertFails(cancelar(comoEstudiante(), 'Me lo devuelven dos veces'));
+    await assertSucceeds(cancelar(comoEstudiante(), MOTIVO));
+    await sembrar('confirmada', `${ID}_1`);
+    await assertFails(cancelar(comoEstudiante(), MOTIVO));
+  });
+
+  test('el administrador marca como devuelto el pago de una reserva cancelada', async () => {
+    await sembrar('cancelada', `${ID}_1`);
+    await assertFails(updateDoc(doc(comoEstudiante(), 'pagos', `${ID}_1`), { estado: 'reembolsado' }));
+    const db = comoAdmin();
+    await assertSucceeds(runTransaction(db, async (t) => {
+      t.update(doc(db, 'pagos', `${ID}_1`), { estado: 'reembolsado' });
+      t.update(doc(db, 'inscripciones', ID), { motivo: 'Cancelada antes de la aprobación: el pago ya fue devuelto.' });
+    }));
+  });
+
   test('una reserva en revisión no sirve todavía para reseñar', async () => {
     await sembrar('enRevision');
     await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID),
@@ -542,6 +565,15 @@ describe('Notificaciones dentro de la app (RF-22)', () => {
     await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/n3'), aviso({ tipo: 'reservaConfirmada' })));
     await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/n4'), aviso({ deUid: 'est2' })));
     await assertFails(setDoc(doc(sinSesion(), 'notificaciones/n5'), aviso()));
+  });
+
+  test('un estudiante avisa de una devolución pendiente a la Coordinación y a sí mismo, pero no a otro', async () => {
+    const dev = (extra = {}) => aviso({ tipo: 'devolucionPendiente', titulo: 'Devolución de pago pendiente', ...extra });
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'notificaciones/d1'), dev()));
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'notificaciones/d2'), dev({ paraUid: 'est1', paraRol: '' })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/d3'), dev({ paraUid: 'est2', paraRol: '' })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/d4'), aviso({ paraUid: 'est1', paraRol: '' })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'notificaciones/d5'), dev({ paraUid: 'est1', paraRol: 'administrador' })));
   });
 
   test('el administrador avisa a quien quiera; solo el destinatario lee y marca como leído', async () => {

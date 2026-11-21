@@ -74,6 +74,8 @@ class _ListaNotificaciones extends StatelessWidget {
         TipoNotificacion.inscripcionDirecta => (Icons.how_to_reg_outlined, AppColors.verdeHoja),
         TipoNotificacion.retiro => (Icons.person_remove_outlined, AppColors.gris),
         TipoNotificacion.cambioReserva => (Icons.swap_horiz, AppColors.naranja),
+        TipoNotificacion.devolucionPendiente => (Icons.currency_exchange, AppColors.naranja),
+        TipoNotificacion.pagoDevuelto => (Icons.price_check, AppColors.verdeHoja),
         TipoNotificacion.aviso => (Icons.info_outline, AppColors.azul),
       };
 

@@ -49,27 +49,58 @@ void main() {
 
     test('cancelar una inscripción confirmada libera su cupo', () async {
       inscripciones.agregar(inscripcion('FUT-01', EstadoInscripcion.confirmada));
-      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isTrue);
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), 0);
       expect(inscripciones.guardadas['FUT-01_est-1']!.estado, EstadoInscripcion.cancelada);
       expect(deportes.leer('FUT-01')!.cuposOcupados, 19);
     });
 
     test('cancelar una reserva en revisión libera el cupo que tenía apartado', () async {
       inscripciones.agregar(inscripcion('FUT-01', EstadoInscripcion.enRevision));
-      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isTrue);
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), 0);
       expect(deportes.leer('FUT-01')!.cuposOcupados, 19);
+    });
+
+    test('cancelar pagada y aún sin aprobar devuelve el monto y lo deja anotado', () async {
+      inscripciones.agregar(Inscripcion(
+        id: 'FUT-01_est-1',
+        estudianteId: 'est-1',
+        deporteCodigo: 'FUT-01',
+        fechaInscripcion: DateTime.now(),
+        estado: EstadoInscripcion.enRevision,
+        pagoId: 'FUT-01_est-1_1',
+        monto: 5,
+      ));
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), 5);
+      final cancelada = inscripciones.guardadas['FUT-01_est-1']!;
+      expect(cancelada.estado, EstadoInscripcion.cancelada);
+      expect(cancelada.motivo, Inscripcion.motivoDevolucion);
+      expect(deportes.leer('FUT-01')!.cuposOcupados, 19);
+    });
+
+    test('cancelar ya aprobada no promete devolución', () async {
+      inscripciones.agregar(Inscripcion(
+        id: 'FUT-01_est-1',
+        estudianteId: 'est-1',
+        deporteCodigo: 'FUT-01',
+        fechaInscripcion: DateTime.now(),
+        estado: EstadoInscripcion.confirmada,
+        pagoId: 'FUT-01_est-1_1',
+        monto: 5,
+      ));
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), 0);
+      expect(inscripciones.guardadas['FUT-01_est-1']!.motivo, isEmpty);
     });
 
     test('cancelar una reserva pendiente de pago no libera cupo (RN-06)', () async {
       inscripciones.agregar(inscripcion('FUT-01', EstadoInscripcion.pendientePago));
-      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isTrue);
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), 0);
       expect(deportes.leer('FUT-01')!.cuposOcupados, 20);
     });
 
     test('no se cancela dos veces ni se libera otro cupo', () async {
       inscripciones.agregar(inscripcion('FUT-01', EstadoInscripcion.confirmada));
       await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01');
-      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isFalse);
+      expect(await vm.cancelarInscripcion('FUT-01_est-1', 'FUT-01'), isNull);
       expect(vm.error, 'Esta inscripción ya no está vigente.');
       expect(deportes.leer('FUT-01')!.cuposOcupados, 19);
     });

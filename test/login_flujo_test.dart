@@ -59,6 +59,9 @@ class _AdminRepositoryFalso implements AdminRepository {
   Future<String?> referenciaDePago(String pagoId) async => null;
 
   @override
+  Future<void> marcarDevuelto(String inscripcionId) async {}
+
+  @override
   Future<void> confirmarReserva(String id) async {}
 
   @override

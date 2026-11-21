@@ -33,7 +33,11 @@ abstract class InscripcionRepository {
   /// Cancela una inscripción vigente (CU-10). Si ocupaba cupo (en revisión o
   /// confirmada) lo libera en la misma transacción; una reserva pendiente de pago
   /// no ocupaba cupo (RN-06).
-  Future<void> cancelar(String inscripcionId, String deporteCodigo);
+  ///
+  /// Si la reserva estaba pagada y aún en revisión (no aprobada), el pago se
+  /// devuelve: se anota el motivo y se avisa a la Coordinación, que hace la
+  /// devolución, y al estudiante. Devuelve el monto a devolver (0 si nada).
+  Future<double> cancelar(String inscripcionId, String deporteCodigo);
 
   /// Publica o actualiza la reseña del estudiante sobre un deporte (CU-12).
   Future<void> publicarResena(Resena resena);

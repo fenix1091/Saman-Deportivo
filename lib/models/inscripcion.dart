@@ -95,6 +95,15 @@ class Inscripcion {
   /// Ocupa un cupo desde que el pago se recibe (en revisión) hasta que se cancela o rechaza (RN-06).
   bool get ocupaCupo => estado == EstadoInscripcion.enRevision || estado == EstadoInscripcion.confirmada;
 
+  /// Pagada pero aún sin aprobar: si el estudiante la cancela, se le devuelve el pago.
+  bool get devuelvePagoAlCancelar => estado == EstadoInscripcion.enRevision && monto > 0 && pagoId.isNotEmpty;
+
+  /// Motivo que queda anotado cuando el estudiante cancela antes de la aprobación.
+  static const motivoDevolucion = 'Cancelada antes de la aprobación: se devolverá el pago.';
+
+  /// Motivo que queda cuando la Coordinación ya hizo la devolución.
+  static const motivoDevuelto = 'Cancelada antes de la aprobación: el pago ya fue devuelto.';
+
   /// Porcentaje de asistencia (0 a 100); 0 si aún no hay sesiones.
   double get porcentajeAsistencia => sesiones == 0 ? 0 : sesionesAsistidas * 100 / sesiones;
 

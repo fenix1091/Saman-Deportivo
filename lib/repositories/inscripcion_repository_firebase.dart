@@ -113,7 +113,8 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
           deUid: inscripcion.estudianteId,
           tipo: TipoNotificacion.reservaRecibida,
           titulo: TipoNotificacion.reservaRecibida.titulo,
-          mensaje: 'Un estudiante pagó su reserva en ${inscripcion.nombreDeporte.isEmpty ? inscripcion.deporteCodigo : inscripcion.nombreDeporte}'
+          mensaje:
+              'Un estudiante pagó su reserva en ${inscripcion.nombreDeporte.isEmpty ? inscripcion.deporteCodigo : inscripcion.nombreDeporte}'
               '${monto == 0 ? '' : ' (\$${monto.toStringAsFixed(2)})'}. Revísala para confirmarla o rechazarla.',
           ruta: '/admin/reservas',
           fecha: DateTime.now(),
@@ -145,11 +146,11 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
   }
 
   @override
-  Future<void> cancelar(String inscripcionId, String deporteCodigo) async {
+  Future<double> cancelar(String inscripcionId, String deporteCodigo) async {
     final refInscripcion = _inscripciones.doc(inscripcionId);
     final refDeporte = _db.collection('deportes').doc(deporteCodigo);
     try {
-      await _db.runTransaction((tx) async {
+      final cancelada = await _db.runTransaction((tx) async {
         final inscripcion = await tx.get(refInscripcion);
         final deporte = await tx.get(refDeporte);
         final datos = inscripcion.data();
@@ -158,12 +159,48 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
         if (!actual.estaVigente()) {
           throw const InscripcionException(ErrorInscripcion.noVigente);
         }
-        tx.update(refInscripcion, {'estado': EstadoInscripcion.cancelada.name});
+        tx.update(refInscripcion, {
+          'estado': EstadoInscripcion.cancelada.name,
+          if (actual.devuelvePagoAlCancelar) 'motivo': Inscripcion.motivoDevolucion,
+        });
         final ocupados = (deporte.data()?['cuposOcupados'] as num?)?.toInt() ?? 0;
         if (actual.ocupaCupo && ocupados > 0) {
           tx.update(refDeporte, {'cuposOcupados': ocupados - 1});
         }
+        return actual;
       });
+      if (!cancelada.devuelvePagoAlCancelar) return 0;
+      final nombre = cancelada.nombreDeporte.isEmpty ? cancelada.deporteCodigo : cancelada.nombreDeporte;
+      final monto = '\$${cancelada.monto.toStringAsFixed(2)}';
+      await notificarSinFallar(
+        _notificaciones,
+        Notificacion(
+          id: '',
+          paraRol: 'administrador',
+          deUid: cancelada.estudianteId,
+          tipo: TipoNotificacion.devolucionPendiente,
+          titulo: TipoNotificacion.devolucionPendiente.titulo,
+          mensaje: 'Un estudiante canceló su reserva en $nombre antes de que se aprobara. Hay que devolverle $monto '
+              'por PayPal y marcarla como devuelta en Revisión de reservas (filtro Cancelada).',
+          ruta: '/admin/reservas',
+          fecha: DateTime.now(),
+        ),
+      );
+      await notificarSinFallar(
+        _notificaciones,
+        Notificacion(
+          id: '',
+          paraUid: cancelada.estudianteId,
+          deUid: cancelada.estudianteId,
+          tipo: TipoNotificacion.devolucionPendiente,
+          titulo: TipoNotificacion.devolucionPendiente.titulo,
+          mensaje: 'Cancelaste tu reserva en $nombre antes de que se aprobara, así que se te devolverán $monto a la '
+              'cuenta de PayPal con la que pagaste. Te avisaremos cuando la devolución esté hecha.',
+          ruta: '/mis-inscripciones',
+          fecha: DateTime.now(),
+        ),
+      );
+      return cancelada.monto;
     } catch (e) {
       throw _traducir(e);
     }
