@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/theme.dart';
 import '../../core/validadores.dart';
@@ -469,8 +468,9 @@ class _EditarUsuarioDialogState extends State<_EditarUsuarioDialog> {
                           : null,
                       decoration: const InputDecoration(labelText: 'Especialidad *'),
                       items: [
-                        for (final deporte in deportes)
-                          DropdownMenuItem(value: deporte.nombre, child: Text(deporte.nombre)),
+                        // Dos disciplinas pueden llamarse igual; el menú no admite valores repetidos.
+                        for (final nombre in {for (final deporte in deportes) deporte.nombre})
+                          DropdownMenuItem(value: nombre, child: Text(nombre)),
                       ],
                       onChanged: (especialidad) => setState(() => _especialidad = especialidad),
                       validator: (especialidad) =>

@@ -14,6 +14,15 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.11',
+    fecha: DateTime(2026, 11, 21),
+    titulo: 'Especialidad del entrenador desde las disciplinas',
+    cambios: const [
+      'Al registrar o editar un entrenador, la especialidad se elige de una lista con las disciplinas que ya existen, '
+          'en vez de escribirla a mano.',
+    ],
+  ),
+  Novedad(
     version: '1.10',
     fecha: DateTime(2026, 11, 19),
     titulo: 'Disciplinas y reseñas para el entrenador',
