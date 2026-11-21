@@ -16,6 +16,23 @@ class ValidacionAdmin {
   /// ni guiones ("bas-01", "BAS 01" y "BAS01" son el mismo código).
   static String normalizarCodigo(String codigo) => codigo.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
 
+  /// RF-19: un horario no puede cruzarse con otro en el mismo lugar, sea de esta
+  /// disciplina o de cualquier otra activa. [ocupados] trae, por disciplina, sus
+  /// horarios. Devuelve el motivo del cruce, o `null` si el lugar está libre.
+  static String? cruceDeLugar(String codigo, Horario nuevo, Map<Deporte, List<Horario>> ocupados) {
+    for (final MapEntry(key: deporte, value: horarios) in ocupados.entries) {
+      if (deporte.codigo != codigo && !deporte.activo) continue;
+      for (final h in horarios) {
+        if (deporte.codigo == codigo && h.id == nuevo.id) continue;
+        if (!h.seSolapaCon(nuevo)) continue;
+        return deporte.codigo == codigo
+            ? 'Este horario se cruza con otro de esta clase en ${h.lugar} (${h.etiqueta}).'
+            : 'Este horario se cruza con ${deporte.nombre} (${deporte.codigo}), que usa ${h.lugar} el ${h.etiqueta}.';
+      }
+    }
+    return null;
+  }
+
   /// No se crea una disciplina con el código de otra que ya existe. Devuelve el
   /// motivo si el código está tomado, o `null` si está libre.
   static String? codigoRepetido(String codigo, Iterable<Deporte> existentes) {

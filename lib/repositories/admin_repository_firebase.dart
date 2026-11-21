@@ -222,6 +222,17 @@ class AdminRepositoryFirebase implements AdminRepository {
 
   @override
   Future<void> guardarHorario(String codigo, Horario horario) async {
+    // RF-19: el lugar no puede estar ocupado a esa hora por esta u otra disciplina.
+    final deportes = await _db.collection('deportes').get();
+    final ocupados = Map.fromEntries(await Future.wait(deportes.docs.map((d) async {
+      final hs = await d.reference.collection('horarios').get();
+      return MapEntry(
+        Deporte.desdeMapa(d.id, d.data()),
+        [for (final h in hs.docs) Horario.desdeMapa(h.id, h.data())],
+      );
+    })));
+    final cruce = ValidacionAdmin.cruceDeLugar(codigo, horario, ocupados);
+    if (cruce != null) throw OperacionNoPermitidaException(cruce);
     final horarios = _db.collection('deportes').doc(codigo).collection('horarios');
     final referencia = horario.id.isEmpty ? horarios.doc() : horarios.doc(horario.id);
     await referencia.set(horario.aMapa());

@@ -28,6 +28,11 @@ class DeporteRepositoryFirebase implements DeporteRepository {
   Stream<Deporte?> deporte(String codigo) {
     return _deportes.doc(codigo).snapshots().map((doc) {
       final datos = doc.data();
+      // Sin conexión y sin copia guardada no se sabe si existe: no decir "no disponible".
+      if (datos == null && doc.metadata.isFromCache) {
+        throw const CatalogoException(
+            'No hay conexión. Abre esta disciplina con internet al menos una vez para verla sin conexión.');
+      }
       return datos == null ? null : Deporte.desdeMapa(doc.id, datos);
     }).handleError((Object e) => throw _traducir(e));
   }
@@ -36,6 +41,11 @@ class DeporteRepositoryFirebase implements DeporteRepository {
   Future<List<Horario>> horarios(String codigo) async {
     try {
       final consulta = await _deportes.doc(codigo).collection('horarios').get();
+      // Sin conexión y sin copia guardada, Firestore responde "vacío" aunque haya
+      // horarios: se avisa como sin conexión para no tomarla por un borrador (RN-07).
+      if (consulta.docs.isEmpty && consulta.metadata.isFromCache) {
+        throw const CatalogoException('No hay conexión. Revisa tu internet e inténtalo de nuevo.');
+      }
       return [for (final doc in consulta.docs) Horario.desdeMapa(doc.id, doc.data())]..sort(compararHorarios);
     } catch (e) {
       throw _traducir(e);
@@ -62,6 +72,7 @@ class DeporteRepositoryFirebase implements DeporteRepository {
   }
 
   CatalogoException _traducir(Object e) {
+    if (e is CatalogoException) return e;
     if (e is FirebaseException && e.code == 'unavailable') {
       return const CatalogoException('No hay conexión. Revisa tu internet e inténtalo de nuevo.');
     }

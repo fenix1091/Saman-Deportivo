@@ -67,6 +67,15 @@
         ]
       },
       {
+        "source": "/sw_sin_conexion.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
         "source": "/flutter_bootstrap.js",
         "headers": [
           {

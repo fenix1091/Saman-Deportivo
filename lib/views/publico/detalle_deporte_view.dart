@@ -27,13 +27,15 @@ class DetalleDeporteView extends StatelessWidget {
     // En pantallas anchas la ficha va en dos columnas y el botón queda en la
     // tarjeta de reserva de la derecha; en el teléfono, fijo abajo.
     final ancha = MediaQuery.sizeOf(context).width >= anchoDosColumnas;
+    // RN-07: un borrador (sin entrenador u horarios) no recibe inscripciones.
+    final borrador = deporte != null && vm.horariosCargados && deporte.esBorrador(vm.horarios);
     Widget? boton() => !puedeInscribirse
         ? null
         : FilledButton(
-            onPressed: deporte.hayCupo()
+            onPressed: deporte.hayCupo() && !borrador
                 ? () => context.push('/estudiante/inscribir/${Uri.encodeComponent(deporte.codigo)}')
                 : null,
-            child: Text(deporte.hayCupo() ? 'Inscribirme' : 'Sin cupos'),
+            child: Text(borrador ? 'Próximamente' : (deporte.hayCupo() ? 'Inscribirme' : 'Sin cupos')),
           );
     return PanelConMenu(
       bottomNavigationBar: !puedeInscribirse || ancha

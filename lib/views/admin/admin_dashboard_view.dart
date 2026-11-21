@@ -12,6 +12,7 @@ import 'inscritos_dialog.dart';
 import 'reservas_tab.dart';
 import 'resumen_tab.dart';
 import 'usuarios_tab.dart';
+import '../../widgets/animaciones.dart';
 import '../../widgets/cuadricula_adaptable.dart';
 import '../../widgets/panel_con_menu.dart';
 
@@ -137,6 +138,25 @@ class _TarjetaDeporte extends StatelessWidget {
                       Text(deporte.nombre,
                           style: Theme.of(context).textTheme.titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
                       if (deporte.categoria.isNotEmpty) Text(deporte.categoria),
+                      // RN-07: sin entrenador u horarios no sale en el catálogo.
+                      StreamBuilder<List<Horario>>(
+                        stream: repositorio.observarHorarios(deporte.codigo),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData || !deporte.esBorrador(snapshot.data!)) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Tooltip(
+                              message: 'No sale en el catálogo ni recibe inscripciones hasta tener entrenador y horarios.',
+                              child: EtiquetaEstado(
+                                'Borrador · ${deporte.faltaParaPublicar(snapshot.data!).toLowerCase()}',
+                                color: AppColors.naranjaProfundo,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -815,7 +835,10 @@ Future<void> _editarHorario(
     return;
   }
   try {
+    // El repositorio revisa además los horarios de las demás disciplinas.
     await repositorio.guardarHorario(deporte.codigo, resultado);
+  } on OperacionNoPermitidaException catch (error) {
+    if (context.mounted) _mensaje(context, error.mensaje);
   } on FirebaseException catch (error) {
     if (context.mounted) _mensaje(context, 'No se pudo guardar el horario: ${error.message ?? error.code}');
   }

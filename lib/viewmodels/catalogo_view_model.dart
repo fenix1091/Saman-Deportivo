@@ -89,12 +89,16 @@ class CatalogoViewModel extends ChangeNotifier {
   }
 
   bool _cumpleFiltros(Deporte d) {
+    // RN-07: los borradores no se publican. Si sus horarios no se pudieron leer
+    // (no hay entrada), se muestra igual en vez de esconderla por error.
+    if (d.entrenadorId.isEmpty) return false;
+    if (_horarios.containsKey(d.codigo) && _horarios[d.codigo]!.isEmpty) return false;
     if (_soloConCupos && !d.hayCupo()) return false;
     if (_deporte != null && d.nombre != _deporte) return false;
     if (_categoria != null && d.categoria != _categoria) return false;
     if (_dia != null || _franja != null) {
-      final coincide = horariosDe(d.codigo)
-          .any((h) => (_dia == null || h.dia == _dia) && (_franja == null || h.franja == _franja));
+      final coincide =
+          horariosDe(d.codigo).any((h) => (_dia == null || h.dia == _dia) && (_franja == null || h.franja == _franja));
       if (!coincide) return false;
     }
     final busqueda = normalizar(_texto);

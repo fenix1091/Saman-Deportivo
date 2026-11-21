@@ -61,6 +61,23 @@
       setTimeout(function () { carga.remove(); document.body.style.background = ''; }, 400);
     });
   </script>
+  <script>
+    // RNF-02: guarda la aplicación para abrirla sin conexión (ver sw_sin_conexion.js).
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw_sin_conexion.js').then(function () {
+          return navigator.serviceWorker.ready;
+        }).then(function (registro) {
+          // Pasados unos segundos, le pasa al guardián lo que ya se descargó.
+          setTimeout(function () {
+            var urls = performance.getEntriesByType('resource').map(function (r) { return r.name; });
+            urls.push(location.origin + '/');
+            if (registro.active) registro.active.postMessage({ tipo: 'guardar', urls: urls });
+          }, 6000);
+        }).catch(function () {});
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

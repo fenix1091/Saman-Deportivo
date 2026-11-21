@@ -14,6 +14,19 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.15',
+    fecha: DateTime(2026, 11, 21),
+    titulo: 'Borradores, lugares sin choques y catálogo sin conexión',
+    cambios: const [
+      'Una disciplina sin entrenador o sin horarios queda como borrador: no sale en el catálogo ni recibe '
+          'inscripciones, y en Clases y horarios lleva la etiqueta «Borrador» con lo que le falta.',
+      'Al agregar un horario se revisan también las demás disciplinas: un lugar no puede quedar ocupado a la misma '
+          'hora por dos clases.',
+      'El catálogo se puede ver sin conexión (solo lectura) con lo último que se cargó; la app también abre sin '
+          'internet una vez instalada.',
+    ],
+  ),
+  Novedad(
     version: '1.14',
     fecha: DateTime(2026, 11, 21),
     titulo: 'Devolución al cancelar antes de la aprobación',

@@ -95,6 +95,16 @@ class Deporte {
 
   bool hayCupo() => activo && cuposDisponibles() > 0;
 
+  /// RN-07: sin entrenador o sin horarios la disciplina queda como borrador: no
+  /// se publica en el catálogo ni recibe inscripciones.
+  bool esBorrador(List<Horario> horarios) => entrenadorId.isEmpty || horarios.isEmpty;
+
+  /// Qué le falta para dejar de ser borrador, por ejemplo "falta entrenador y horarios".
+  String faltaParaPublicar(List<Horario> horarios) {
+    final faltan = [if (entrenadorId.isEmpty) 'entrenador', if (horarios.isEmpty) 'horarios'];
+    return faltan.isEmpty ? '' : 'Falta ${faltan.join(' y ')}';
+  }
+
   Map<String, dynamic> aMapa() => {
         'nombre': nombre,
         'descripcion': descripcion,

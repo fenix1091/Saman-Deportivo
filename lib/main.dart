@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -26,6 +27,7 @@ import 'viewmodels/notificaciones_view_model.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  _guardarCopiaSinConexion();
   await _activarAppCheck();
   final notificaciones = NotificacionRepositoryFirebase();
   runApp(SamanDeportivoApp(
@@ -37,6 +39,21 @@ Future<void> main() async {
     notificaciones: notificaciones,
     rutaInicial: rutaDeEnlaceDeCorreo(Uri.base),
   ));
+}
+
+/// RNF-02: Firestore guarda en el navegador una copia de lo último que se leyó, así el
+/// catálogo se sigue viendo sin conexión (solo lectura) y se actualiza al volver.
+/// Funciona con varias pestañas abiertas a la vez.
+void _guardarCopiaSinConexion() {
+  if (!kIsWeb) return;
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      webPersistentTabManager: WebPersistentMultipleTabManager(),
+    );
+  } catch (_) {
+    // Si el navegador no lo permite (por ejemplo, ventana privada), sigue sin copia.
+  }
 }
 
 /// Clave pública del sitio en reCAPTCHA Enterprise (registrada en App Check de Firebase).
@@ -88,7 +105,8 @@ class SamanDeportivoApp extends StatefulWidget {
 
 class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
   late final AuthViewModel _auth = AuthViewModel(widget.repositorio);
-  late final GoRouter _router = crearRouter(_auth, adminRepository: widget.adminRepository, rutaInicial: widget.rutaInicial);
+  late final GoRouter _router =
+      crearRouter(_auth, adminRepository: widget.adminRepository, rutaInicial: widget.rutaInicial);
 
   @override
   void dispose() {
@@ -108,8 +126,7 @@ class _SamanDeportivoAppState extends State<SamanDeportivoApp> {
         Provider<AsistenciaRepository>(create: (_) => widget.asistenciaRepository ?? AsistenciaRepositoryFirebase()),
         Provider<NotificacionRepository>(create: (_) => widget.notificaciones ?? NotificacionRepositoryFirebase()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _auth),
-        ChangeNotifierProvider(
-            create: (context) => MisInscripcionesViewModel(context.read<InscripcionRepository>())),
+        ChangeNotifierProvider(create: (context) => MisInscripcionesViewModel(context.read<InscripcionRepository>())),
         // La campana sigue a la sesión: al entrar escucha los avisos de esa persona y al salir se vacía.
         ChangeNotifierProxyProvider<AuthViewModel, NotificacionesViewModel>(
           create: (context) => NotificacionesViewModel(context.read<NotificacionRepository>()),

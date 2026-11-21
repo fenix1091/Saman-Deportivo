@@ -36,6 +36,9 @@ class DeporteRepositoryFalso implements DeporteRepository {
           cupoMaximo: 15,
           cuposOcupados: 15,
           costoReserva: 5,
+          // Otro entrenador: así no es borrador (RN-07) sin ser del entrenador de prueba.
+          entrenadorId: 'ent-otro',
+          entrenador: EntrenadorAsignado(nombre: 'Luis Gómez', especialidad: 'Baloncesto', aniosExperiencia: 5),
         ),
         Deporte(
           codigo: 'TEN-01',

@@ -65,7 +65,11 @@ class _InicioViewState extends State<InicioView> {
       body: StreamBuilder<List<Deporte>>(
         stream: _deportes,
         builder: (context, foto) {
-          final deportes = foto.data ?? const <Deporte>[];
+          // RN-07: las que no tienen entrenador son borradores y no se cuentan como abiertas.
+          final deportes = [
+            for (final d in foto.data ?? const <Deporte>[])
+              if (d.entrenadorId.isNotEmpty) d
+          ];
           return Stack(
             children: [
               SingleChildScrollView(

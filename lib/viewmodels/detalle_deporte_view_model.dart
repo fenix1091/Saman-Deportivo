@@ -46,6 +46,10 @@ class DetalleDeporteViewModel extends ChangeNotifier {
   /// Un deporte que no existe o que el administrador dio de baja no se muestra.
   bool get noDisponible => !_cargando && _error == null && (_deporte == null || !_deporte!.activo);
   List<Horario> get horarios => _horarios;
+
+  /// Si ya se leyeron los horarios (sin conexión pueden no estar disponibles).
+  bool get horariosCargados => _horariosCargados;
+  bool _horariosCargados = false;
   List<Resena> get resenasRecientes => _resenas.take(maxResenas).toList();
   int get totalResenas => _resenas.length;
 
@@ -59,6 +63,7 @@ class DetalleDeporteViewModel extends ChangeNotifier {
   Future<void> _cargarHorarios() async {
     try {
       _horarios = await _repositorio.horarios(codigo);
+      _horariosCargados = true;
       _notificar();
     } catch (_) {
       // El resto del detalle se muestra igual; la sección de horarios queda vacía.
