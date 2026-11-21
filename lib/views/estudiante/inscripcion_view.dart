@@ -11,6 +11,7 @@ import '../../models/persona.dart';
 import '../../viewmodels/inscripcion_view_model.dart';
 import '../../widgets/barra_cupos.dart';
 import '../../widgets/botones_paypal.dart';
+import '../../widgets/check_animado.dart';
 import '../../widgets/formulario_centrado.dart';
 import '../../widgets/panel_con_menu.dart';
 
@@ -32,6 +33,7 @@ class InscripcionView extends StatelessWidget {
       if (aviso != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(aviso)));
       }
+      if (vm.pagada && context.mounted) await _celebrar(context, vm);
       return;
     }
     if (vm.monto > 0) {
@@ -56,7 +58,18 @@ class InscripcionView extends StatelessWidget {
       );
       if (aprobado != true) return;
     }
-    await vm.inscribirYPagar();
+    if (await vm.inscribirYPagar() && context.mounted) await _celebrar(context, vm);
+  }
+
+  Future<void> _celebrar(BuildContext context, InscripcionViewModel vm) {
+    final confirmada = vm.inscripcion?.estado == EstadoInscripcion.confirmada;
+    return VentanaPagoExitoso.mostrar(
+      context,
+      titulo: confirmada ? '¡Inscripción lista!' : (vm.monto > 0 ? '¡Pago procesado!' : '¡Reserva enviada!'),
+      detalle: confirmada
+          ? 'Ya tienes tu cupo en ${vm.deporte!.nombre}.'
+          : 'Tu reserva en ${vm.deporte!.nombre} pasa a revisión de la Coordinación de Deportes.',
+    );
   }
 
   @override
@@ -80,7 +93,9 @@ class InscripcionView extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 640),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [_Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)],
+                children: [
+                  _Entrada(child: _Comprobante(deporte: deporte, inscripcion: vm.inscripcion!, pago: vm.pago)),
+                ],
               ),
             ),
           );
@@ -340,6 +355,28 @@ class _Comprobante extends StatelessWidget {
   }
 }
 
+/// Entrada suave del comprobante: sube un poco y aparece.
+class _Entrada extends StatelessWidget {
+  const _Entrada({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 520),
+      curve: Curves.easeOutCubic,
+      builder: (_, t, hijo) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 24 * (1 - t)), child: hijo),
+      ),
+      child: child,
+    );
+  }
+}
+
 class _Aviso extends StatelessWidget {
   const _Aviso(this.texto);
 
@@ -375,6 +412,7 @@ class _VentanaPayPal extends StatefulWidget {
 
 class _VentanaPayPalState extends State<_VentanaPayPal> {
   bool _cerrada = false;
+  bool _procesando = false;
 
   void _cerrar([String? aviso]) {
     if (_cerrada || !mounted) return;
@@ -386,50 +424,83 @@ class _VentanaPayPalState extends State<_VentanaPayPal> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     final textos = Theme.of(context).textTheme;
+    // Los botones de PayPal se quedan montados debajo del aviso de "procesando"
+    // para no cortar el script de PayPal mientras termina.
+    final procesando = IgnorePointer(
+      ignoring: !_procesando,
+      child: AnimatedOpacity(
+        opacity: _procesando ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        child: ColoredBox(
+          color: Theme.of(context).dialogTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox.square(
+                  dimension: 56,
+                  child: CircularProgressIndicator(strokeWidth: 5, color: AppColors.verdeHoja),
+                ),
+                const SizedBox(height: 16),
+                Text('Procesando tu pago…', style: textos.titleMedium),
+                const SizedBox(height: 4),
+                Text('No cierres esta ventana.', style: textos.bodySmall?.copyWith(color: AppColors.gris)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
     return AlertDialog(
       icon: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.azul),
       title: const Text('Pagar con PayPal'),
       content: SizedBox(
         width: 380,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Vas a pagar ${widget.monto} a Samán Deportivo por: ${vm.concepto}.'),
-              const SizedBox(height: 16),
-              BotonesPayPal(
-                monto: vm.monto,
-                concepto: vm.concepto,
-                antesDeCobrar: () async {
-                  final id = await vm.reservarParaPagar();
-                  if (id == null) _cerrar();
-                  return id;
-                },
-                alAprobar: (referencia) async {
-                  await vm.registrarPagoPayPal(referencia);
-                  _cerrar();
-                },
-                alFallar: (mensaje) {
-                  // Si fallo al apartar el cupo, el motivo ya esta en la pantalla.
-                  _cerrar(vm.error == null ? mensaje : null);
-                },
-                alCancelar: () {
-                  vm.pagoCancelado();
-                  _cerrar();
-                },
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Vas a pagar ${widget.monto} a Samán Deportivo por: ${vm.concepto}.'),
+                  const SizedBox(height: 16),
+                  BotonesPayPal(
+                    monto: vm.monto,
+                    concepto: vm.concepto,
+                    antesDeCobrar: () async {
+                      final id = await vm.reservarParaPagar();
+                      if (id == null) _cerrar();
+                      return id;
+                    },
+                    alAprobar: (referencia) async {
+                      if (mounted) setState(() => _procesando = true);
+                      await vm.registrarPagoPayPal(referencia);
+                      _cerrar();
+                    },
+                    alFallar: (mensaje) {
+                      // Si fallo al apartar el cupo, el motivo ya esta en la pantalla.
+                      _cerrar(vm.error == null ? mensaje : null);
+                    },
+                    alCancelar: () {
+                      vm.pagoCancelado();
+                      _cerrar();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Modo de pruebas (sandbox): se paga con una cuenta de prueba de PayPal y no se cobra dinero real.',
+                    style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Modo de pruebas (sandbox): se paga con una cuenta de prueba de PayPal y no se cobra dinero real.',
-                style: textos.bodySmall?.copyWith(color: AppColors.gris),
-              ),
-            ],
-          ),
+            ),
+            Positioned.fill(child: procesando),
+          ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => _cerrar(), child: const Text('Cancelar')),
+        TextButton(onPressed: _procesando ? null : () => _cerrar(), child: const Text('Cancelar')),
       ],
     );
   }

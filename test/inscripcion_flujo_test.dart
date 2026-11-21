@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:saman_deportivo/main.dart';
 import 'package:saman_deportivo/models/persona.dart';
+import 'package:saman_deportivo/widgets/check_animado.dart';
 
 import 'falsos/auth_repository_falso.dart';
 import 'falsos/notificacion_repository_falso.dart';
@@ -70,6 +71,13 @@ void main() {
     expect(find.text('PayPal (sandbox)'), findsOneWidget);
     await tester.tap(find.text('Aprobar pago'));
     await tester.pumpAndSettle();
+
+    // Celebración con la palomita animada; se cierra sola o con el botón.
+    expect(find.text('¡Pago procesado!'), findsOneWidget);
+    expect(find.byType(CheckAnimado), findsOneWidget);
+    await tester.tap(find.text('Ver comprobante'));
+    await tester.pumpAndSettle();
+    expect(find.text('¡Pago procesado!'), findsNothing);
 
     expect(find.text('Pago recibido, reserva en revisión'), findsOneWidget);
     expect(find.text('En revisión'), findsOneWidget);

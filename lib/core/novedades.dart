@@ -14,6 +14,15 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.13',
+    fecha: DateTime(2026, 11, 21),
+    titulo: 'Pago con animación',
+    cambios: const [
+      'Mientras se registra el pago aparece "Procesando tu pago", y al terminar una palomita animada confirma que '
+          'se procesó antes de mostrar el comprobante.',
+    ],
+  ),
+  Novedad(
     version: '1.12',
     fecha: DateTime(2026, 11, 21),
     titulo: 'Pago con PayPal',
