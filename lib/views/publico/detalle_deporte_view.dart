@@ -5,10 +5,13 @@ import 'package:provider/provider.dart';
 import '../../core/apariencia_deporte.dart';
 import '../../core/theme.dart';
 import '../../models/deporte.dart';
+import '../../models/inscripcion.dart';
 import '../../models/persona.dart';
 import '../../models/resena.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/detalle_deporte_view_model.dart';
+import '../../viewmodels/mis_inscripciones_view_model.dart';
+import '../dialogs/publicar_resena_dialog.dart';
 import '../../widgets/barra_cupos.dart';
 import '../../widgets/panel_con_menu.dart';
 
@@ -230,11 +233,19 @@ class _Resenas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final promedio = vm.calificacionPromedio;
-    if (promedio == null) return const Text('Todavía no hay reseñas de esta disciplina.');
+    final apartado = _TuResena(codigo: vm.codigo, nombre: vm.deporte?.nombre ?? '');
+    if (promedio == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [apartado, const SizedBox(height: 12), const Text('Todavía no hay reseñas de esta disciplina.')],
+      );
+    }
     final textos = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        apartado,
+        const SizedBox(height: 16),
         Row(
           children: [
             Text(promedio.toStringAsFixed(1), style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -249,6 +260,106 @@ class _Resenas extends StatelessWidget {
         ),
         for (final r in vm.resenasRecientes) _ResenaItem(resena: r, estrellas: r.calificacion, comentario: r.comentario),
       ],
+    );
+  }
+}
+
+/// Requisito para reseñar, igual al que exigen las reglas de Firestore.
+const requisitoResena =
+    'Para dejar una reseña necesitas una inscripción confirmada en esta disciplina y al menos una asistencia '
+    'registrada por el entrenador.';
+
+/// Apartado para dejar la reseña de la disciplina y del profesor; si aún no se
+/// puede, explica qué falta.
+class _TuResena extends StatefulWidget {
+  const _TuResena({required this.codigo, required this.nombre});
+
+  final String codigo;
+  final String nombre;
+
+  @override
+  State<_TuResena> createState() => _TuResenaState();
+}
+
+class _TuResenaState extends State<_TuResena> {
+  @override
+  void initState() {
+    super.initState();
+    final usuario = context.read<AuthViewModel>().usuario;
+    if (usuario != null && usuario.rol == Rol.estudiante) {
+      final vm = context.read<MisInscripcionesViewModel>();
+      // Si se llega directo al detalle, todavía nadie escucha sus inscripciones.
+      if (vm.inscripciones.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) vm.escucharInscripciones(usuario.uid);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final usuario = context.watch<AuthViewModel>().usuario;
+    final esEstudiante = usuario != null && usuario.rol == Rol.estudiante;
+    Inscripcion? inscripcion;
+    if (esEstudiante) {
+      for (final i in context.watch<MisInscripcionesViewModel>().inscripciones) {
+        if (i.deporteCodigo == widget.codigo) inscripcion = i;
+      }
+    }
+    final puede = inscripcion != null &&
+        inscripcion.estado == EstadoInscripcion.confirmada &&
+        inscripcion.sesionesAsistidas > 0;
+
+    final String detalle;
+    if (puede) {
+      detalle = 'Cuéntales a otros estudiantes qué te pareció la disciplina y el profesor.';
+    } else if (!esEstudiante) {
+      detalle = usuario == null
+          ? '$requisitoResena Inicia sesión como estudiante para reseñar.'
+          : 'Solo los estudiantes inscritos pueden dejar reseñas.';
+    } else if (inscripcion == null || !inscripcion.estaVigente()) {
+      detalle = '$requisitoResena Aún no tienes una inscripción vigente aquí.';
+    } else if (inscripcion.estado != EstadoInscripcion.confirmada) {
+      detalle = '$requisitoResena Tu inscripción está: ${inscripcion.estado.etiqueta.toLowerCase()}.';
+    } else {
+      detalle = '$requisitoResena Tu inscripción ya está confirmada: falta que el entrenador registre tu asistencia.';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: puede ? AppColors.naranja.withValues(alpha: 0.08) : const Color(0xFFF3F5F4),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(puede ? Icons.rate_review_outlined : Icons.lock_outline, size: 20,
+                  color: puede ? AppColors.naranjaProfundo : AppColors.gris),
+              const SizedBox(width: 8),
+              Text('Deja tu reseña', style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(detalle, style: textos.bodyMedium),
+          if (puede) ...[
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              icon: const Icon(Icons.star_outline_rounded),
+              label: const Text('Dejar reseña'),
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => PublicarResenaDialog(deporteCodigo: widget.codigo, nombreDeporte: widget.nombre),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

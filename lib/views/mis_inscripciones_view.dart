@@ -190,7 +190,7 @@ class _TarjetaInscripcion extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (confirmada)
+                  if (inscripcion.estaVigente())
                     OutlinedButton.icon(
                       icon: const Icon(Icons.rate_review_outlined),
                       label: const Text('Dejar reseña'),
@@ -201,7 +201,8 @@ class _TarjetaInscripcion extends StatelessWidget {
                                     deporteCodigo: inscripcion.deporteCodigo, nombreDeporte: inscripcion.nombreDeporte),
                               )
                           : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                content: Text('Podrás reseñar cuando hayas asistido al menos a un entrenamiento.'),
+                                content: Text('Para dejar una reseña necesitas una inscripción confirmada y al menos '
+                                    'una asistencia registrada por el entrenador.'),
                               )),
                     ),
                   if (inscripcion.estado == EstadoInscripcion.pendientePago)

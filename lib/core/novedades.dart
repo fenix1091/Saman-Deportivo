@@ -14,6 +14,17 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.17',
+    fecha: DateTime(2026, 11, 22),
+    titulo: 'Apartado «Deja tu reseña»',
+    cambios: const [
+      'En la sección Reseñas de cada disciplina hay un apartado para dejar la reseña. Si todavía no se puede, explica '
+          'que hace falta una inscripción confirmada y al menos una asistencia registrada por el entrenador, y qué le '
+          'falta a cada estudiante.',
+      'En Mis inscripciones el botón «Dejar reseña» aparece en todas las inscripciones vigentes y avisa del mismo requisito.',
+    ],
+  ),
+  Novedad(
     version: '1.16',
     fecha: DateTime(2026, 11, 22),
     titulo: 'Reseñas del profesor y nombre real del entrenador',
