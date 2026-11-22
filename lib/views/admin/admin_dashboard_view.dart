@@ -420,7 +420,6 @@ class _DeporteDialogState extends State<_DeporteDialog> {
   late final _codigo = TextEditingController(text: widget.deporte?.codigo);
   late final _costo =
       TextEditingController(text: widget.deporte == null ? '0' : widget.deporte!.costoReserva.toStringAsFixed(2));
-  late final _duracion = TextEditingController(text: widget.deporte?.duracion);
   late final _imagen = TextEditingController(text: widget.deporte?.imagenUrl);
   late final _nombre = TextEditingController(text: widget.deporte?.nombre);
   late final _categoria = TextEditingController(text: widget.deporte?.categoria);
@@ -435,7 +434,6 @@ class _DeporteDialogState extends State<_DeporteDialog> {
   void dispose() {
     _codigo.dispose();
     _costo.dispose();
-    _duracion.dispose();
     _imagen.dispose();
     _nombre.dispose();
     _categoria.dispose();
@@ -525,8 +523,6 @@ class _DeporteDialogState extends State<_DeporteDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _duracion,
-                decoration: const InputDecoration(labelText: 'Duración', hintText: 'Ej. Trimestre 2627-1 · 12 semanas'),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -575,7 +571,6 @@ class _DeporteDialogState extends State<_DeporteDialog> {
       cupoMaximo: cupos,
       cuposOcupados: anterior?.cuposOcupados ?? 0,
       costoReserva: double.parse(_costo.text.replaceAll(',', '.')),
-      duracion: _duracion.text.trim(),
       imagenUrl: _imagen.text.trim(),
       entrenadorId: anterior?.entrenadorId ?? '',
       activo: anterior?.activo ?? true,

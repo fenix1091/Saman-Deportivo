@@ -133,13 +133,12 @@ void main() {
     test('la reserva guarda una copia de los datos del deporte y calcula la asistencia', () {
       final r = Inscripcion.desdeMapa('FUT-01_a', {
         'estudianteId': 'a', 'deporteCodigo': 'FUT-01', 'estado': 'confirmada',
-        'nombreDeporte': 'Fútbol', 'horarios': 'Martes 16:00 - 18:00', 'monto': 5, 'duracion': 'Trimestre 2627-1',
+        'nombreDeporte': 'Fútbol', 'horarios': 'Martes 16:00 - 18:00', 'monto': 5,
         'cupoMaximo': 25, 'sesiones': 4, 'sesionesAsistidas': 3,
       });
       expect(r.nombreDeporte, 'Fútbol');
       expect(r.monto, 5);
-      expect(r.porcentajeAsistencia, 75);
-      expect(Inscripcion.desdeMapa(r.id, r.aMapa()).duracion, 'Trimestre 2627-1');
+      expect(r.porcentajeAsistencia, 75);
       expect(r.copiarCon(estado: EstadoInscripcion.cancelada).horarios, r.horarios);
     });
   });

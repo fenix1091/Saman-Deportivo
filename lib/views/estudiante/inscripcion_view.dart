@@ -215,8 +215,6 @@ class _Resumen extends StatelessWidget {
             dato(Icons.payments_outlined, 'Monto',
                 deporte.costoReserva == 0 ? 'Gratuita' : dinero(deporte.costoReserva)),
             if (deporte.descripcion.isNotEmpty) dato(Icons.notes_outlined, 'Descripción', deporte.descripcion),
-            dato(Icons.calendar_month_outlined, 'Duración',
-                deporte.duracion.isEmpty ? 'Todo el período académico' : deporte.duracion),
             const SizedBox(height: 4),
             BarraCupos(deporte: deporte),
             const SizedBox(height: 12),
@@ -335,7 +333,6 @@ class _Comprobante extends StatelessWidget {
             fila('Disciplina', '${deporte.nombre} (${deporte.codigo})'),
             if (inscripcion.horarios.isNotEmpty) fila('Días y horas', inscripcion.horarios),
             fila('Personas', '${deporte.cuposOcupados} de ${deporte.cupoMaximo} cupos'),
-            if (inscripcion.duracion.isNotEmpty) fila('Duración', inscripcion.duracion),
             if (p != null) ...[
               fila('Monto', p.monto == 0 ? 'Gratuita' : '\$${p.monto.toStringAsFixed(2)} ${p.moneda}'),
               fila('Método', p.metodo),

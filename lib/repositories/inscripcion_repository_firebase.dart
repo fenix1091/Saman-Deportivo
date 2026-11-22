@@ -54,7 +54,6 @@ class InscripcionRepositoryFirebase implements InscripcionRepository {
         'horarios': describirHorarios(horarios),
         'monto': deporte.costoReserva,
         'descripcion': deporte.descripcion,
-        'duracion': deporte.duracion,
         'cupoMaximo': deporte.cupoMaximo,
         'sesiones': 0,
         'sesionesAsistidas': 0,

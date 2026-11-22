@@ -174,7 +174,6 @@ class _TarjetaInscripcion extends StatelessWidget {
               const SizedBox(height: 8),
               Text(_explicacion(inscripcion.estado), style: textos.bodyMedium),
               if (inscripcion.horarios.isNotEmpty) dato(Icons.schedule, inscripcion.horarios),
-              if (inscripcion.duracion.isNotEmpty) dato(Icons.calendar_month_outlined, inscripcion.duracion),
               dato(Icons.payments_outlined,
                   inscripcion.monto == 0 ? 'Reserva gratuita' : 'Monto: \$${inscripcion.monto.toStringAsFixed(2)}'),
               if (confirmada)

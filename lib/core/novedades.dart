@@ -14,6 +14,14 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.18',
+    fecha: DateTime(2026, 11, 22),
+    titulo: 'Clases sin duración',
+    cambios: const [
+      'Las clases ya no tienen el campo Duración: no sale en el formulario, en el catálogo, en las reservas ni en la ficha del entrenador.',
+    ],
+  ),
+  Novedad(
     version: '1.17',
     fecha: DateTime(2026, 11, 22),
     titulo: 'Apartado «Deja tu reseña»',

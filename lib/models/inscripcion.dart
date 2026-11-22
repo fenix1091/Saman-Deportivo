@@ -40,7 +40,6 @@ class Inscripcion {
     this.horarios = '',
     this.monto = 0,
     this.descripcion = '',
-    this.duracion = '',
     this.cupoMaximo = 0,
     this.sesiones = 0,
     this.sesionesAsistidas = 0,
@@ -71,7 +70,6 @@ class Inscripcion {
   final String horarios;
   final double monto;
   final String descripcion;
-  final String duracion;
 
   /// Cantidad de personas que admite la disciplina.
   final int cupoMaximo;
@@ -119,7 +117,6 @@ class Inscripcion {
         horarios: horarios,
         monto: monto,
         descripcion: descripcion,
-        duracion: duracion,
         cupoMaximo: cupoMaximo,
         sesiones: sesiones,
         sesionesAsistidas: sesionesAsistidas,
@@ -136,7 +133,6 @@ class Inscripcion {
         'horarios': horarios,
         'monto': monto,
         'descripcion': descripcion,
-        'duracion': duracion,
         'cupoMaximo': cupoMaximo,
         'sesiones': sesiones,
         'sesionesAsistidas': sesionesAsistidas,
@@ -154,7 +150,6 @@ class Inscripcion {
         horarios: mapa['horarios'] as String? ?? '',
         monto: (mapa['monto'] as num?)?.toDouble() ?? 0,
         descripcion: mapa['descripcion'] as String? ?? '',
-        duracion: mapa['duracion'] as String? ?? '',
         cupoMaximo: (mapa['cupoMaximo'] as num?)?.toInt() ?? 0,
         sesiones: (mapa['sesiones'] as num?)?.toInt() ?? 0,
         sesionesAsistidas: (mapa['sesionesAsistidas'] as num?)?.toInt() ?? 0,

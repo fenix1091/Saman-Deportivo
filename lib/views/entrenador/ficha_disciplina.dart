@@ -339,7 +339,6 @@ class _Datos extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         if (deporte.categoria.isNotEmpty) fila('Categoría', deporte.categoria),
-        if (deporte.duracion.isNotEmpty) fila('Duración', deporte.duracion),
         fila('Estado', deporte.activo ? 'Activa' : 'Inactiva'),
         fila('Cupos',
             '${deporte.cuposOcupados} de ${deporte.cupoMaximo} ocupados'),

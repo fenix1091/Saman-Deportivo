@@ -69,7 +69,6 @@ class InscripcionRepositoryFalso implements InscripcionRepository {
       horarios: describirHorarios(horarios),
       monto: deporte.costoReserva,
       descripcion: deporte.descripcion,
-      duracion: deporte.duracion,
       cupoMaximo: deporte.cupoMaximo,
     );
     agregar(nueva);
