@@ -14,6 +14,14 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.19',
+    fecha: DateTime(2026, 11, 22),
+    titulo: 'Nuevo logo',
+    cambios: const [
+      'Samán Deportivo tiene logo nuevo: el samán con las pelotas de sus disciplinas. Se ve en la app, en la portada, en el icono de la pantalla de inicio y en los reportes.',
+    ],
+  ),
+  Novedad(
     version: '1.18',
     fecha: DateTime(2026, 11, 22),
     titulo: 'Clases sin duración',
