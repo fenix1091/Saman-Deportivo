@@ -367,12 +367,29 @@ service cloud.firestore {
 
     // Reseñas (CU-12): una por estudiante y deporte, solo si está inscrito y ya cursó
     // (asistió al menos a un entrenamiento registrado por el entrenador).
+    // La nota del profesor es opcional; si viene, es de 1 a 5 y solo para el profesor
+    // que tiene asignada la disciplina en ese momento.
+    function calificacionDelProfesorValida(d) {
+      return !d.keys().hasAny(['entrenadorId', 'calificacionEntrenador', 'comentarioEntrenador'])
+        || (d.keys().hasAll(['entrenadorId', 'calificacionEntrenador', 'comentarioEntrenador'])
+          && d.entrenadorId is string
+          && d.entrenadorId != ''
+          && d.entrenadorId == get(rutaDeporte(d.deporteCodigo)).data.get('entrenadorId', '')
+          && d.calificacionEntrenador is int
+          && d.calificacionEntrenador >= 1
+          && d.calificacionEntrenador <= 5
+          && d.comentarioEntrenador is string
+          && d.comentarioEntrenador.size() <= 500);
+    }
+
     match /resenas/{id} {
       allow read: if true;
       allow create, update: if autenticado()
         && id == request.resource.data.deporteCodigo + '_' + request.auth.uid
         && request.resource.data.estudianteId == request.auth.uid
-        && request.resource.data.keys().hasOnly(['estudianteId', 'autor', 'deporteCodigo', 'calificacion', 'comentario', 'fecha'])
+        && request.resource.data.keys().hasOnly(['estudianteId', 'autor', 'deporteCodigo', 'calificacion', 'comentario', 'fecha',
+             'entrenadorId', 'calificacionEntrenador', 'comentarioEntrenador'])
+        && calificacionDelProfesorValida(request.resource.data)
         && request.resource.data.get('autor', '') is string
         && request.resource.data.get('autor', '').size() <= 80
         && request.resource.data.calificacion is int

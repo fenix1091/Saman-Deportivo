@@ -71,7 +71,7 @@ class DetalleDeporteView extends StatelessWidget {
             ],
           ),
         );
-        final entrenador = _Seccion(titulo: 'Entrenador', child: _Entrenador(entrenador: deporte.entrenador));
+        final entrenador = _Seccion(titulo: 'Entrenador', child: _Entrenador(entrenador: deporte.entrenador, vm: vm));
         final horarios = _Seccion(
           titulo: 'Horarios',
           child: vm.horarios.isEmpty
@@ -175,19 +175,49 @@ class _Encabezado extends StatelessWidget {
 }
 
 class _Entrenador extends StatelessWidget {
-  const _Entrenador({required this.entrenador});
+  const _Entrenador({required this.entrenador, required this.vm});
 
   final EntrenadorAsignado? entrenador;
+  final DetalleDeporteViewModel vm;
 
   @override
   Widget build(BuildContext context) {
     final e = entrenador;
     if (e == null || e.nombre.isEmpty) return const Text('Aún no tiene entrenador asignado.');
     final experiencia = e.aniosExperiencia == 1 ? '1 año de experiencia' : '${e.aniosExperiencia} años de experiencia';
-    return _Dato(
-      icono: Icons.sports,
-      texto: e.nombre,
-      detalle: [if (e.especialidad.isNotEmpty) e.especialidad, if (e.aniosExperiencia > 0) experiencia].join(' · '),
+    final textos = Theme.of(context).textTheme;
+    final promedio = vm.calificacionProfesor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Dato(
+          icono: Icons.sports,
+          texto: e.nombre,
+          detalle: [if (e.especialidad.isNotEmpty) e.especialidad, if (e.aniosExperiencia > 0) experiencia].join(' · '),
+        ),
+        if (promedio == null)
+          Text('Todavía nadie ha calificado a este profesor.', style: textos.bodySmall?.copyWith(color: AppColors.gris))
+        else ...[
+          Row(
+            children: [
+              Text(promedio.toStringAsFixed(1), style: textos.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              _Estrellas(valor: promedio),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  vm.totalResenasProfesor == 1
+                      ? '(1 opinión de sus alumnos)'
+                      : '(${vm.totalResenasProfesor} opiniones de sus alumnos)',
+                  style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                ),
+              ),
+            ],
+          ),
+          for (final r in vm.resenasProfesorRecientes)
+            _ResenaItem(resena: r, estrellas: r.calificacionEntrenador!, comentario: r.comentarioEntrenador),
+        ],
+      ],
     );
   }
 }
@@ -217,16 +247,18 @@ class _Resenas extends StatelessWidget {
             ),
           ],
         ),
-        for (final r in vm.resenasRecientes) _ResenaItem(resena: r),
+        for (final r in vm.resenasRecientes) _ResenaItem(resena: r, estrellas: r.calificacion, comentario: r.comentario),
       ],
     );
   }
 }
 
 class _ResenaItem extends StatelessWidget {
-  const _ResenaItem({required this.resena});
+  const _ResenaItem({required this.resena, required this.estrellas, required this.comentario});
 
   final Resena resena;
+  final int estrellas;
+  final String comentario;
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +272,7 @@ class _ResenaItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Estrellas(valor: resena.calificacion.toDouble(), tamano: 16),
+              _Estrellas(valor: estrellas.toDouble(), tamano: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -251,7 +283,7 @@ class _ResenaItem extends StatelessWidget {
               ),
             ],
           ),
-          if (resena.comentario.isNotEmpty) Text(resena.comentario, style: textos.bodyMedium),
+          if (comentario.isNotEmpty) Text(comentario, style: textos.bodyMedium),
         ],
       ),
     );

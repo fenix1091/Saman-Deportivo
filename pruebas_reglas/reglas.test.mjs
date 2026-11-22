@@ -711,3 +711,42 @@ describe('Asistencia del entrenador (RF-14 a RF-16)', () => {
     await assertFails(getDoc(doc(sinSesion(), 'asistencias', ID)));
   });
 });
+
+describe('Reseñas de la disciplina y de su profesor', () => {
+  const ID = 'FUT-01_est1';
+  const preparar = (ruta, datos) =>
+    entorno.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), ruta), datos));
+  const resena = (extra = {}) => ({
+    estudianteId: 'est1', autor: 'Ana Pérez', deporteCodigo: 'FUT-01', calificacion: 4, comentario: '',
+    fecha: serverTimestamp(), ...extra,
+  });
+  const delProfesor = (extra = {}) =>
+    resena({ entrenadorId: 'ent1', calificacionEntrenador: 5, comentarioEntrenador: 'Explica muy bien', ...extra });
+
+  beforeEach(async () => {
+    await preparar('deportes/FUT-01', { nombre: 'Fútbol', cupoMaximo: 25, cuposOcupados: 1, activo: true, entrenadorId: 'ent1' });
+    await preparar(`inscripciones/${ID}`, {
+      estudianteId: 'est1', deporteCodigo: 'FUT-01', estado: 'confirmada', sesionesAsistidas: 2, motivo: '', pagoId: '',
+    });
+  });
+
+  test('un alumno que asistió reseña la disciplina, con o sin calificar al profesor', async () => {
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'resenas', ID), resena()));
+    await assertSucceeds(setDoc(doc(comoEstudiante(), 'resenas', ID), delProfesor()));
+  });
+
+  test('solo se califica al profesor asignado, de 1 a 5 y con los tres datos', async () => {
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID), delProfesor({ entrenadorId: 'ent2' })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID), delProfesor({ calificacionEntrenador: 6 })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID), delProfesor({ calificacionEntrenador: 0 })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID), resena({ entrenadorId: 'ent1', calificacionEntrenador: 5 })));
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID), delProfesor({ comentarioEntrenador: 'x'.repeat(501) })));
+  });
+
+  test('sin haber asistido no se puede calificar ni a la disciplina ni al profesor', async () => {
+    await preparar(`inscripciones/${ID}`, {
+      estudianteId: 'est1', deporteCodigo: 'FUT-01', estado: 'confirmada', sesionesAsistidas: 0, motivo: '', pagoId: '',
+    });
+    await assertFails(setDoc(doc(comoEstudiante(), 'resenas', ID), delProfesor()));
+  });
+});

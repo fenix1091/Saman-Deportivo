@@ -129,6 +129,14 @@ class DeporteRepositoryFalso implements DeporteRepository {
       });
 
   @override
+  Stream<List<Resena>> resenasDeEntrenador(String entrenadorId) => _vigilar(() {
+        final lista =
+            resenasGuardadas.where((r) => r.entrenadorId == entrenadorId && r.calificaAlEntrenador).toList();
+        lista.sort((a, b) => b.fecha.compareTo(a.fecha));
+        return lista;
+      });
+
+  @override
   Future<void> registrarConsulta(String codigo) async {
     consultas[codigo] = (consultas[codigo] ?? 0) + 1;
   }

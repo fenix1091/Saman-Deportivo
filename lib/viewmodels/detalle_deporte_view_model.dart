@@ -12,6 +12,7 @@ class DetalleDeporteViewModel extends ChangeNotifier {
   DetalleDeporteViewModel(this._repositorio, this.codigo) {
     _subDeporte = _repositorio.deporte(codigo).listen((deporte) {
       _deporte = deporte;
+      _seguirProfesor(deporte?.entrenadorId ?? '');
       _cargando = false;
       _error = null;
       _notificar();
@@ -31,6 +32,9 @@ class DetalleDeporteViewModel extends ChangeNotifier {
   final String codigo;
   late final StreamSubscription<Deporte?> _subDeporte;
   late final StreamSubscription<List<Resena>> _subResenas;
+  StreamSubscription<List<Resena>>? _subProfesor;
+  String _profesorSeguido = '';
+  List<Resena> _resenasProfesor = const [];
   bool _desechado = false;
 
   Deporte? _deporte;
@@ -60,6 +64,32 @@ class DetalleDeporteViewModel extends ChangeNotifier {
     return suma / _resenas.length;
   }
 
+  /// Reseñas del profesor asignado, de todas sus disciplinas (las más recientes).
+  List<Resena> get resenasProfesorRecientes => _resenasProfesor.take(maxResenas).toList();
+  int get totalResenasProfesor => _resenasProfesor.length;
+
+  /// Promedio de 1 a 5 estrellas del profesor, o `null` si nadie lo ha calificado.
+  double? get calificacionProfesor => promedioProfesor(_resenasProfesor);
+
+  static double? promedioProfesor(List<Resena> resenas) {
+    final notas = [for (final r in resenas) if (r.calificacionEntrenador != null) r.calificacionEntrenador!];
+    if (notas.isEmpty) return null;
+    return notas.reduce((a, b) => a + b) / notas.length;
+  }
+
+  void _seguirProfesor(String uid) {
+    if (uid == _profesorSeguido) return;
+    _profesorSeguido = uid;
+    _subProfesor?.cancel();
+    _subProfesor = null;
+    _resenasProfesor = const [];
+    if (uid.isEmpty) return;
+    _subProfesor = _repositorio.resenasDeEntrenador(uid).listen((resenas) {
+      _resenasProfesor = resenas;
+      _notificar();
+    }, onError: (_) {});
+  }
+
   Future<void> _cargarHorarios() async {
     try {
       _horarios = await _repositorio.horarios(codigo);
@@ -85,6 +115,7 @@ class DetalleDeporteViewModel extends ChangeNotifier {
     _desechado = true;
     _subDeporte.cancel();
     _subResenas.cancel();
+    _subProfesor?.cancel();
     super.dispose();
   }
 }

@@ -10,6 +10,7 @@ import '../../models/resena.dart';
 import '../../repositories/asistencia_repository.dart';
 import '../../repositories/deporte_repository.dart';
 import '../../viewmodels/asistencia_view_model.dart';
+import '../../viewmodels/detalle_deporte_view_model.dart';
 import '../../widgets/animaciones.dart';
 import '../../widgets/barra_cupos.dart';
 import '../../widgets/cuadricula_adaptable.dart';

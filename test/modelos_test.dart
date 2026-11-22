@@ -88,6 +88,15 @@ void main() {
   });
 
   group('Reglas de los modelos', () {
+    test('al asignar un entrenador se copia su nombre real para el catálogo', () {
+      final copia = EntrenadorAsignado.desdePerfil(
+          {'nombre': ' Max ', 'apellido': 'Quintero', 'especialidad': 'Fútbol', 'aniosExperiencia': 8, 'rol': 'entrenador'});
+      expect(copia.nombre, 'Max Quintero');
+      expect(copia.especialidad, 'Fútbol');
+      expect(copia.aniosExperiencia, 8);
+      expect(EntrenadorAsignado.desdePerfil({'nombre': 'Ana'}).nombre, 'Ana');
+    });
+
     test('los cupos disponibles nunca son negativos y un deporte inactivo no tiene cupo', () {
       expect(const Deporte(codigo: 'X', nombre: 'X', cupoMaximo: 10, cuposOcupados: 4).cuposDisponibles(), 6);
       expect(const Deporte(codigo: 'X', nombre: 'X', cupoMaximo: 10, cuposOcupados: 12).cuposDisponibles(), 0);

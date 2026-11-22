@@ -48,6 +48,17 @@ class EntrenadorAsignado {
   Map<String, dynamic> aMapa() =>
       {'nombre': nombre, 'especialidad': especialidad, 'aniosExperiencia': aniosExperiencia};
 
+  /// Copia pública a partir del perfil del entrenador en `usuarios/{uid}`.
+  factory EntrenadorAsignado.desdePerfil(Map<String, dynamic> perfil) => EntrenadorAsignado(
+        nombre: [perfil['nombre'], perfil['apellido']]
+            .whereType<String>()
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty)
+            .join(' '),
+        especialidad: perfil['especialidad'] as String? ?? '',
+        aniosExperiencia: (perfil['aniosExperiencia'] as num?)?.toInt() ?? 0,
+      );
+
   factory EntrenadorAsignado.desdeMapa(Map<String, dynamic> mapa) => EntrenadorAsignado(
         nombre: mapa['nombre'] as String? ?? '',
         especialidad: mapa['especialidad'] as String? ?? '',

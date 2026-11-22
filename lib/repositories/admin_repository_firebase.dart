@@ -211,13 +211,20 @@ class AdminRepositoryFirebase implements AdminRepository {
 
   @override
   Future<void> asignarEntrenador(String codigo, String entrenadorId) async {
-    if (entrenadorId.isNotEmpty) {
-      final entrenador = await _db.collection('usuarios').doc(entrenadorId).get();
-      if (entrenador.data()?['rol'] != Rol.entrenador.name) {
-        throw StateError('El usuario seleccionado no tiene el rol de entrenador.');
-      }
+    final deporte = _db.collection('deportes').doc(codigo);
+    if (entrenadorId.isEmpty) {
+      await deporte.update({'entrenadorId': '', 'entrenador': FieldValue.delete()});
+      return;
     }
-    await _db.collection('deportes').doc(codigo).update({'entrenadorId': entrenadorId});
+    final perfil = (await _db.collection('usuarios').doc(entrenadorId).get()).data();
+    if (perfil?['rol'] != Rol.entrenador.name) {
+      throw StateError('El usuario seleccionado no tiene el rol de entrenador.');
+    }
+    // El catálogo es público y no puede leer `usuarios`: se copia el nombre que muestra.
+    await deporte.update({
+      'entrenadorId': entrenadorId,
+      'entrenador': EntrenadorAsignado.desdePerfil(perfil!).aMapa(),
+    });
   }
 
   @override

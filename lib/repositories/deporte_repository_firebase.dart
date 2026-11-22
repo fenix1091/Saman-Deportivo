@@ -63,6 +63,17 @@ class DeporteRepositoryFirebase implements DeporteRepository {
   }
 
   @override
+  Stream<List<Resena>> resenasDeEntrenador(String entrenadorId) {
+    return _db.collection('resenas').where('entrenadorId', isEqualTo: entrenadorId).snapshots().map((consulta) {
+      final lista = [
+        for (final doc in consulta.docs) Resena.desdeMapa(doc.id, doc.data()),
+      ].where((r) => r.calificaAlEntrenador).toList();
+      lista.sort((a, b) => b.fecha.compareTo(a.fecha));
+      return lista;
+    }).handleError((Object e) => throw _traducir(e));
+  }
+
+  @override
   Future<void> registrarConsulta(String codigo) async {
     try {
       await _deportes.doc(codigo).update({'vecesBuscado': FieldValue.increment(1)});

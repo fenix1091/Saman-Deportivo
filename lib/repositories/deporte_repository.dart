@@ -19,6 +19,9 @@ abstract class DeporteRepository {
   /// Reseñas de un deporte, de la más reciente a la más antigua.
   Stream<List<Resena>> resenas(String codigo);
 
+  /// Reseñas que califican a un profesor, de todas sus disciplinas, de la más reciente a la más antigua.
+  Stream<List<Resena>> resenasDeEntrenador(String entrenadorId);
+
   /// Suma una consulta al contador de deportes más buscados (postcondición de CU-04).
   Future<void> registrarConsulta(String codigo);
 }

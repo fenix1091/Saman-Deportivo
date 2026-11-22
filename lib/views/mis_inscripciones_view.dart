@@ -197,7 +197,8 @@ class _TarjetaInscripcion extends StatelessWidget {
                       onPressed: puedeResenar
                           ? () => showDialog(
                                 context: context,
-                                builder: (_) => PublicarResenaDialog(deporteCodigo: inscripcion.deporteCodigo),
+                                builder: (_) => PublicarResenaDialog(
+                                    deporteCodigo: inscripcion.deporteCodigo, nombreDeporte: inscripcion.nombreDeporte),
                               )
                           : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                                 content: Text('Podrás reseñar cuando hayas asistido al menos a un entrenamiento.'),

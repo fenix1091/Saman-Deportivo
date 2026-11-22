@@ -170,6 +170,17 @@ class _Ficha extends StatelessWidget {
                 child: _Resenas(codigo: d.codigo),
               ),
             ),
+            if (d.entrenadorId.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Revelar(
+                orden: 6,
+                child: _Tarjeta(
+                  icono: Icons.workspace_premium_outlined,
+                  titulo: 'Tu calificación como profesor',
+                  child: _ResenasProfesor(entrenadorId: d.entrenadorId),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -458,10 +469,62 @@ class _Resenas extends StatelessWidget {
   }
 }
 
+/// Lo que opinan del profesor sus alumnos de todas sus disciplinas.
+class _ResenasProfesor extends StatelessWidget {
+  const _ResenasProfesor({required this.entrenadorId});
+
+  final String entrenadorId;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return StreamBuilder<List<Resena>>(
+      stream: context.read<DeporteRepository>().resenasDeEntrenador(entrenadorId),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Text('No se pudieron cargar las opiniones.', style: textos.bodyMedium?.copyWith(color: AppColors.gris));
+        }
+        if (!snap.hasData) return const SizedBox(height: 60, child: Esqueleto(filas: 1, alto: 48));
+        final resenas = snap.data!;
+        final promedio = DetalleDeporteViewModel.promedioProfesor(resenas);
+        if (promedio == null) {
+          return Text('Tus alumnos todavía no te han calificado.',
+              style: textos.bodyMedium?.copyWith(color: AppColors.gris));
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(promedio.toStringAsFixed(1), style: textos.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                _Estrellas(valor: promedio),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    resenas.length == 1 ? '(1 opinión)' : '(${resenas.length} opiniones)',
+                    style: textos.bodySmall?.copyWith(color: AppColors.gris),
+                  ),
+                ),
+              ],
+            ),
+            for (final r in resenas)
+              _ResenaItem(resena: r, estrellas: r.calificacionEntrenador, comentario: r.comentarioEntrenador),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _ResenaItem extends StatelessWidget {
-  const _ResenaItem({required this.resena});
+  const _ResenaItem({required this.resena, this.estrellas, this.comentario});
 
   final Resena resena;
+
+  /// Si se dan, se muestran en lugar de la nota y el comentario de la disciplina.
+  final int? estrellas;
+  final String? comentario;
 
   @override
   Widget build(BuildContext context) {
@@ -474,7 +537,7 @@ class _ResenaItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Estrellas(valor: resena.calificacion.toDouble(), tamano: 16),
+              _Estrellas(valor: (estrellas ?? resena.calificacion).toDouble(), tamano: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -485,8 +548,8 @@ class _ResenaItem extends StatelessWidget {
               ),
             ],
           ),
-          if (resena.comentario.isNotEmpty)
-            Text(resena.comentario, style: textos.bodyMedium),
+          if ((comentario ?? resena.comentario).isNotEmpty)
+            Text(comentario ?? resena.comentario, style: textos.bodyMedium),
         ],
       ),
     );

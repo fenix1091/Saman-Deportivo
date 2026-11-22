@@ -14,6 +14,19 @@ class Novedad {
 /// agrega su entrada al principio de esta lista.
 final novedades = <Novedad>[
   Novedad(
+    version: '1.16',
+    fecha: DateTime(2026, 11, 22),
+    titulo: 'Reseñas del profesor y nombre real del entrenador',
+    cambios: const [
+      'Al dejar una reseña, el estudiante también califica al profesor de la disciplina (de 1 a 5 estrellas, con '
+          'comentario opcional).',
+      'El detalle de cada disciplina muestra el promedio del profesor con las opiniones de sus alumnos de todas sus '
+          'disciplinas, y el entrenador ve su calificación en la ficha de cada disciplina.',
+      'Al asignar o cambiar el entrenador de una disciplina, el catálogo y el detalle muestran su nombre real; al '
+          'quitarlo vuelve a decir «Entrenador por asignar».',
+    ],
+  ),
+  Novedad(
     version: '1.15',
     fecha: DateTime(2026, 11, 21),
     titulo: 'Borradores, lugares sin choques y catálogo sin conexión',

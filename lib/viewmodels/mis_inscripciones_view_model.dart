@@ -60,13 +60,16 @@ class MisInscripcionesViewModel extends ChangeNotifier {
     }
   }
 
-  /// Publica o actualiza una reseña
+  /// Publica o actualiza una reseña de la disciplina y, si se califica, de su profesor.
   Future<bool> publicarResena({
     required String deporteCodigo,
     required String estudianteId,
     required int calificacion,
     required String comentario,
     String autor = '',
+    String entrenadorId = '',
+    int? calificacionEntrenador,
+    String comentarioEntrenador = '',
   }) async {
     try {
       await _repository.publicarResena(Resena(
@@ -77,6 +80,9 @@ class MisInscripcionesViewModel extends ChangeNotifier {
         calificacion: calificacion,
         comentario: comentario,
         fecha: DateTime.now(),
+        entrenadorId: entrenadorId,
+        calificacionEntrenador: entrenadorId.isEmpty ? null : calificacionEntrenador,
+        comentarioEntrenador: entrenadorId.isEmpty ? '' : comentarioEntrenador,
       ));
       return true;
     } catch (e) {
