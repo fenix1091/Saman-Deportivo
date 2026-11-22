@@ -48,6 +48,15 @@ class _LoginViewState extends State<LoginView> {
     context.go(widget.destino ?? AuthViewModel.rutaInicio(vm.usuario!.rol));
   }
 
+  /// Al volver de recuperar la contraseña esta pantalla sigue montada, así que se
+  /// borra la clave escrita: la que sirve ahora es la nueva.
+  void _irARecuperarClave() {
+    _clave.clear();
+    setState(() => _verClave = false);
+    context.read<AuthViewModel>().limpiarError();
+    context.push('/recuperar-clave');
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthViewModel>();
@@ -86,7 +95,7 @@ class _LoginViewState extends State<LoginView> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.push('/recuperar-clave'),
+                  onPressed: _irARecuperarClave,
                   child: const Text('¿Olvidaste tu contraseña?'),
                 ),
               ),

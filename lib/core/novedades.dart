@@ -24,6 +24,8 @@ final novedades = <Novedad>[
           'hora por dos clases.',
       'El catálogo se puede ver sin conexión (solo lectura) con lo último que se cargó; la app también abre sin '
           'internet una vez instalada.',
+      'Al volver de «¿Olvidaste tu contraseña?» al inicio de sesión, el campo de contraseña aparece vacío para '
+          'escribir la nueva.',
     ],
   ),
   Novedad(

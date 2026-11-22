@@ -166,4 +166,21 @@ void main() {
     expect(find.text('Correo o contraseña inválidos.'), findsOneWidget);
     expect(find.text('Inicia sesión'), findsOneWidget);
   });
+
+  testWidgets('al volver de recuperar la contraseña el campo de contraseña queda vacío', (tester) async {
+    await abrirLogin(tester);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Correo'), 'admin@unimet.edu.ve');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'ClaveVieja1');
+    await tester.tap(find.text('¿Olvidaste tu contraseña?'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'admin@unimet.edu.ve');
+    await tester.tap(find.text('Enviar enlace'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Volver a iniciar sesión'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inicia sesión'), findsOneWidget);
+    expect(find.text('ClaveVieja1'), findsNothing);
+    final clave = tester.widget<TextFormField>(find.widgetWithText(TextFormField, 'Contraseña'));
+    expect(clave.controller!.text, isEmpty);
+  });
 }
