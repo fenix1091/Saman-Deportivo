@@ -523,9 +523,6 @@ class _DeporteDialogState extends State<_DeporteDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
                 controller: _imagen,
                 decoration: const InputDecoration(
                     labelText: 'Foto (enlace https)',
